@@ -224,7 +224,9 @@ function move(n,dx,dy){
   // passenger just one small step from its contact boundary.
   if(n===1&&g.unlocked&&g.open>=.96&&!g.passageStart&&b.y>oldGateY+r*.6)
    g.passageStart=true;
-  if(n===1&&g.passageStart&&g.unlocked&&g.open>=.96&&b.y<oldGateY-r*1.2&&b.x>=gateLeft()+r*.7&&b.x<=gateRight()-r*.7){
+  // Success only after Coral's whole body has cleared the gate's collision band.
+  // Earlier the reward fired while the passenger still touched the threshold.
+  if(n===1&&g.passageStart&&g.unlocked&&g.open>=.96&&b.y<oldGateY-(r+wallR()*.52+4)&&b.x>=gateLeft()+r*.7&&b.x<=gateRight()-r*.7){
    g.crossed=true;succeed();
   }
  }
