@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#fffaf4">
-<title>Две половини — цял екран</title>
+<title>Две половини — чисто управление</title>
 <style>
 :root{color-scheme:light;--teal:#72a5a4;--coral:#f49d85;--gold:#e5ac69;--ink:#334d49;--ivory:#fffdfa}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -31,8 +31,7 @@ button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #left-knob{background:var(--teal)}#right-knob{background:var(--coral)}
 .zone .hint{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 7px);font-weight:850;font-size:11px;letter-spacing:.05em;pointer-events:none;white-space:nowrap;opacity:.9}
 #left-zone .hint{left:clamp(17px,7vw,85px);color:#5d928b}#right-zone .hint{right:clamp(17px,7vw,85px);color:#d88c75}
-#join{position:absolute;z-index:8;left:50%;bottom:calc(env(safe-area-inset-bottom) + 27px);transform:translateX(-50%);background:#334d49;color:#fff;border:2px solid #ffffffd9;box-shadow:0 4px 18px #334d4933;padding:12px 19px;border-radius:999px;font-size:13px;font-weight:800;white-space:nowrap;touch-action:manipulation;display:none}
-#join.show{display:block}
+.mode-switch{background:#dff0e9;border-color:#bad6c8;font-weight:850}
 .bottom-note{position:absolute;z-index:1;bottom:calc(env(safe-area-inset-bottom) + 9px);left:0;right:0;font-size:11px;font-weight:750;text-align:center;color:#82948a;pointer-events:none;opacity:.75}
 @media(max-width:650px){.top{gap:4px;left:8px;right:8px}.brand{font-size:15px}.buttons{gap:4px}.pill{padding:7px 7px;font-size:11px}.small{padding:7px 8px;font-size:11px}#status{top:calc(env(safe-area-inset-top) + 52px);left:5%;right:5%}#progress{top:calc(env(safe-area-inset-top) + 79px)}.pad{width:98px;height:98px}#join{bottom:calc(env(safe-area-inset-bottom) + 19px);padding:9px 12px;font-size:11px}.zone{height:32%}.bottom-note{display:none}}
 @media(max-height:560px){.zone{height:42%}.pad{width:96px;height:96px}.zone .hint{display:none}#join{bottom:calc(env(safe-area-inset-bottom) + 7px)}}
@@ -41,13 +40,13 @@ button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 <body>
 <div id="app">
   <canvas id="playfield" aria-label="Пълноекранна игра Две половини"></canvas>
-  <div class="top"><div class="brand">Две половини</div><div class="buttons"><span class="pill" id="score">★ 0</span><span class="pill" id="level">Ниво 1</span><button class="small" id="fullscreen" type="button" title="Цял екран">⛶</button><button class="small" id="restart" type="button">↻</button></div></div>
+  <div class="top"><div class="brand">Две половини</div><div class="buttons"><span class="pill" id="score">★ 0</span><span class="pill" id="level">Тест</span><button class="small mode-switch" id="modebtn" type="button">▶ Игра</button><button class="small" id="fullscreen" type="button" title="Цял екран">⛶</button><button class="small" id="restart" type="button">↻</button></div></div>
   <div id="status" role="status" aria-live="polite">Раздалечи двата палеца, за да разделиш топчето ↙ ↘</div>
   <div id="progress">🩵 0/4 &nbsp; 🧡 0/4</div>
   <div class="zone" id="left-zone" aria-label="Управление на синьото топче"><div class="pad" id="left-pad"><div class="knob" id="left-knob"></div></div><div class="hint">ЛЯВ ПАЛЕЦ</div></div>
   <div class="zone" id="right-zone" aria-label="Управление на оранжевото топче"><div class="pad" id="right-pad"><div class="knob" id="right-knob"></div></div><div class="hint">ДЕСЕН ПАЛЕЦ</div></div>
-  <button id="join" type="button">↘ ↙ СЪЕДИНИ</button>
-  <div class="bottom-note">Раздели → събери цветовете → съедини → вземи жълтите</div>
+  
+  <div class="bottom-note">Ляв палец: синьо · десен палец: оранжево · сблъскай за съединяване</div>
 </div>
 <script>
 (function(){
@@ -57,16 +56,23 @@ const canvas=$('playfield'),ctx=canvas.getContext('2d',{alpha:false});
 if(!ctx){$('status').textContent='Невъзможно е да се стартира играта в този браузър.';return;}
 const C={teal:'#72a5a4',coral:'#f49d85',gold:'#e5ac69'};
 const sticks=[{x:0,y:0,id:null,downX:0,downY:0},{x:0,y:0,id:null,downX:0,downY:0}];
+let practice=true;
 let W=1,H=1,dpr=1,g,prev=0,keyboard={},animStarted=false;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const radius=()=>clamp(Math.min(W,H)*.026,16,23);
 function say(text){$('status').textContent=text}
 function refresh(){
- $('score').textContent='★ '+g.score;
- $('level').textContent='Ниво '+g.level;
- $('progress').textContent=g.phase==='colors'?'🩵 '+g.teal+'/4　🧡 '+g.coral+'/4':'🟡 '+g.gold+'/3';
- $('join').classList.toggle('show',g.mode==='split');
+ if(practice){
+  $('score').textContent='✓ '+g.merges+' събирания';
+  $('level').textContent='Тест';
+  $('progress').textContent=g.mode==='joined'?'↙ Раздели с двата палеца ↘':'Сблъскай двете топчета · без магнит отдалеч';
+ }else{
+  $('score').textContent='★ '+g.score;
+  $('level').textContent='Ниво '+g.level;
+  $('progress').textContent=g.phase==='colors'?'🩵 '+g.teal+'/4　🧡 '+g.coral+'/4':'🟡 '+g.gold+'/3';
+ }
+ $('modebtn').textContent=practice?'▶ Игра':'◎ Тест';
 }
 function touchReset(which){
  const s=sticks[which];s.x=0;s.y=0;s.id=null;
@@ -84,15 +90,16 @@ function defaultPads(){
 function setupPad(n){
  const zone=$(n?'right-zone':'left-zone'),pad=$(n?'right-pad':'left-pad'),knob=$(n?'right-knob':'left-knob'),s=sticks[n];
  const act=(clientX,clientY)=>{
-  const maxR=(pad.offsetWidth||116)*.39;
+  const maxR=(pad.offsetWidth||116)*.37;
   const dx=clientX-s.downX,dy=clientY-s.downY;
-  const len=Math.hypot(dx,dy),ratio=len>maxR?maxR/len:1;
-  const mx=dx*ratio,my=dy*ratio;
-  // Dead-zone keeps little finger vibrations from making the ball wander.
-  const dead=.12;
-  const norm=(n)=>Math.abs(n)<dead?0:Math.sign(n)*(Math.abs(n)-dead)/(1-dead);
-  s.x=norm(mx/maxR);s.y=norm(my/maxR);
-  knob.style.transform='translate(-50%,-50%) translate('+mx+'px,'+my+'px)';
+  const len=Math.hypot(dx,dy);
+  // Radial dead zone avoids diagonal bias and prevents jitter around the thumb.
+  const dead=maxR*.10;
+  const strength=len<=dead?0:Math.min(1,(len-dead)/(maxR-dead));
+  s.x=len>0?dx/len*strength:0;
+  s.y=len>0?dy/len*strength:0;
+  const k=len>maxR?maxR/len:1;
+  knob.style.transform='translate(-50%,-50%) translate('+(dx*k)+'px,'+(dy*k)+'px)';
  };
  const begin=(id,x,y)=>{
   if(s.id!==null)return false;
@@ -121,12 +128,12 @@ function setupPad(n){
 setupPad(0);setupPad(1);
 function resetGame(){
  const r=radius();
- g={level:1,score:0,phase:'colors',mode:'joined',joined:{x:W*.5,y:H*.64},a:{x:W*.5-r*2,y:H*.64},b:{x:W*.5+r*2,y:H*.64},items:[],fx:[],teal:0,coral:0,gold:0,scroll:0,splitHold:0,joinHold:0,mergeLock:0,spawnTime:.9,spawnCount:0,time:0};
+ g={level:1,score:0,merges:0,splits:0,phase:'colors',mode:'joined',joined:{x:W*.5,y:H*.64},a:{x:W*.5-r*2,y:H*.64},b:{x:W*.5+r*2,y:H*.64},items:[],fx:[],teal:0,coral:0,gold:0,scroll:0,splitHold:0,joinHold:0,mergeLock:0,spawnTime:.9,spawnCount:0,time:0};
  for(let n=0;n<2;n++)touchReset(n);
- defaultPads();generateTargets();refresh();say('Раздалечи двата палеца, за да разделиш топчето ↙ ↘');prev=0;
+ defaultPads();generateTargets();refresh();say(practice?'Тест на управлението: раздели, движи и сблъскай топчетата.':'Раздалечи двата палеца, за да разделиш топчето ↙ ↘');prev=0;
 }
 function generateTargets(){
- g.items=[];
+ g.items=[];if(practice)return;
  for(let i=0;i<5;i++){
   if(g.phase==='colors'){
    g.items.push(newTarget('teal',.15+i*.115));
@@ -141,8 +148,8 @@ function newTarget(type,fraction){
 }
 function resize(){
  const oldW=W,oldH=H;
- W=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320);
- H=Math.max(360,window.innerHeight||document.documentElement.clientHeight||360);
+ W=Math.max(320,$('app').clientWidth||window.innerWidth||320);
+ H=Math.max(360,$('app').clientHeight||window.innerHeight||360);
  dpr=Math.min(window.devicePixelRatio||1,2);
  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
  canvas.style.width=W+'px';canvas.style.height=H+'px';
@@ -155,12 +162,8 @@ function resize(){
  requestAnimationFrame(defaultPads);
 }
 resize();
-function startMerge(){
- if(g.mode!=='split')return;
- g.mode='joining';g.joinHold=0;$('join').classList.remove('show');
- say('Половините се привличат…');
-}
-$('join').addEventListener('click',startMerge);
+// Test mode isolates the twin-stick interaction from targets and levels.
+$('modebtn').addEventListener('click',()=>{practice=!practice;resetGame()});
 $('restart').addEventListener('click',resetGame);
 $('fullscreen').addEventListener('click',()=>{
  if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
@@ -169,24 +172,21 @@ $('fullscreen').addEventListener('click',()=>{
  });
  else say('За цял екран на iPad: Safari → Споделяне → Добавяне към началния екран');
 });
-function move(p,v,dt,side){
- const r=radius(),sx=W*.39,sy=H*.40;
- p.x=clamp(p.x+v.x*sx*dt,r,W-r);
- p.y=clamp(p.y+v.y*sy*dt,112,H-r-4);
- if(side==='teal')p.x=Math.min(p.x,W/2-r);
- if(side==='coral')p.x=Math.max(p.x,W/2+r);
+function move(p,v,dt){
+ const rad=radius(),speed=clamp(Math.min(W,H)*.32,170,295);
+ // The same number of pixels per second in every direction and orientation.
+ const mag=Math.hypot(v.x,v.y),scale=mag>1?1/mag:1;
+ p.x=clamp(p.x+v.x*scale*speed*dt,rad,W-rad);
+ p.y=clamp(p.y+v.y*scale*speed*dt,112,H-rad-4);
 }
-function toward(p,tx,ty,maxStep){
- const dx=tx-p.x,dy=ty-p.y,len=Math.hypot(dx,dy);
- if(len<=maxStep){p.x=tx;p.y=ty;return;}
- p.x+=dx/len*maxStep;p.y+=dy/len*maxStep;
-}
+
 function completeMerge(){
- g.mode='joined';g.mergeLock=.5;
+ g.mode='joined';g.mergeLock=.48;g.merges++;
  g.joined={x:(g.a.x+g.b.x)/2,y:(g.a.y+g.b.y)/2};
- say(g.phase==='gold'?'Съединени! Събирай жълтите 🟡':'Съединени! За разделяне — дръпни двата палеца навън.');
+ say(practice?'Добре! Съединяване №'+g.merges+'. Раздели отново.':g.phase==='gold'?'Съединени! Събирай жълтите 🟡':'Съединени! Раздели пак когато поискаш.');
  refresh();
 }
+
 function particle(x,y,color){
  for(let i=0;i<7;i++){const angle=Math.PI*2*i/7;
   g.fx.push({x,y,vx:Math.cos(angle)*(30+Math.random()*44),vy:Math.sin(angle)*(30+Math.random()*44),life:.30,color});
@@ -221,63 +221,64 @@ function update(dt){
  g.time+=dt;g.scroll+=(H*.046)*dt;g.mergeLock=Math.max(0,g.mergeLock-dt);
  const l=getStick(0),r=getStick(1),rad=radius();
  if(g.mode==='joined'){
-  // Opposite outward directions mean SPLIT, but otherwise either thumb controls the joined ball.
-  if(l.x<-.62&&r.x>.62&&g.mergeLock<=0){g.splitHold+=dt;
-   if(g.splitHold>.15){
-    g.mode='split';g.a={x:clamp(g.joined.x-rad*1.9,rad,W/2-rad),y:g.joined.y};
-    g.b={x:clamp(g.joined.x+rad*1.9,W/2+rad,W-rad),y:g.joined.y};
-    g.splitHold=0;g.mergeLock=.65;refresh();say('Разделени! Ляв палец = синьо, десен = оранжево.');
+  // The left thumb takes priority while both touch; no averaging/cancellation.
+  if(l.x<-.68&&r.x>.68&&g.mergeLock<=0){
+   g.splitHold+=dt;
+   if(g.splitHold>.135){
+    const offset=rad*2.0,base=clamp(g.joined.x,rad+offset,W-rad-offset);
+    g.mode='split';g.a={x:base-offset,y:g.joined.y};g.b={x:base+offset,y:g.joined.y};
+    g.splits++;g.splitHold=0;g.mergeLock=.48;
+    refresh();say(practice?'Движи независимо с двата палеца, после сблъскай топчетата.':'Разделени! Ляв палец = синьо, десен = оранжево.');
    }
   }else{
    g.splitHold=0;
    const la=Math.hypot(l.x,l.y),ra=Math.hypot(r.x,r.y);
-   const v=la>.1&&ra>.1?{x:(l.x+r.x)/2,y:(l.y+r.y)/2}:la>.1?l:r;
+   const v=la>.10?l:ra>.10?r:{x:0,y:0};
    move(g.joined,v,dt);
   }
  }else if(g.mode==='split'){
-  move(g.a,l,dt,'teal');move(g.b,r,dt,'coral');
-  if(g.mergeLock<=0){
-   // Any real collision combines the balls.
-   if(distance(g.a,g.b)<=rad*2+9)completeMerge();
-   else if(l.x>.55&&r.x<-.55){
-    // A deliberate inward gesture initiates a magnetic collision, regardless of vertical offset.
-    g.joinHold+=dt;
-    if(g.joinHold>.34)startMerge();
-   }else g.joinHold=0;
-  }
- }else if(g.mode==='joining'){
-  const tx=(g.a.x+g.b.x)/2,ty=(g.a.y+g.b.y)/2;
-  toward(g.a,tx,ty,Math.max(W,H)*.82*dt);
-  toward(g.b,tx,ty,Math.max(W,H)*.82*dt);
-  if(distance(g.a,g.b)<rad*2+3)completeMerge();
- }
- g.spawnTime-=dt;
- if(g.spawnTime<=0){
-  g.spawnTime=1.1;
-  if(g.items.length<18){
-   let typ;
-   if(g.phase==='gold')typ='gold';
-   else{
-    const choices=[];if(g.teal<4)choices.push('teal');if(g.coral<4)choices.push('coral');
-    typ=choices.length?choices[g.spawnCount%choices.length]:null;
+  const previous=distance(g.a,g.b);
+  move(g.a,l,dt);move(g.b,r,dt);
+  let gap=distance(g.a,g.b);
+  const closing=previous-gap;
+  // Only assist an intentional, already-near contact; do not pull across the screen.
+  if(g.mergeLock<=0&&closing>.04){
+   if(gap<rad*3.5&&gap>rad*2){
+    const pull=Math.min(37*dt,(gap-rad*2)*.28);
+    const ux=(g.b.x-g.a.x)/gap,uy=(g.b.y-g.a.y)/gap;
+    g.a.x+=ux*pull;g.a.y+=uy*pull;
+    g.b.x-=ux*pull;g.b.y-=uy*pull;
+    gap=distance(g.a,g.b);
    }
-   if(typ)g.items.push(newTarget(typ));g.spawnCount++;
+   if(gap<=rad*2+5)completeMerge();
   }
  }
- // Slow falling balls, separate from the rising scenery. Never mutate the phase inside this loop.
- const keep=[];let picked=false;
- for(const it of g.items){
-  it.y+=H*.063*dt;
-  if(it.y>H+30)continue;
-  const target=it.type==='gold'&&g.mode==='joined'?g.joined:it.type==='teal'&&g.mode==='split'?g.a:it.type==='coral'&&g.mode==='split'?g.b:null;
-  if(target&&distance(target,it)<rad+it.r+4){collect(it);picked=true;}
-  else keep.push(it);
+ if(!practice){
+  g.spawnTime-=dt;
+  if(g.spawnTime<=0){
+   g.spawnTime=1.1;
+   if(g.items.length<18){
+    let typ;
+    if(g.phase==='gold')typ='gold';
+    else{const choices=[];if(g.teal<4)choices.push('teal');if(g.coral<4)choices.push('coral');typ=choices.length?choices[g.spawnCount%choices.length]:null;}
+    if(typ)g.items.push(newTarget(typ));g.spawnCount++;
+   }
+  }
+  const keep=[];let picked=false;
+  for(const it of g.items){
+   it.y+=H*.063*dt;
+   if(it.y>H+30)continue;
+   const target=it.type==='gold'&&g.mode==='joined'?g.joined:it.type==='teal'&&g.mode==='split'?g.a:it.type==='coral'&&g.mode==='split'?g.b:null;
+   if(target&&distance(target,it)<rad+it.r+4){collect(it);picked=true;}
+   else keep.push(it);
+  }
+  g.items=keep;
+  if(picked)refresh();
+  if(g.phase==='colors'&&g.teal>=4&&g.coral>=4||g.phase==='gold'&&g.gold>=3)nextPhase();
  }
- g.items=keep;
- if(picked)refresh();
- if(g.phase==='colors'&&g.teal>=4&&g.coral>=4||g.phase==='gold'&&g.gold>=3)nextPhase();
  for(let i=g.fx.length-1;i>=0;i--){const f=g.fx[i];f.x+=f.vx*dt;f.y+=f.vy*dt;f.life-=dt;if(f.life<=0)g.fx.splice(i,1)}
 }
+
 function circle(x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
 function joinedBall(x,y,r){
  ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();ctx.fillStyle=C.teal;ctx.fillRect(x-r,y-r,r,2*r);ctx.fillStyle=C.coral;ctx.fillRect(x,y-r,r,2*r);ctx.restore();
@@ -309,8 +310,8 @@ function draw(){
  }
  if(g.mode==='joined')joinedBall(g.joined.x,g.joined.y,rad);
  else{
-  // A dotted joining line reveals the relationship between the halves.
-  ctx.strokeStyle=g.mode==='joining'?'#719d93a8':'#89ada348';
+  // A quiet line shows the two halves without automatic joining.
+  ctx.strokeStyle='#89ada348';
   ctx.setLineDash([4,9]);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(g.a.x,g.a.y);ctx.lineTo(g.b.x,g.b.y);ctx.stroke();ctx.setLineDash([]);
   circle(g.a.x,g.a.y,rad,C.teal);circle(g.b.x,g.b.y,rad,C.coral);
   circle(g.a.x-rad*.28,g.a.y-rad*.32,3.3,'#ffffffab');circle(g.b.x-rad*.28,g.b.y-rad*.32,3.3,'#ffffffab');
@@ -324,7 +325,8 @@ function frame(t){
 }
 window.addEventListener('resize',resize,{passive:true});
 window.addEventListener('orientationchange',()=>{setTimeout(resize,100)},{passive:true});
-document.addEventListener('visibilitychange',()=>{prev=0;if(document.hidden)for(let i=0;i<2;i++)touchReset(i)});
+document.addEventListener('visibilitychange',()=>{prev=0;if(document.hidden){keyboard={};for(let i=0;i<2;i++)touchReset(i)}});
+window.addEventListener('blur',()=>{prev=0;keyboard={};for(let i=0;i<2;i++)touchReset(i)});
 window.addEventListener('pagehide',()=>{prev=0;for(let i=0;i<2;i++)touchReset(i)});
 window.addEventListener('keydown',e=>{if(['a','s','w','d','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){keyboard[e.key]=true;e.preventDefault()}});
 window.addEventListener('keyup',e=>{keyboard[e.key]=false});
