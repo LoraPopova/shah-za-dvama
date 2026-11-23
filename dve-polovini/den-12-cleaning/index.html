@@ -117,124 +117,62 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   // Both workstations are ordinary WORLD objects: every position is computed
   // from eventY({t:center}) and travels upward with the background and coins.
   // The moving plate must be actively tracked. Roles reverse at station 2.
-  function missionState(m){return g.missions[m.id];}
-  function coopGeometry(m){
-    const cy=eventY({t:m.center});
-    if(m.type==='moving'){
-      const state=missionState(m);
-      return {
-        centerY:cy,collector:1,helper:0,
-        xLeft:W*.5-rad()-13,xRight:W+rad()+13,
-        doorY:cy+H*.035,topY:cy-H*.075,
-        bonusX:W*.75,bonusY:cy-H*.065,
-        gapX:W*.745+Math.sin(state.motionPhase*1.6)*Math.min(W*.075,69),
-        gapHalf:clamp(W*.058,33,63),
-        plateX:W*.18,plateY:cy+H*.035,
-        plateRadius:clamp(W*.065,43,58)
-      };
-    }
-    const collector=m.collector,left=collector===0;
-    const l=left?W*.225:W*.525,r=left?W*.475:W*.775;
-    const topY=cy-H*.075,doorY=cy+H*.028;
-    return {
-      centerY:cy,xLeft:l,xRight:r,topY,doorY,
-      bonusX:(l+r)/2,bonusY:cy-H*.032,
-      plateX:m.helper===0?W*.18:W*.82,plateY:cy+H*.026,
-      plateRadius:clamp(W*.065,43,58),collector,helper:m.helper
-    };
+  function missionState(){return g.clean;}
+  function coopGeometry(){
+    const cy=eventY({t:66});
+    return {cy,rx:clamp(W*.13,72,126),ry:clamp(H*.087,67,94),xs:[W*.25,W*.75]};
   }
-  const missionVisible=m=>{
-    const a=coopGeometry(m);
-    return a.centerY>topBand()-H*.13&&a.centerY<bottomBand()+H*.16;
-  };
-  const coopActive=m=>g&&g.mode==='split'&&missionVisible(m);
-  function coopWalls(){
-    if(!g||g.mode==='joined')return [];
-    const walls=[];
-    for(const m of missions){
-      if(!coopActive(m))continue;
-      const a=coopGeometry(m),state=missionState(m);
-      if(m.type==='moving'){
-        walls.push([a.xLeft,a.doorY,a.gapX-a.gapHalf,a.doorY,17],
-          [a.gapX+a.gapHalf,a.doorY,a.xRight,a.doorY,17]);
-        continue;
-      }
-      walls.push([a.xLeft,a.topY,a.xRight,a.topY,14],
-        [a.xLeft,a.topY,a.xLeft,a.doorY,14],
-        [a.xRight,a.topY,a.xRight,a.doorY,14]);
-      if(!state.open)walls.push([a.xLeft,a.doorY,a.xRight,a.doorY,17]);
+  function cleanCell(n,i){
+    const a=coopGeometry(),col=i%4,row=Math.floor(i/4);
+    return {x:a.xs[n]+[-.72,-.24,.24,.72][col]*a.rx,
+      y:a.cy+[-.62,0,.62][row]*a.ry};
+  }
+  const cleanCount=n=>g.clean.cells[n].filter(v=>v>=.999).length;
+  function coopActive(){
+    if(!g||g.mode!=='split')return false;
+    const a=coopGeometry();
+    return a.cy>topBand()-a.ry&&a.cy<bottomBand()+a.ry;
+  }
+  const coopWalls=()=>[]; // Dirt is a surface, not a solid barrier.
+  function finishCleaning(){
+    if(g.clean.done||cleanCount(0)<9||cleanCount(1)<9)return;
+    g.clean.done=true;g.jobsDone=1;g.score+=10;
+    for(let n=0;n<2;n++){
+      g.energy[n]=Math.min(100,g.energy[n]+8);
+      miniMessage(g.balls[n].x,g.balls[n].y-25,'ЧИСТО! ✦+10 ♡+8','#5d9b82');
     }
-    return walls;
+    show('♢ ОБЩО ЧИСТЕНЕ ✓ +10 доход и +8 енергия за двамата');
+    g.hintUntil=g.realTime+3;
+    refresh();
+  }
+  // ONLY an actual player-initiated ball move can scrub; scroll and stationary
+  // finger leave all 24 separate cells untouched.
+  function scrubMotion(n,x0,y0,x1,y1){
+    if(!coopActive()||g.clean.done||pads[n].id===null)return;
+    const len=Math.hypot(x1-x0,y1-y0);
+    if(len<1.25)return;
+    const steps=Math.max(1,Math.min(240,Math.ceil(len/Math.max(4,rad()*.42))));
+    const each=Math.min(5.5,len/steps),reach=clamp(rad()+7,17,25);
+    for(let k=0;k<=steps;k++){
+      const t=k/steps,x=x0+(x1-x0)*t,y=y0+(y1-y0)*t;
+      if(x<rad()||x>W-rad()||y<topBand()||y>bottomBand())continue;
+      for(let i=0;i<12;i++){
+        const c=cleanCell(n,i);
+        if(Math.hypot(x-c.x,y-c.y)<reach){
+          g.clean.cells[n][i]=Math.min(1,g.clean.cells[n][i]+each/32);
+        }
+      }
+    }
+    g.clean.swipes[n]++;
+    finishCleaning();
   }
   function updateCooperation(dt){
-    for(const m of missions){
-      const state=missionState(m),a=coopGeometry(m);
-      if(!coopActive(m)){
-        if(!state.done&&a.centerY<topBand()-H*.13)state.missed=true;
-        state.hold=0;state.open=false;
-        continue;
-      }
-      const helping=g.balls[m.helper],collecting=g.balls[m.collector];
-      if(m.type==='moving'){
-        const pressing=pads[m.helper].id!==null&&
-          g.realTime-g.intentAt[m.helper]<2.2&&
-          Math.hypot(helping.x-a.plateX,helping.y-a.plateY)<a.plateRadius;
-        if(g.realTime>=state.pulseUntil)state.motionPhase+=dt;
-        if(!pressing){state.hold=0;state.latched=false;}
-        else if(!state.latched){
-          state.hold=Math.min(.35,state.hold+dt);
-          if(state.hold>=.24){
-            state.pulseUntil=g.realTime+2.2;
-            state.pulses++;state.latched=true;
-            state.open=true;state.hold=.24;
-            show('♢ ПРОЦЕПЪТ СПРЯ! Дясната светлина преминава сега.');
-            g.hintUntil=g.realTime+2;
-          }
-        }
-        state.open=g.realTime<state.pulseUntil;
-        // The collector must physically approach from BELOW and cross through
-        // the actual moving slot, not simply touch a reward from above.
-        if(collecting.y>=a.doorY-3&&collecting.x>W*.5&&
-          Math.abs(collecting.x-a.gapX)<a.gapHalf+rad()*.7)state.below=true;
-        if(state.pulses>0&&state.below&&!state.crossed&&
-          collecting.y<a.doorY-rad()-8&&
-          Math.abs(collecting.x-a.gapX)<a.gapHalf+rad()*.7){
-          state.crossed=true;
-          show('♢ ПРОХОД ✓ СЕГА ВЗЕМИ ЗЛАТНАТА НАГРАДА ✦8!');
-          g.hintUntil=g.realTime+1.6;
-        }
-        if(!state.done&&state.crossed&&
-          Math.hypot(collecting.x-a.bonusX,collecting.y-a.bonusY)<rad()+18){
-          state.done=true;g.jobsDone++;g.score+=m.bonus;
-          for(let k=0;k<2;k++)g.energy[k]=Math.min(100,g.energy[k]+8);
-          miniMessage(a.bonusX,a.bonusY,'УЛОВИХТЕ МОМЕНТА ✦ +8','#aa8a42');
-          show('ОБЩА МИСИЯ '+g.jobsDone+'/2! Преодоляхте прохода заедно.');
-          g.hintUntil=g.realTime+2.5;
-        }
-        continue;
-      }
-      // A passive ball displaced by a scrolling wall is not intentional help.
-      const pressing=pads[m.helper].id!==null&&g.realTime-g.intentAt[m.helper]<2.2&&
-        Math.hypot(helping.x-a.plateX,helping.y-a.plateY)<a.plateRadius;
-      state.hold=pressing?Math.min(.5,state.hold+dt):0;
-      const inside=collecting.x>a.xLeft+rad()*.65&&collecting.x<a.xRight-rad()*.65
-        &&collecting.y<a.doorY-rad()*.25&&collecting.y>a.topY+rad()*.4;
-      // If the collector is already inside, the gate stays open to let them
-      // leave regardless of whether the helper lifts off the plate.
-      const opened=state.hold>=.25||(state.open&&inside);
-      if(opened&&!state.open){
-        state.opens++;
-        show('♢ ВРАТАТА Е ОТВОРЕНА! Другата светлина взема ✦ +8');
-        g.hintUntil=g.realTime+1.5;
-      }
-      state.open=opened;
-      if(!state.done&&state.open&&Math.hypot(collecting.x-a.bonusX,collecting.y-a.bonusY)<rad()+17){
-        state.done=true;g.jobsDone++;g.score+=m.bonus;
-        for(let k=0;k<2;k++)g.energy[k]=Math.min(100,g.energy[k]+8);
-        miniMessage(a.bonusX,a.bonusY,'ОБЩА РАБОТА ✦ +8','#aa8a42');
-        show('ОБЩА МИСИЯ '+g.jobsDone+'/2! +8 доход и енергия и за двамата');
-        g.hintUntil=g.realTime+2.5;
-      }
+    if(!g||g.clean.done||g.clean.missed)return;
+    const a=coopGeometry();
+    if(a.cy<topBand()-a.ry){
+      g.clean.missed=true;g.jobsMissed++;
+      show('ЧИСТЕНЕТО НЕ Е ЗАВЪРШЕНО — опитай още веднъж');
+      g.hintUntil=g.realTime+2;
     }
   }
   function segmentDistanceSq(x,y,seg){
@@ -395,7 +333,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     const p=g.balls[n];
     if(Math.hypot(dx,dy)>1.2)g.intentAt[n]=g.realTime;
     const gain=gainOptions[gainIndex]*(.78+.22*g.energy[n]/100);
+    const fromX=p.x,fromY=p.y;
     solidMove(n,dx*gain,dy*gain);
+    scrubMotion(n,fromX,fromY,p.x,p.y);
   }
   function setupPad(n){
     const el=$('pad'+n),p=pads[n];
