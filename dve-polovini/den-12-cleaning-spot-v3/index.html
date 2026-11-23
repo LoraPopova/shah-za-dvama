@@ -230,7 +230,7 @@ function draw(){
  ctx.drawImage(stainCanvas,0,0,W,H);
  // Small visual hint that one shared task needs both participants.
  ctx.font='700 12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#8b8883';
- ctx.fillText(completed?'✓ ЧИСТО':'ПОЧИСТИ И ДВЕТЕ ПОЛОВИНИ',W*.5,a.cy-a.ry-20);
+ ctx.fillText(completed?'✓ ЧИСТО':'ПОЧИСТИ И ДВЕТЕ ПОЛОВИНИ',W*.5,geometry.cy-geometry.ry-20);
  for(let n=0;n<2;n++){
   const b=balls[n],r=radius(),color=colors[n],grad=ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,r*2.4);
   grad.addColorStop(0,color+'5b');grad.addColorStop(1,color+'00');
