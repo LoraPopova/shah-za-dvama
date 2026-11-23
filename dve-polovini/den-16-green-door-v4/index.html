@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 16 — Ключ и зелена врата v4</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+#bridgeMeter{position:fixed;left:16px;right:16px;top:calc(157px + env(safe-area-inset-top,0px));height:5px;background:#d7dfd8aa;border-radius:5px;pointer-events:none;z-index:5;overflow:hidden}
+#bridgeFill{height:100%;width:0%;background:linear-gradient(90deg,#73af92,#b8d5a4);transition:width .035s linear}
+#hint{top:calc(174px + env(safe-area-inset-top,0px));font-size:13px}
+#menu{top:calc(110px + env(safe-area-inset-top,0px))}
+@media(max-height:580px){#bridgeMeter{display:none}#hint{display:none}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №2</div><h1>Ден 16 · Ключ и врата v4</h1><div id="status">Както на скицата №2: ляв ключ → зелена врата вдясно.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">ВРАТА 0%</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="skip" disabled>Пропусни</button></div>
+<div id="bridgeMeter"><div id="bridgeFill"></div></div>
+<div id="hint">Синя влиза в очертаното поле и докосва ключа. Корал минава през зелената врата.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),C=['#67a8a3','#ef9882'];
+const GAIN=2.5,BASE_PACE=5,SLOW_PACE=5,PUZZLE_AT=10,TOTAL=31,OPEN_SECONDS=.16,CLOSE_SECONDS=.22;
+let W=1,H=1,dpr=1,g=null,prevFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const radius=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16);
+const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
+const lane=n=>n===0?[radius(),W*.5-radius()]:[W*.5+radius(),W-radius()];
+const playH=()=>lower()-upper();
+const gateY=(time=g.time)=>upper()+playH()*.28+(PUZZLE_AT-time)*playH()*.0065;
+// Drawing #2: turquoise key chamber pressed near the central divider,
+ // then the brown horizontal right-side wall interrupted by a GREEN gate.
+ const keyX=()=>W*.397;
+ const gateX=()=>W*.763;
+ const doorHalf=()=>clamp(W*.5*.12,23,65);
+ const keyRadius=()=>clamp(Math.min(W,H)*.023,14,23);
+ const wallR=()=>clamp(Math.min(W,H)*.012,7,12);
+ const chamber=()=>({
+   left:W*.304,right:W*.5,
+   halfH:clamp(playH()*.25,51,82),
+   entryHalf:clamp(radius()*2.8,32,56)
+ });
+const gateLeft=()=>gateX()-doorHalf();
+const gateRight=()=>gateX()+doorHalf();
+function keySegments(time=g.time){
+ const b=chamber(),y=gateY(time),h=b.halfH,o=b.entryHalf;
+ // One intentional opening in the left wall; outline is otherwise SOLID.
+ return [
+  [b.left,y-h,b.right,y-h,5],
+  [b.left,y+h,b.right,y+h,5],
+  [b.right,y-h,b.right,y+h,wallR()*1.75],
+  [b.left,y-h,b.left,y-o,5],
+  [b.left,y+o,b.left,y+h,5]
+ ];
+}
+function solidKeyChamber(x,y,time=g.time){
+ return keySegments(time).some(([a,b,c,d,w])=>
+  segmentDistSq(x,y,a,b,c,d)<(radius()+w*.5-.3)**2);
+}
+function keyTouched(){
+ const b=g.balls[0],y=gateY();
+ const distance=Math.hypot(b.x-keyX(),b.y-y);
+ // Hysteresis: enter at the actual key, but do not chatter at its edge.
+ const threshold=g.keyHeld ? radius()+keyRadius()*1.52
+                           : radius()+keyRadius()*.90;
+ return distance<=threshold;
+}
+function segmentDistSq(x,y,x0,y0,x1,y1){
+ const dx=x1-x0,dy=y1-y0,len=dx*dx+dy*dy;
+ const u=len?clamp(((x-x0)*dx+(y-y0)*dy)/len,0,1):0;
+ return (x-(x0+dx*u))**2+(y-(y0+dy*u))**2;
+}
+function solidGate(x,y,time=g.time){
+ const yy=gateY(time),reach=radius()+wallR()*.52-.2;
+ if(Math.abs(y-yy)>reach)return false;
+ const segs=[[chamber().right,gateLeft()],[gateRight(),W-3]];
+ if(g.open<.96)segs.push([gateLeft(),gateRight()]);
+ return segs.some(([a,b])=>segmentDistSq(x,y,a,yy,b,yy)<reach*reach);
+}
+function unlock(){
+ if(g.missed)return;
+ if(!g.unlocked){g.unlocked=true;g.unlockCount++;}
+ g.keyHeld=true;
+ if(!g.done)$('hint').textContent='Синя е при ключа — свързаната зелена врата се отваря. Корал, премини!';
+}
+function syncKey(){
+ if(g.missed)return;
+ const held=keyTouched();
+ if(held&&!g.keyHeld)unlock();
+ else if(!held&&g.keyHeld){
+  g.keyHeld=false;
+  if(!g.done)$('hint').textContent=g.gateTransit
+   ? 'Синя напусна ключа — вратата изчаква Корал да излезе.'
+   : 'Синя напусна ключа — зелената врата се затваря!';
+ }
+}
+function syncGateTransit(){
+ const b=g.balls[1],r=radius(),yy=gateY();
+ const insideX=b.x>=gateLeft()+r*.6&&b.x<=gateRight()-r*.6;
+ const dist=Math.abs(b.y-yy);
+ // Latch only after Coral has entered the OPEN throat, not simply waited
+ // just below the closed door. Hold until orb clears the collidable wall.
+ if(!g.gateTransit&&g.open>=.96&&insideX&&dist<r*.60)g.gateTransit=true;
+ if(g.gateTransit&&(!insideX||dist>r+wallR()*.52+3))g.gateTransit=false;
+}
+function succeed(){
+ if(g.done||g.missed||!g.unlocked||g.open<.96||!g.crossed)return;
+ g.done=true;g.rewardCount++;g.score+=8;
+ g.energy=g.energy.map(e=>Math.min(100,e+8));
+ $('hint').textContent='УСПЯХТЕ ЗАЕДНО! Синя отвори · Корал премина · ✦ +8 ♡ +8.';
+}
+function state(){
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,
+  gain:GAIN,basePace:BASE_PACE,slowPace:SLOW_PACE,puzzleAt:PUZZLE_AT,
+  energy:g.energy.slice(),balls:g.balls.map(b=>({...b})),score:g.score,
+  key:{x:keyX(),y:gateY(),radius:keyRadius()},chamber:{...chamber(),segments:keySegments()},gate:{x:gateX(),y:gateY(),left:gateLeft(),right:gateRight(),open:g.open},
+  unlocked:g.unlocked,keyHeld:g.keyHeld,gateTransit:g.gateTransit,unlockCount:g.unlockCount,crossed:g.crossed,done:g.done,
+  rewardCount:g.rewardCount,missed:g.missed,collisions:g.collisions,
+  finished:g.finished,passageStart:g.passageStart};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,pace:BASE_PACE,
+  balls:[{x:W*.19,y:upper()+playH()*.50},{x:gateX(),y:upper()+playH()*.50}],
+  energy:[100,100],score:0,unlocked:false,keyHeld:false,gateTransit:false,unlockCount:0,open:0,crossed:false,
+  passageStart:false,done:false,rewardCount:0,missed:false,collisions:0,finished:false};
+ pads.forEach(p=>p.id=null);
+ $('finish').style.display='none';$('pause').textContent='Пауза';
+ $('hint').textContent='Синя задържа ключа — вратата е част от същата конструкция. При излизане се затваря.';
+ refresh();draw();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);
+ $('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent='ВРАТА '+Math.round(g.open*100)+'%';
+ $('bridgeFill').style.width=Math.round(g.open*100)+'%';
+ $('bar').style.width=Math.min(100,100*g.time/TOTAL)+'%';
+ $('skip').disabled=g.mode!=='playing'||g.paused||g.done||g.missed||g.gateTransit||g.time<PUZZLE_AT;
+ if(g.mode==='ready')$('status').textContent='Сложи двата палеца, за да започне задачата.';
+ else if(g.mode==='playing')$('status').textContent=g.paused?'Пауза':
+  g.done?'Зелената врата е премината!':
+  g.missed?'Вратата е пропусната.':
+  g.keyHeld?'Синя държи ключа · ВРАТАТА Е ОТВОРЕНА':
+  g.gateTransit?'Корал е в прохода · вратата изчаква':
+  g.open>0?'Синя пусна ключа · вратата се затваря':
+  g.unlocked?'Вратата затворена · Синя може пак да вземе ключа':
+  'Лява: ключ · Дясна: врата · ×'+g.pace.toFixed(1);
+}
+function resize(){
+ const ow=W,oh=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&ow>1&&oh>1){
+  for(let n=0;n<2;n++){
+   const b=g.balls[n],lr=lane(n);
+   b.x=clamp(b.x*W/ow,lr[0],lr[1]);
+   b.y=clamp(b.y*H/oh,upper()+radius(),lower()-radius());
+  }
+  draw();
+ }else reset();
+}
+function move(n,dx,dy){
+ if(g.mode==='done'||g.paused||g.missed)return;
+ const b=g.balls[n],lr=lane(n),r=radius(),fromY=b.y,oldGateY=gateY();
+ const steps=Math.max(1,Math.min(500,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,r*.35))));
+ for(let k=0;k<steps;k++){
+  const x=b.x;b.x=clamp(x+dx/steps,lr[0],lr[1]);
+  if((n===1&&solidGate(b.x,b.y))||(n===0&&solidKeyChamber(b.x,b.y))){b.x=x;g.collisions++;}
+  const y=b.y;b.y=clamp(y+dy/steps,upper()+r,lower()-r);
+  if((n===1&&solidGate(b.x,b.y))||(n===0&&solidKeyChamber(b.x,b.y))){b.y=y;g.collisions++;}
+  if(n===0)syncKey();
+  if(n===1)syncGateTransit();
+  // Mark the below-gate approach even if the closed solid door had kept the
+  // passenger just one small step from its contact boundary.
+  if(n===1&&g.unlocked&&g.open>=.96&&!g.passageStart&&b.y>oldGateY+r*.6)
+   g.passageStart=true;
+  if(n===1&&g.passageStart&&g.unlocked&&g.open>=.96&&b.y<oldGateY-r*1.2&&b.x>=gateLeft()+r*.7&&b.x<=gateRight()-r*.7){
+   g.crossed=true;succeed();
+  }
+ }
+ draw();refresh();
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(v=>v.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',e=>{
+  if(p.id!==e.pointerId)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx*GAIN,dy*GAIN);
+ });
+ for(const kind of ['pointerup','pointercancel','lostpointercapture'])
+  el.addEventListener(kind,e=>{if(e.pointerId!==p.id)return;p.id=null;try{el.releasePointerCapture(e.pointerId)}catch(_){}});
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;g.paused=!g.paused;$('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
+});
+$('skip').addEventListener('click',()=>{
+ if(g.mode!=='playing'||g.paused||g.done||g.missed||g.gateTransit||g.time<PUZZLE_AT)return;
+ g.missed=true;$('hint').textContent='Пропусната зелена врата — без обща награда.';
+ refresh();
+});
+function finish(){
+ g.mode='done';g.finished=true;
+ $('outcome').textContent=g.done?'ОТВОРИХТЕ ВРАТАТА ЗАЕДНО!':g.missed?'Вратата остана затворена':'Опитай пак';
+ $('result').textContent='Обща мисия: '+(g.done?'УСПЕХ':g.missed?'ПРОПУСНАТА':'неуспех')+
+ ' · ✦ '+g.score+' · енергия '+g.energy.map(e=>Math.round(e)).join(' / ')+
+ ' · отключвания '+g.unlockCount+'.';
+ $('finish').style.display='flex';
+}
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ g.realTime+=dt;
+ // The key and gate are one connected mechanism: continuously powered ONLY
+ // while Blue touches the key. Releasing begins closing immediately.
+ // Safety latch: once Coral is truly inside the open throat, defer closing
+ // until Coral clears the physical doorway (no forced push/teleport).
+ syncKey();
+ syncGateTransit();
+ if(g.keyHeld&&!g.missed)g.open=Math.min(1,g.open+dt/OPEN_SECONDS);
+ else if(!g.gateTransit){
+  const next=Math.max(0,g.open-dt/CLOSE_SECONDS);
+  // Prevent a closing solid wall from appearing inside Coral's actual body.
+  const b=g.balls[1],y=gateY(),r=radius(),xInside=b.x>gateLeft()-r*.25&&b.x<gateRight()+r*.25;
+  const contactZone=Math.abs(b.y-y)<r+wallR()*.52+2;
+  if(next<.96&&g.open>=.96&&xInside&&contactZone)g.open=.961;
+  else g.open=next;
+ }
+ // Keep the physical gate attached to the scrolling world. Do not let a
+ // shutting gate sweep through the orange orb.
+ const maxT=g.done||g.missed?TOTAL:PUZZLE_AT;
+ // Stop world motion while Blue is on the key, preventing an apparent
+ // release caused by the moving geometry passing underneath a still orb.
+ const desired=g.done||g.missed?BASE_PACE:(g.keyHeld?0:BASE_PACE);
+ const change=Math.max(0,Math.min(desired*dt,maxT-g.time));
+ const pre=g.time;
+ // If closing gate would collide with Coral, stop world rather than phasing through.
+ if(!g.unlocked&&!g.missed&&solidGate(g.balls[1].x,g.balls[1].y,pre+change)){
+  g.pace=0;
+ }else {
+  g.time+=change;g.pace=desired;
+ }
+ g.energy=g.energy.map(e=>Math.max(0,e-change*.15));
+ if(g.time>=TOTAL)finish();
+ refresh();
+}
+function line(x,y,xx,yy,color,width=2){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();}
+function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#90bca90d';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#f3a58b0f';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bottom=lower(),y=gateY(),gl=gateLeft(),gr=gateRight(),r=radius();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#b9c8bf';ctx.strokeRect(12,top,W-24,bottom-top);ctx.restore();
+ line(W*.5,top-14,W*.5,bottom+12,'#cfc6b9',1.5);
+ for(let yy=top+(g.time*4)%80-80;yy<bottom;yy+=80){if(yy>=top)line(15,yy,W-15,yy,'#9caea315',1);}
+ ctx.save();ctx.beginPath();ctx.rect(0,top,W,bottom-top);ctx.clip();
+ // Visual proportions follow #2 on the original pencil sketch:
+ // key within a turquoise outlined rectangular niche at LEFT,
+ // a strong brown vertical end-post at the center,
+ // brown rails at RIGHT with a short turquoise gate in their middle.
+ const kx=keyX(),kr=keyRadius(),b=chamber();
+ // A whisper of teal fill distinguishes the key niche from the paper.
+ ctx.fillStyle='#a3d3c519';ctx.fillRect(b.left,y-b.halfH,b.right-b.left,b.halfH*2);
+ for(const [ax,ay,bx,by,width] of keySegments()){
+  const isPost=ax===b.right&&bx===b.right;
+  line(ax,ay,bx,by,isPost?'#77575d':'#72aaa5',width);
+ }
+ // A small key glyph, matching the loop and two teeth in the drawing.
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ const alpha=g.unlocked?1:.86;
+ ctx.globalAlpha=alpha;
+ ctx.strokeStyle=g.unlocked?'#529b82':'#64a8a6';
+ ctx.lineWidth=clamp(kr*.15,2.8,4.2);
+ ctx.beginPath();ctx.arc(kx-kr*.14,y-kr*.24,kr*.25,0,Math.PI*2);ctx.stroke();
+ line(kx-kr*.14,y+kr*.01,kx-kr*.14,y+kr*.63,ctx.strokeStyle,ctx.lineWidth);
+ line(kx-kr*.14,y+kr*.55,kx+kr*.13,y+kr*.55,ctx.strokeStyle,ctx.lineWidth);
+ line(kx-kr*.14,y+kr*.36,kx+kr*.065,y+kr*.36,ctx.strokeStyle,ctx.lineWidth);
+ ctx.restore();
+ // Thin brown wall rails, drawn as in the sketch, not a solid "bridge".
+ ctx.lineCap='square';ctx.lineJoin='round';
+ for(const [x0,x1] of [[b.right,gl],[gr,W-3]]){
+  line(x0,y-7,x1,y-7,'#77575d',3.6);
+  line(x0,y+7,x1,y+7,'#77575d',3.6);
+  line(x0,y-7,x0,y+7,'#77575d',3.6);
+  line(x1,y-7,x1,y+7,'#77575d',3.6);
+  // Subtle solid body matching true wall collision.
+  ctx.fillStyle='#967b801f';ctx.fillRect(x0,y-7,x1-x0,14);
+ }
+ const stripH=clamp(wallR()*.82,6,10);
+ if(g.open<.99){
+  const remaining=(1-g.open)*(gr-gl),lx=gateX()-remaining*.5;
+  ctx.fillStyle='#7ebcb0';
+  ctx.fillRect(lx,y-stripH/2,remaining,stripH);
+  line(lx,y-stripH/2,lx+remaining,y-stripH/2,'#76aead',2.5);
+  line(lx,y+stripH/2,lx+remaining,y+stripH/2,'#76aead',2.5);
+ }else{
+  // After opening, there is a true walkable break between brown rails.
+  circle(gl,y,3.8,'#72b1a7');circle(gr,y,3.8,'#72b1a7');
+  if(!g.done){
+   ctx.fillStyle='#79b8a646';
+   ctx.fillRect(gl,y-3,gr-gl,6);
+  }
+ }
+ if(g.keyHeld&&!g.done){
+  // Key state feeds the entire physically connected brown frame.
+  ctx.strokeStyle='#82c6ab88';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(kx,y,kr*1.65,0,2*Math.PI);ctx.stroke();
+ }
+ ctx.restore();
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],grd=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r*2.5);
+  grd.addColorStop(0,C[n]+'70');grd.addColorStop(1,C[n]+'00');
+  circle(b.x,b.y,r*2.5,grd);circle(b.x,b.y,r,C[n]);
+  circle(b.x-r*.24,b.y-r*.25,r*.17,'#ffffffb5');
+ }
+ if(g.mode==='ready'){
+  ctx.fillStyle='#69877a';ctx.textAlign='center';ctx.font='bold 15px sans-serif';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+30);
+ }
+}
+function frame(ts){
+ if(!prevFrame)prevFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-prevFrame)/1000));prevFrame=ts;
+ if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,solidGate,solidKeyChamber,keySegments,keyTouched,syncKey,syncGateTransit,unlock,succeed,gateY,resize};
+window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
