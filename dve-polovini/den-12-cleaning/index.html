@@ -664,88 +664,46 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   // Narrative signs connect geometry, player choice, and earned outcome.
   function drawScenario(){
     if(!g||g.mode==='joined')return;
-    const top=topBand();
-    if(g.time>=5&&g.time<57){
-      ctx.save();ctx.textAlign='center';
-      ctx.font='bold 12px sans-serif';
-      ctx.fillStyle='#467b74';ctx.fillText('✓ ОБХОД +3',W*.115,top+20);
-      ctx.fillStyle='#a47a38';ctx.fillText('✦ ЗИГЗАГ +9',W*.405,top+20);
-      ctx.font='11px sans-serif';ctx.fillStyle='#687879';
-      ctx.fillText('Златният път иска смяна на посоката',W*.25,top+39);
+    const a=coopGeometry();
+    // No stationary overlay: world coordinates for every part of the motif.
+    if(a.cy<=topBand()-a.ry*1.6||a.cy>=bottomBand()+a.ry*1.7)return;
+    ctx.save();ctx.textAlign='center';
+    ctx.font='bold 15px sans-serif';ctx.fillStyle='#665d68';
+    ctx.fillText('♢ ПОЧИСТЕТЕ ЗАЕДНО',W*.5,a.cy-a.ry-31);
+    ctx.font='bold 12px sans-serif';
+    ctx.fillText('ЛЯВА '+cleanCount(0)+'/9',a.xs[0],a.cy-a.ry-12);
+    ctx.fillText('ДЯСНА '+cleanCount(1)+'/9',a.xs[1],a.cy-a.ry-12);
+    ctx.save();ctx.setLineDash([5,7]);
+    line(a.xs[0]+a.rx*.83,a.cy,a.xs[1]-a.rx*.83,a.cy,
+      g.clean.done?'#7eb39a':'#9e969f',3);
+    ctx.restore();
+    for(let n=0;n<2;n++){
+      ctx.save();ctx.beginPath();
+      ctx.ellipse(a.xs[n],a.cy,a.rx,a.ry,0,0,Math.PI*2);
+      ctx.fillStyle=g.clean.done?'#bce5ca65':'#66616a25';ctx.fill();
+      ctx.lineWidth=3;ctx.strokeStyle=colors[n]+'88';ctx.stroke();
+      for(let i=0;i<12;i++){
+        const p=cleanCell(n,i),v=g.clean.cells[n][i];
+        const rr=clamp(a.rx*.16,11,19);
+        ctx.beginPath();ctx.arc(p.x,p.y,rr,0,Math.PI*2);
+        ctx.fillStyle=v>=.999?'#90c6a680':
+          '#55505a'+Math.round((.74-v*.65)*255).toString(16).padStart(2,'0');
+        ctx.fill();
+        if(v>=.999){
+          ctx.fillStyle='#eefbf0';ctx.font='bold 13px sans-serif';
+          ctx.fillText('✓',p.x,p.y+5);
+        }else if(v>.05){
+          ctx.beginPath();ctx.arc(p.x,p.y,rr+2,-Math.PI/2,-Math.PI/2+Math.PI*2*v);
+          ctx.strokeStyle='#83bfa5';ctx.lineWidth=3;ctx.stroke();
+        }
+      }
       ctx.restore();
     }
-    for(const m of missions){
-      const a=coopGeometry(m),state=missionState(m);
-      // No translucent static 'ghost' scene: only render active world objects.
-      if(!coopActive(m))continue;
-      ctx.save();ctx.globalAlpha=1;ctx.lineCap='round';
-      // Everything in this scene moves up using eventY, including the sign.
-      ctx.font='bold 12px sans-serif';ctx.fillStyle='#596f73';ctx.textAlign='center';
-      ctx.fillText('♢ ОБЩА МИСИЯ '+(m.id==='morning'?'1/2':'2/2'),
-        W*.5,a.topY-37);
-      ctx.fillText(m.type==='moving'?'ЛЯВА: СПРИ ПРОЦЕПА · ДЯСНА: ПРЕМИНИ':'ДЯСНА: ДРЪЖ · ЛЯВА: ВЗЕМИ',
-        W*.5,a.topY-20);
-      if(m.type==='moving'){
-        line(a.xLeft,a.doorY,a.gapX-a.gapHalf,a.doorY,'#607d80',17);
-        line(a.gapX+a.gapHalf,a.doorY,a.xRight,a.doorY,'#607d80',17);
-        ctx.fillStyle='#ad8861';ctx.font='bold 12px sans-serif';
-        ctx.fillText(state.open?'❚❚ СПРЯНО':'↔ ДВИЖЕЩ СЕ ПРОХОД',
-          a.gapX,a.doorY-29);
-        ctx.save();ctx.setLineDash([5,6]);
-        line(a.plateX,a.plateY,a.gapX,a.doorY,
-          state.open?'#68a88c':'#999bb5',3);ctx.restore();ctx.setLineDash([]);
-        if(!state.done){
-          circle(a.bonusX,a.bonusY,26,'#e1b8663c');
-          circle(a.bonusX,a.bonusY,17,'#d4a54f');
-          ctx.fillStyle='#fffdf2';ctx.font='bold 12px sans-serif';
-          ctx.fillText('✦8',a.bonusX,a.bonusY+4);
-        }else{
-          circle(a.bonusX,a.bonusY,18,'#76b9a688');
-          ctx.font='bold 17px sans-serif';ctx.fillStyle='#fff';
-          ctx.fillText('✓',a.bonusX,a.bonusY+6);
-        }
-        circle(a.plateX,a.plateY,a.plateRadius+9,'#909fd32b');
-        circle(a.plateX,a.plateY,a.plateRadius,state.open?'#81c5a4':'#9ca9d1');
-        ctx.beginPath();ctx.arc(a.plateX,a.plateY,a.plateRadius+5,
-          -Math.PI/2,-Math.PI/2+Math.PI*2*clamp(state.hold/.24,0,1));
-        ctx.lineWidth=4;ctx.strokeStyle='#578d76';ctx.stroke();
-        ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';
-        ctx.fillText(state.open?'СТОП':'ДОКОСНИ',a.plateX,a.plateY+4);
-        ctx.textAlign='left';ctx.restore();
-        continue;
-      }
-      line(a.xLeft,a.topY,a.xRight,a.topY,'#607d80',14);
-      line(a.xLeft,a.topY,a.xLeft,a.doorY,'#607d80',14);
-      line(a.xRight,a.topY,a.xRight,a.doorY,'#607d80',14);
-      line(a.xLeft,a.doorY,a.xRight,a.doorY,
-        state.open?'#82c9a077':'#c49c5e',state.open?5:17);
-      if(!state.done){
-        circle(a.bonusX,a.bonusY,24,'#d9b46d37');
-        circle(a.bonusX,a.bonusY,17,'#d4a54f');
-        ctx.fillStyle='#fffdf2';ctx.font='bold 12px sans-serif';
-        ctx.fillText('✦8',a.bonusX,a.bonusY+4);
-      }else{
-        circle(a.bonusX,a.bonusY,18,'#76b9a688');
-        ctx.font='bold 17px sans-serif';ctx.fillStyle='#fff';
-        ctx.fillText('✓',a.bonusX,a.bonusY+6);
-      }
-      // Visible dotted connection: the other hand controls THIS door.
-      ctx.save();ctx.setLineDash([5,6]);
-      line(a.plateX,a.plateY,(a.xLeft+a.xRight)/2,a.doorY,
-        state.open?'#68a88c':'#999bb5',3);ctx.restore();ctx.setLineDash([]);
-      circle(a.plateX,a.plateY,a.plateRadius+9,'#909fd32b');
-      circle(a.plateX,a.plateY,a.plateRadius,
-        state.open?'#81c5a4':'#9ca9d1');
-      ctx.beginPath();ctx.arc(a.plateX,a.plateY,a.plateRadius+5,
-        -Math.PI/2,-Math.PI/2+Math.PI*2*clamp(state.hold/.25,0,1));
-      ctx.lineWidth=4;ctx.strokeStyle='#578d76';ctx.stroke();
-      ctx.font='bold 11px sans-serif';ctx.fillStyle='#fff';
-      ctx.fillText('ДРЪЖ',a.plateX,a.plateY+4);
-      ctx.fillStyle='#52646c';ctx.font='bold 12px sans-serif';
-      ctx.fillText(state.open?'ОТВОРЕНО ✓':'ДРЪЖ ЗА ВРАТАТА',
-        a.plateX,a.plateY-a.plateRadius-16);
-      ctx.textAlign='left';ctx.restore();
+    if(g.clean.done){
+      ctx.font='bold 17px sans-serif';ctx.fillStyle='#539a7b';
+      ctx.fillText('ЧИСТО ✓ ✦ +10',W*.5,a.cy+a.ry+26);
     }
+    ctx.restore();
   }
   function drawBackground(){
     ctx.clearRect(0,0,W,H);
@@ -850,7 +808,22 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   window.addEventListener('resize',resize,{passive:true});
   setupPad(0);setupPad(1);
   // Test hook is read-only except for manually advancing time in automated smoke tests.
-  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],actualTempo:g.actualTempo,slowdown:g.slowdown,gain:gainOptions[gainIndex],gold:g.gold,score:g.score,intentAt:g.intentAt.slice(),missions:missions.map(m=>({id:m.id,type:m.type||'door',center:m.center,collector:m.collector,helper:m.helper,geometry:coopGeometry(m),active:coopActive(m),...missionState(m)})),synced:g.synced,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,workPairs:Object.keys(g.workPairs).map(key=>({key,...g.workPairs[key]})),meets:g.meets,crushRecoveries:g.crushRecoveries,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<1&&g.time>=102&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),solidAt:(x,y)=>solidAt(x,y),coopWalls:()=>coopWalls(),wallShapes:(i)=>wallShapes(g.events[i]),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
+  window.__twoHalvesQA={
+    state:()=>({
+      mode:g.mode,time:g.time,realTime:g.realTime,tempo:tempos[tempoIndex],
+      actualTempo:g.actualTempo,slowdown:g.slowdown,gain:gainOptions[gainIndex],
+      energy:g.energy.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),
+      score:g.score,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,
+      cleaning:{left:cleanCount(0),right:cleanCount(1),
+        cells:g.clean.cells.map(a=>a.slice()),swipes:g.clean.swipes.slice(),
+        done:g.clean.done,missed:g.clean.missed,geometry:coopGeometry(),active:coopActive()},
+      synced:g.synced,meets:g.meets,crushRecoveries:g.crushRecoveries,
+      survived:g.survived??null,
+      events:g.events.map(e=>({kind:e.kind,c:e.c,t:e.t,x:e.x,used:e.used}))
+    }),
+    split,advance:(dt)=>update(dt),eventY:(i)=>eventY(g.events[i]),
+    cell:(n,i)=>cleanCell(n,i),solidAt:(x,y)=>solidAt(x,y),reset
+  };
   resize();reset();requestAnimationFrame(frame);
 })();
 </script>
