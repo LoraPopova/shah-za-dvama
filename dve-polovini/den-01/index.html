@@ -54,7 +54,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 </div>
 <div id="progress"><div id="progressFill"></div></div>
 <div id="sub" aria-live="polite">Плъзни двата палеца навън, за да разделиш светлините</div>
-<div id="menu"><button type="button" class="smallbtn" id="splitButton">Раздели</button><button type="button" class="smallbtn" id="pauseButton">Пауза</button><button type="button" class="smallbtn" id="resetButton">Отначало</button><button type="button" class="smallbtn" id="tempoButton">Темпо ×1.75</button></div>
+<div id="menu"><button type="button" class="smallbtn" id="splitButton">Раздели</button><button type="button" class="smallbtn" id="pauseButton">Пауза</button><button type="button" class="smallbtn" id="resetButton">Отначало</button><button type="button" class="smallbtn" id="tempoButton">Темпо ×2,25</button></div>
 <div id="help">Движи палците в кръговете долу · светът се движи нагоре</div>
 <div class="pad left" id="pad0"><div class="knob" id="knob0"></div><div class="pad-label">ЛЯВ ПАЛЕЦ</div></div>
 <div class="pad right" id="pad1"><div class="knob" id="knob1"></div><div class="pad-label">ДЕСЕН ПАЛЕЦ</div></div>
@@ -66,7 +66,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   const canvas=$('world'),ctx=canvas.getContext('2d');
   const colors=['#67a8a3','#ef9882'],DURATION=80;
   // One virtual day runs at the chosen pace. Start fast; switch without resetting or jumping.
-  const tempos=[1.35,1.75,2.25];let tempoIndex=1;
+  const tempos=[2.25,3,3.5];let tempoIndex=0;
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
   const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const pads=[{id:null,lastX:0,lastY:0,downX:0,knob:$('knob0')},{id:null,lastX:0,lastY:0,downX:0,knob:$('knob1')}];
@@ -106,6 +106,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     }
   }
   function reset(){
+    tempoIndex=0;
+    $('tempoButton').textContent='Темпо ×2,25';
     g={mode:'joined',time:0,energy:[100,100],picked:[0,0],balls:[
       {x:W*.5,y:H*.35,flash:0},{x:W*.5,y:H*.35,flash:0}
     ],events:initialEvents.map(e=>Object.assign({used:false},e)),
@@ -364,7 +366,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   $('resetButton').addEventListener('click',reset);
   $('tempoButton').addEventListener('click',function(){
     tempoIndex=(tempoIndex+1)%tempos.length;
-    this.textContent='Темпо ×'+tempos[tempoIndex].toFixed(2);
+    this.textContent='Темпо ×'+String(tempos[tempoIndex]).replace('.',',');
   });
   $('pauseButton').addEventListener('click',function(){
     if(g.mode==='done')return;
