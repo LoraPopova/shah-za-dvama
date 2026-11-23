@@ -85,9 +85,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     // Morning immediately demands action. Hazards arrive 4–7 virtual ticks apart.
     {kind:'pick',c:0,x:.20,t:0},{kind:'pick',c:1,x:.80,t:0},
     {kind:'sweep',x:.24,t:7},{kind:'sweep',x:.77,t:11},
-    {kind:'teeth',x:.41,t:15},{kind:'burn',x:.60,t:19},
+    {kind:'teeth',x:.41,t:15},{kind:'sweep',x:.10,t:18},{kind:'burn',x:.60,t:19},
     {kind:'sweep',x:.36,t:24},{kind:'sweep',x:.64,t:28},
-    {kind:'bar',x:.17,t:33},{kind:'wave',x:.80,t:37},
+    {kind:'bar',x:.17,t:33},{kind:'sweep',x:.90,t:35},{kind:'wave',x:.80,t:37},
     {kind:'teeth',x:.26,t:41},{kind:'sweep',x:.68,t:45},
     {kind:'work',c:0,pair:'morning',x:.17,t:49},
     {kind:'work',c:1,pair:'morning',x:.83,t:49},
@@ -95,34 +95,34 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     // First rush: alternating lanes, occasionally two hazards at similar height.
     {kind:'sweep',x:.43,t:55},{kind:'burn',x:.76,t:59},
     {kind:'teeth',x:.20,t:64},{kind:'sweep',x:.61,t:67},
-    {kind:'wave',x:.39,t:72},{kind:'teeth',x:.82,t:76},
+    {kind:'sweep',x:.10,t:70},{kind:'wave',x:.39,t:72},{kind:'teeth',x:.82,t:76},
     {kind:'bar',x:.17,t:80},{kind:'sweep',x:.70,t:83},
     {kind:'coffee',c:0,x:.20,t:86},
     {kind:'sync',c:0,pair:'break',x:.24,t:90},{kind:'sync',c:1,pair:'break',x:.76,t:90},
 
     // Stronger middle section: moving hazards + vortex pressure.
-    {kind:'sweep',x:.30,t:95},{kind:'sweep',x:.73,t:99},
+    {kind:'sweep',x:.30,t:95},{kind:'sweep',x:.90,t:97},{kind:'sweep',x:.73,t:99},
     {kind:'teeth',x:.41,t:104},{kind:'vortex',x:.5,t:108},
     {kind:'burn',x:.22,t:112},{kind:'sweep',x:.64,t:116},
-    {kind:'wave',x:.40,t:121},{kind:'teeth',x:.76,t:125},
+    {kind:'sweep',x:.10,t:119},{kind:'wave',x:.40,t:121},{kind:'teeth',x:.76,t:125},
     {kind:'sweep',x:.18,t:130},{kind:'sweep',x:.83,t:133},
     {kind:'work',c:0,pair:'noon',x:.47,t:140},
     {kind:'work',c:1,pair:'noon',x:.53,t:140},
 
     // Dense asymmetry: one thumb finishes a dodge while the other starts.
     {kind:'teeth',x:.27,t:146},{kind:'sweep',x:.70,t:150},
-    {kind:'wave',x:.39,t:155},{kind:'burn',x:.81,t:159},
+    {kind:'wave',x:.39,t:155},{kind:'sweep',x:.90,t:157},{kind:'burn',x:.81,t:159},
     {kind:'sweep',x:.18,t:163},{kind:'teeth',x:.61,t:167},
     {kind:'coffee',c:1,x:.80,t:171},
     {kind:'burn',x:.31,t:176},{kind:'sweep',x:.77,t:180},
 
     // Final pressure peak: frequent reversals and one last shared deadline.
-    {kind:'teeth',x:.43,t:185},{kind:'wave',x:.63,t:189},
+    {kind:'teeth',x:.43,t:185},{kind:'sweep',x:.10,t:187},{kind:'wave',x:.63,t:189},
     {kind:'sweep',x:.25,t:194},{kind:'sweep',x:.76,t:197},
     {kind:'burn',x:.17,t:201},{kind:'teeth',x:.83,t:204},
     {kind:'work',c:0,pair:'afternoon',x:.21,t:210},
     {kind:'work',c:1,pair:'afternoon',x:.79,t:210},
-    {kind:'sweep',x:.40,t:216},{kind:'bar',x:.68,t:220},
+    {kind:'sweep',x:.40,t:216},{kind:'sweep',x:.90,t:218},{kind:'bar',x:.68,t:220},
     {kind:'teeth',x:.18,t:224},{kind:'sweep',x:.82,t:228},
 
     // Short earned breather, then one last tight sequence and finish.
