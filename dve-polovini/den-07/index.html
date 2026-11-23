@@ -421,11 +421,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
       if(!job.closed&&eventY(e)<topBand()-rad()-18){
         job.closed=true;g.jobsMissed++;
         for(let n=0;n<2;n++){
-          g.energy[n]=Math.max(0,g.energy[n]-13);
+          g.energy[n]=Math.max(0,g.energy[n]-10);
           g.balls[n].flash=.3;
-          miniMessage(g.balls[n].x,g.balls[n].y-25,'ЗАКЪСНЯ! −13','#b35d71');
+          miniMessage(g.balls[n].x,g.balls[n].y-25,'ЗАКЪСНЯ! −10','#b35d71');
         }
-        show('Закъсняхте със задачата! −13 за всяка светлина');
+        show('Закъсняхте със задачата! −10 за всяка светлина');
         g.hintUntil=g.realTime+2;
       }
     }
