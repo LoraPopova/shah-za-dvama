@@ -285,6 +285,8 @@ function draw(){
  for(let y=top+(g.time*4.5)%85-85;y<bottom+80;y+=85)
   if(y>=top&&y<=bottom)line(16,y,W-16,y,'#adbab01a',1);
  if(cy>top-90&&cy<bottom+130){
+  // Clip the world machinery to the actual playable strip on small landscape.
+  ctx.save();ctx.beginPath();ctx.rect(0,top,W,bottom-top);ctx.clip();
   // A vertical, non-walkable water rift across the entire right-hand lane.
   // This is an actual collision interval, not decoration.
   ctx.fillStyle='#b9cacf76';ctx.fillRect(left,top,right-left,bottom-top);
@@ -335,6 +337,7 @@ function draw(){
   ctx.restore();
   ctx.textAlign='center';ctx.fillStyle='#5e8981';ctx.font='bold 11px sans-serif';
   ctx.fillText(g.holding?'ДЪРЖИ ЛОСТА':'ЛОСТ',px,cy-leverR-16);
+  ctx.restore();
  }
  for(let n=0;n<2;n++){
   const b=g.balls[n],gr=ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,r*2.5);
