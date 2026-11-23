@@ -170,13 +170,13 @@ function state(){
   key:{x:keyX(),y:gateY(),radius:keyRadius()},chamber:{...chamber(),segments:keySegments()},gate:{x:gateX(),y:gateY(),left:gateLeft(),right:gateRight(),open:g.open},
   unlocked:g.unlocked,keyHeld:g.keyHeld,keyExitTime:g.keyExitTime,gateTransit:g.gateTransit,unlockCount:g.unlockCount,crossed:g.crossed,done:g.done,
   rewardCount:g.rewardCount,missed:g.missed,collisions:g.collisions,
-  finished:g.finished,passageStart:g.passageStart};
+  finished:g.finished,passageStart:g.passageStart,coralMoved:g.coralMoved};
 }
 function reset(){
  g={mode:'ready',paused:false,time:0,realTime:0,pace:BASE_PACE,
-  balls:[{x:W*.19,y:upper()+playH()*.24},{x:gateX(),y:upper()+playH()*.24}],
+  balls:[{x:W*.19,y:upper()+playH()*.24},{x:W*.56,y:upper()+playH()*.24}],
   energy:[100,100],score:0,unlocked:false,keyHeld:false,keyExitTime:0,gateTransit:false,unlockCount:0,open:0,crossed:false,
-  passageStart:false,done:false,rewardCount:0,missed:false,collisions:0,finished:false};
+  passageStart:false,coralMoved:false,done:false,rewardCount:0,missed:false,collisions:0,finished:false};
  pads.forEach(p=>p.id=null);
  $('finish').style.display='none';$('pause').textContent='Пауза';
  $('hint').textContent='Светът продължава да се движи. Следвай ключа със Синя и премини с Корал.';
@@ -219,6 +219,7 @@ function resize(){
 function move(n,dx,dy){
  if(g.mode==='done'||g.paused||g.missed)return;
  const b=g.balls[n],lr=lane(n),r=radius(),fromY=b.y,oldGateY=gateY();
+ if(n===1&&Math.hypot(dx,dy)>1.0)g.coralMoved=true;
  const steps=Math.max(1,Math.min(500,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,r*.35))));
  for(let k=0;k<steps;k++){
   const x=b.x;b.x=clamp(x+dx/steps,lr[0],lr[1]);
@@ -297,6 +298,18 @@ function update(dt){
  const oldGateY=gateY();
  g.time=Math.min(TOTAL,oldTime+delta);
  g.pace=BASE_PACE;
+ // Passing a gate in a SCROLLING world: the green opening must sweep
+ // upward past Coral. Coral must be actively aligned by the right thumb.
+ // This never awards a passive ball parked at the default start x.
+ const passenger=g.balls[1],rr=radius(),newGateY=gateY(),
+       insideGap=passenger.x>=gateLeft()+rr*.9&&passenger.x<=gateRight()-rr*.9;
+ if(g.unlocked&&g.open>=.96&&g.coralMoved&&insideGap&&!g.done){
+  const before=oldGateY-passenger.y,after=newGateY-passenger.y;
+  if(before>=rr*.55&&before<=rr*4.5)g.passageStart=true;
+  if(g.passageStart&&before>=-(rr+wallR()*.52+4)&&after<-(rr+wallR()*.52+4)){
+   g.crossed=true;succeed();
+  }
+ }
  // Solid moving bars push an orb gently rather than freezing time or
  // phasing through it. The push is only a collision response, not inertia.
  const worldMove=gateY()-oldGateY;
