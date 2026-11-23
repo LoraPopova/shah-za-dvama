@@ -148,9 +148,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   function refresh(){
     for(let n=0;n<2;n++){
       $('e'+n).textContent=Math.round(g.energy[n]);
+      $('e'+n).style.color=g.energy[n]<25?'#b45d68':'';
       $('f'+n).style.width=g.energy[n]+'%';
     }
-    $('clock').textContent='00:'+('0'+Math.floor(g.time)).slice(-2);
+    const seconds=Math.floor(g.realTime);$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
     $('scoreIndicator').textContent='✦ '+g.score;
     $('progressFill').style.width=(100*g.time/DURATION)+'%';
   }
