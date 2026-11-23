@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 16 — Мост за двама</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+#bridgeMeter{position:fixed;left:16px;right:16px;top:calc(157px + env(safe-area-inset-top,0px));height:5px;background:#d7dfd8aa;border-radius:5px;pointer-events:none;z-index:5;overflow:hidden}
+#bridgeFill{height:100%;width:0%;background:linear-gradient(90deg,#70b6a6,#e8ae7c);transition:width .09s linear}
+#hint{top:calc(174px + env(safe-area-inset-top,0px));font-size:13px}
+#menu{top:calc(110px + env(safe-area-inset-top,0px))}
+@media(max-height:580px){#bridgeMeter{top:140px}#hint{top:153px}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №2</div><h1>Ден 16 · Мост за двама</h1><div id="status">Единият разгъва. Другият преминава.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">МОСТ 0%</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button></div>
+<div id="bridgeMeter"><div id="bridgeFill"></div></div>
+<div id="hint">Синя: задръж лоста · Корал: премини по моста.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),colors=['#67a8a3','#ef9882'];
+const GAIN=2.5,BASE_PACE=5,WORK_PACE=1.15,TOTAL=82,
+      MISSION_IN=32,MISSION_STOP=44,STAGE_T=40,
+      PRESS_DELAY=.28,EXTEND_SEC=1.25,RELEASE_WARN=.75,RETRACT_SEC=.95;
+let W=1,H=1,dpr=1,g=null,lastFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const rad=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16),lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
+const stageY=()=>H*.46+(STAGE_T-g.time)*4.5;
+const plateX=()=>W*.27;
+const riverLeft=()=>W*.635,riverRight=()=>W*.845;
+const bridgeHalf=()=>clamp(Math.min(W,H)*.059,23,34);
+const limits=n=>n===0?[rad(),W*.5-rad()]:[W*.5+rad(),W-rad()];
+function plateNear(){
+ const b=g.balls[0];
+ return Math.hypot(b.x-plateX(),b.y-stageY())<rad()+clamp(Math.min(W,H)*.037,22,35);
+}
+function onBridge(x=g.balls[1].x,y=g.balls[1].y){
+ return x+rad()>riverLeft()&&x-rad()<riverRight()&&
+        Math.abs(y-stageY())<=bridgeHalf()-rad()+2;
+}
+function supported(x,y){
+ return (g.extension>=.985||g.latch)&&Math.abs(y-stageY())<=bridgeHalf()-rad()+2;
+}
+function inVoid(x,y){
+ return x+rad()>riverLeft()&&x-rad()<riverRight()&&!supported(x,y);
+}
+function moveOrb(n,dx,dy){
+ if(g.mode==='done'||g.paused)return;
+ const b=g.balls[n],lr=limits(n),steps=Math.min(300,Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(3,rad()*.4))));
+ for(let k=0;k<steps;k++){
+  let x=b.x;b.x=clamp(b.x+dx/steps,lr[0],lr[1]);
+  if(n===1&&inVoid(b.x,b.y)){b.x=x;g.blocks++;}
+  let y=b.y;b.y=clamp(b.y+dy/steps,upper()+rad(),lower()-rad());
+  if(n===1&&inVoid(b.x,b.y)){b.y=y;g.blocks++;}
+ }
+ if(n===0){
+  if(plateNear()&&g.time>=MISSION_IN&&g.time<=MISSION_STOP+1)g.plateArmed=true;
+  else if(!plateNear())g.plateArmed=false;
+ }
+ if(n===1){
+  if(onBridge()&&supported(b.x,b.y)){
+   g.latch=true;
+   if(b.x>riverLeft()+rad()*.6)g.entered=true;
+  }else if(g.latch&&b.x>=riverRight()+rad()+1){
+   g.latch=false;
+  }else if(g.latch&&b.x<riverLeft()-rad()){
+   g.latch=false;
+  }
+  if(g.entered&&!g.done&&b.x>=riverRight()+rad()+1){
+   complete();
+  }
+ }
+}
+function state(){
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,
+  basePace:BASE_PACE,workPace:WORK_PACE,gain:GAIN,balls:g.balls.map(b=>({...b})),
+  stageY:stageY(),plateX:plateX(),river:[riverLeft(),riverRight()],
+  pressDelay:PRESS_DELAY,extension:g.extension,charge:g.charge,
+  plateNear:plateNear(),plateArmed:g.plateArmed,holding:g.holding,
+  latch:g.latch,entered:g.entered,done:g.done,missed:g.missed,
+  rewardCount:g.rewardCount,blocks:g.blocks,energy:g.energy.slice(),score:g.score,
+  releaseLeft:g.releaseLeft,missionTime:g.missionTime,finished:g.finished};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,pace:BASE_PACE,missionTime:0,
+ balls:[{x:W*.27,y:H*.34},{x:W*.56,y:H*.34}],energy:[100,100],score:0,
+ plateArmed:false,charge:0,holding:false,extension:0,releaseLeft:0,
+ latch:false,entered:false,done:false,missed:false,rewardCount:0,blocks:0,finished:false,
+ winTime:-1,toast:0,toastText:''};
+ pads.forEach(p=>p.id=null);
+ $('pause').textContent='Пауза';$('finish').style.display='none';
+ $('hint').textContent='Синя: задръж лоста · Корал: премини по разгънатия мост.';
+ refresh();draw();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);
+ $('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent='МОСТ '+Math.round(g.extension*100)+'%';
+ $('bridgeFill').style.width=Math.round(g.extension*100)+'%';
+ $('bar').style.width=Math.min(100,100*g.time/TOTAL)+'%';
+ if(g.mode==='ready')$('status').textContent='Двата палеца стартират общата задача.';
+ else if(g.mode==='playing')$('status').textContent=g.paused?'Пауза':
+  (g.done?'Построихте път!':'Скрол ×'+g.pace.toFixed(1)+' · помощта прави път');
+}
+function resize(){
+ const oldW=W,oldH=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&oldW>1&&oldH>1){
+  for(let n=0;n<2;n++){
+   const b=g.balls[n],bounds=limits(n);
+   b.x=clamp(b.x*W/oldW,bounds[0],bounds[1]);
+   b.y=clamp(b.y*H/oldH,upper()+rad(),lower()-rad());
+  }
+  draw();
+ }else reset();
+}
+function complete(){
+ if(g.done||g.missed)return;
+ g.done=true;g.rewardCount++;
+ g.score+=8;
+ g.energy=g.energy.map(v=>Math.min(100,v+8));
+ g.winTime=g.realTime;g.toast=2.5;g.toastText='НАПРАВИХТЕ ПЪТ! ✦ +8 · ♡ +8 ЗА ДВАМАТА';
+ $('hint').textContent='Успяхте заедно! Синя разгъна моста, Корал премина.';
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(x=>x.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',e=>{
+  if(p.id!==e.pointerId)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  moveOrb(n,dx*GAIN,dy*GAIN);draw();
+ });
+ for(const k of ['pointerup','pointercancel','lostpointercapture'])
+  el.addEventListener(k,e=>{
+   if(e.pointerId!==p.id)return;p.id=null;
+   if(n===0){g.plateArmed=false;g.charge=0;}
+   try{el.releasePointerCapture(e.pointerId)}catch(_){}
+  });
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;
+ g.paused=!g.paused;$('pause').textContent=g.paused?'Продължи':'Пауза';
+ refresh();
+});
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ g.realTime+=dt;
+ if(g.toast>0)g.toast=Math.max(0,g.toast-dt);
+ if(!g.done&&g.time>=MISSION_IN){
+  g.missionTime+=dt;
+  const pressed=pads[0].id!==null&&g.plateArmed&&plateNear();
+  if(pressed)g.charge=Math.min(PRESS_DELAY,g.charge+dt);
+  else g.charge=0;
+  g.holding=pressed&&g.charge>=PRESS_DELAY;
+  if(g.holding){
+   g.releaseLeft=RELEASE_WARN;
+   g.extension=Math.min(1,g.extension+dt/EXTEND_SEC);
+  }else if(g.latch){
+   g.releaseLeft=RELEASE_WARN;
+   // Never retract while the passenger is crossing.
+  }else{
+   g.releaseLeft=Math.max(0,g.releaseLeft-dt);
+   if(g.releaseLeft<=0)g.extension=Math.max(0,g.extension-dt/RETRACT_SEC);
+  }
+  // An engaged bridge is latched to the passenger until reaching a safe bank.
+  const passenger=g.balls[1];
+  if(g.extension>=.985&&onBridge()){
+   g.latch=true;if(passenger.x>riverLeft()+rad()*.6)g.entered=true;
+  }
+  if(g.latch&&passenger.x>riverRight()+rad()+1)g.latch=false;
+  if(g.latch&&passenger.x<riverLeft()-rad())g.latch=false;
+  if(g.entered&&passenger.x>=riverRight()+rad()+1)complete();
+  if(g.done){}
+  else if(g.latch)$('hint').textContent='МОСТЪТ ОСТАВА! Корал може да довърши преминаването.';
+  else if(g.holding&&g.extension<1)$('hint').textContent='Синя задържа лоста — мостът се разгъва...';
+  else if(g.holding)$('hint').textContent='МОСТЪТ Е ГОТОВ! Корал, премини над пропастта.';
+  else if(g.extension>0&&g.releaseLeft<RELEASE_WARN)$('hint').textContent='⚠ Лостът е пуснат — мостът скоро ще се прибере.';
+  else $('hint').textContent='Синя докосва лоста и го следва, Корал чака мостът да се разгъне.';
+ }
+ // Stop the world while the cooperative mission needs attention. Bridge and
+ // plate remain world anchored at stageY(t), rather than becoming HUD ghosts.
+ const desired=g.done?BASE_PACE:(g.time<MISSION_IN?BASE_PACE:
+                g.time<MISSION_STOP?WORK_PACE:0);
+ const oldY=stageY(),change=Math.min(TOTAL-g.time,desired*dt);
+ g.time=Math.min(TOTAL,g.time+change);g.pace=desired;
+ const drift=stageY()-oldY;
+ // Moving platform carries a passenger already across the open gap.
+ if(g.latch&&onBridge(g.balls[1].x,g.balls[1].y-drift)){
+  g.balls[1].y=clamp(g.balls[1].y+drift,upper()+rad(),lower()-rad());
+ }
+ // Mild distance-based fatigue: energy support matters on completion.
+ g.energy=g.energy.map(v=>Math.max(0,v-change*.17));
+ if(g.time>=TOTAL){
+  g.mode='done';g.finished=true;
+  $('outcome').textContent=g.done?'Построихте мост за двама!':'Опитайте пак';
+  $('result').textContent='Обща мисия: '+(g.done?'УСПЕХ':'неуспех')+
+   ' · ✦'+g.score+' · Енергия '+g.energy.map(v=>Math.round(v)).join(' / ')+
+   ' · Мостът беше разгънат '+Math.round(g.extension*100)+'%.';
+  $('finish').style.display='flex';
+ }
+ refresh();
+}
+function line(x1,y1,x2,y2,c,w=2){
+ ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineWidth=w;ctx.strokeStyle=c;ctx.stroke();
+}
+function circle(x,y,r,color){
+ ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();
+}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#90bfaf0e';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#f6aa8d0d';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bottom=lower(),cy=stageY(),r=rad(),left=riverLeft(),right=riverRight();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#b9c8bf';ctx.strokeRect(12,top,W-24,bottom-top);ctx.restore();
+ line(W*.5,top-20,W*.5,bottom+16,'#cbc3b7',1.5);
+ // World-travel markers: background flows slowly when the puzzle engages.
+ for(let y=top+(g.time*4.5)%85-85;y<bottom+80;y+=85)
+  if(y>=top&&y<=bottom)line(16,y,W-16,y,'#adbab01a',1);
+ if(g.time>12&&cy>top-90&&cy<bottom+130){
+  // A vertical, non-walkable water rift across the entire right-hand lane.
+  // This is an actual collision interval, not decoration.
+  ctx.fillStyle='#b9cacf76';ctx.fillRect(left,top,right-left,bottom-top);
+  ctx.fillStyle='#e0e8e5a8';ctx.fillRect(left+4,top,right-left-8,bottom-top);
+  ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
+  for(let k=0;k<11;k++){
+   const sx=left+((k*37+(g.time*5)%45)%(right-left)),yy=top+((k*53+(g.time*4.5))%(bottom-top));
+   line(sx-8,yy,sx+16,yy-7,'#7eabb19c',2);
+  }
+  ctx.restore();
+  // Solid safe banks to make the gap and bridge physically legible.
+  ctx.fillStyle='#9bafa7';ctx.fillRect(left-7,top,7,bottom-top);
+  ctx.fillRect(right,top,7,bottom-top);
+  if(!g.done){
+   // End of telescopic deck always visible, regardless of extension.
+   const len=(right-left)*g.extension;
+   const hh=bridgeHalf();
+   if(len>1){
+    ctx.fillStyle='#b8b8a5';ctx.fillRect(left-6,cy-hh-4,len+9,2*hh+8);
+    ctx.fillStyle='#eecf99';ctx.fillRect(left-6,cy-hh,len+9,2*hh);
+    ctx.strokeStyle='#ac9774';ctx.lineWidth=2;
+    for(let x=left;x<left+len;x+=clamp(W*.029,14,29)){
+     line(x,cy-hh+2,x,cy+hh-2,'#a17e5a93',2);
+    }
+    line(left-6,cy-hh,left+len+3,cy-hh,'#fff2d8',3);
+   }
+   if(g.extension<.985){
+    ctx.save();ctx.setLineDash([6,9]);line(left-6,cy,right+3,cy,'#b9996d',2);ctx.restore();
+   }
+  }else{
+   // Successful mission leaves a beautiful fixed bridge as a world object.
+   ctx.fillStyle='#e1c89f';ctx.fillRect(left-6,cy-bridgeHalf(),right-left+12,bridgeHalf()*2);
+  }
+  // Draw near and far banks so the crossing direction reads intuitively.
+  circle(left-10,cy,8,'#d7a973');circle(right+10,cy,8,'#d7a973');
+  ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillStyle='#7a8c85';
+  if(cy>top+45&&cy<bottom-35)ctx.fillText('ПРЕМИНИ →',W*.75,cy-bridgeHalf()-18);
+  // Lever is anchored to same world y as bridge.
+  const px=plateX(),leverR=clamp(Math.min(W,H)*.037,22,35);
+  circle(px,cy,leverR*1.35,'#79b4ab2c');
+  circle(px,cy,leverR,g.holding?'#63ac9d':'#a7c4b9');
+  circle(px,cy,leverR*.65,'#e2f1e9');
+  line(px,cy,px+leverR*.25,cy-leverR*.38,'#628b84',3);
+  circle(px+leverR*.25,cy-leverR*.38,5,'#eea181');
+  // Causal signal: lever to the actual far bridge, not imaginary HUD button.
+  ctx.save();ctx.setLineDash([5,8]);
+  line(px+leverR,cy,W*.5-13,cy,g.holding?'#66ae9d':'#9dbeb4',2);
+  ctx.restore();
+  ctx.textAlign='center';ctx.fillStyle='#5e8981';ctx.font='bold 11px sans-serif';
+  ctx.fillText(g.holding?'ДЪРЖИ ЛОСТА':'ЛОСТ',px,cy-leverR-16);
+ }
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],gr=ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,r*2.5);
+  gr.addColorStop(0,colors[n]+'77');gr.addColorStop(1,colors[n]+'00');
+  circle(b.x,b.y,r*2.5,gr);
+  circle(b.x,b.y,r,colors[n]);circle(b.x-r*.2,b.y-r*.22,r*.2,'#ffffffaa');
+ }
+ if(g.toast>0){
+  ctx.fillStyle='#698f82';ctx.font='bold '+clamp(W*.023,16,23)+'px sans-serif';ctx.textAlign='center';
+  ctx.fillText(g.toastText,W*.5,top+34);
+ }
+ if(g.mode==='ready'){
+  ctx.fillStyle='#728e86';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+32);
+ }
+}
+function frame(ts){
+ if(!lastFrame)lastFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-lastFrame)/1000));lastFrame=ts;
+ if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move:moveOrb,stageY,plateX,riverLeft,riverRight,
+ inVoid,onBridge,supported,complete,resize};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
