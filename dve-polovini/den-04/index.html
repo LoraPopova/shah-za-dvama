@@ -55,16 +55,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 <div id="progress"><div id="progressFill"></div></div>
 <div id="sub" aria-live="polite">Плъзни двата палеца навън, за да разделиш светлините</div>
 <div id="menu"><button type="button" class="smallbtn" id="splitButton">Раздели</button><button type="button" class="smallbtn" id="pauseButton">Пауза</button><button type="button" class="smallbtn" id="resetButton">Отначало</button><button type="button" class="smallbtn" id="tempoButton">Темпо ×5</button><button type="button" class="smallbtn" id="gainButton" aria-label="Чувствителност на палците">Палец ×2,50</button></div>
-<div id="help">Енергията намалява през деня · при символа ♡ доближи топчетата в средата и ги задръж за зареждане</div>
+<div id="help">При ♡ докосни двете светлини за +30 · цел: всяка да завърши с поне 25 енергия</div>
 <div class="pad left" id="pad0"><div class="knob" id="knob0"></div><div class="pad-label">ЛЯВ ПАЛЕЦ</div></div>
 <div class="pad right" id="pad1"><div class="knob" id="knob1"></div><div class="pad-label">ДЕСЕН ПАЛЕЦ</div></div>
-<div id="finish"><div class="card"><div class="duo">● ●</div><h1>Денят премина</h1><p>Двете светлини могат да си помагат, дори когато са разделени. Синхронът е награда, не задължение.</p><p class="big" id="summary"></p><button type="button" id="again">Нов опит</button></div></div>
+<div id="finish"><div class="card"><div class="duo">● ●</div><h1 id="finishTitle">Денят премина</h1><p id="finishLead">Двете светлини могат да си помагат, дори когато са разделени. Синхронът е награда, не задължение.</p><p class="big" id="summary"></p><button type="button" id="again">Нов опит</button></div></div>
 <script>
 (function(){
   'use strict';
   const $=(id)=>document.getElementById(id);
   const canvas=$('world'),ctx=canvas.getContext('2d');
-  const colors=['#67a8a3','#ef9882'],DURATION=230;
+  const colors=['#67a8a3','#ef9882'],DURATION=230,MIN_FINISH_ENERGY=25;
   // One virtual day runs at the chosen pace. Start fast; switch without resetting or jumping.
   const tempos=[3,5,8];let tempoIndex=1;
   // Explicit A/B sensitivity trial. Fixed per-pixel mapping avoids frame-rate dependent acceleration.
@@ -260,6 +260,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     }else{g.meetHold=0;}
     if(g.time>=DURATION){
       g.time=DURATION;g.mode='done';running=false;
+      g.survived=g.energy.every(e=>e>=MIN_FINISH_ENERGY);
+      $('finishTitle').textContent=g.survived?'Заедно издържахте!':'Денят ви изтощи';
+      $('finishLead').textContent=g.survived?
+        'Успяхте да запазите силите и на двете светлини.':
+        'Целта е двете светлини да завършат с поне 25 енергия. Срещите ги зареждат взаимно.';
       $('summary').textContent='Срещи: '+g.meets+' · Синхрони: '+g.synced+' · Точки: '+g.score+' · Енергия: '+Math.round(g.energy[0])+' / '+Math.round(g.energy[1]);
       $('finish').style.display='flex';
       refresh();return;
@@ -526,7 +531,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   window.addEventListener('resize',resize,{passive:true});
   setupPad(0);setupPad(1);
   // Test hook is read-only except for manually advancing time in automated smoke tests.
-  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],gain:gainOptions[gainIndex],gold:g.gold,score:g.score,synced:g.synced,meets:g.meets,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<3&&g.time>=[89,160,205][g.meets]&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
+  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],gain:gainOptions[gainIndex],gold:g.gold,score:g.score,synced:g.synced,meets:g.meets,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<3&&g.time>=[89,160,205][g.meets]&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
   resize();reset();requestAnimationFrame(frame);
 })();
 </script>
