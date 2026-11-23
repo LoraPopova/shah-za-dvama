@@ -733,9 +733,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     }
     for(const m of missions){
       const a=coopGeometry(m),state=missionState(m);
-      const visible=a.centerY>topBand()-H*.22&&a.centerY<bottomBand()+H*.3;
-      if(!visible)continue;
-      ctx.save();ctx.globalAlpha=coopActive(m)?1:.48;ctx.lineCap='round';
+      // No translucent static 'ghost' scene: only render active world objects.
+      if(!coopActive(m))continue;
+      ctx.save();ctx.globalAlpha=1;ctx.lineCap='round';
       // Everything in this scene moves up using eventY, including the sign.
       ctx.font='bold 12px sans-serif';ctx.fillStyle='#596f73';ctx.textAlign='center';
       ctx.fillText('♢ ОБЩА МИСИЯ '+(m.id==='morning'?'1/2':'2/2'),
