@@ -55,7 +55,7 @@ header{left:12px;right:12px}h1{font-size:16px}
 <div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">МОСТ 0%</div></div>
 </header>
 <div id="progress"><div id="bar"></div></div>
-<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="skip" disabled>Пропусни</button></div>
 <div id="bridgeMeter"><div id="bridgeFill"></div></div>
 <div id="hint">Синя: задръж лоста · Корал: премини по моста.</div>
 <div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
@@ -136,7 +136,7 @@ function reset(){
  latch:false,entered:false,done:false,missed:false,rewardCount:0,blocks:0,finished:false,
  winTime:-1,toast:0,toastText:''};
  pads.forEach(p=>p.id=null);
- $('pause').textContent='Пауза';$('finish').style.display='none';
+ $('pause').textContent='Пауза';$('skip').disabled=true;$('finish').style.display='none';
  $('hint').textContent='Синя: задръж лоста · Корал: премини по разгънатия мост.';
  refresh();draw();
 }
@@ -146,10 +146,11 @@ function refresh(){
  $('score').textContent='✦ '+g.score;
  $('boostClock').textContent='МОСТ '+Math.round(g.extension*100)+'%';
  $('bridgeFill').style.width=Math.round(g.extension*100)+'%';
+ $('skip').disabled=g.mode!=='playing'||g.paused||g.time<MISSION_STOP||g.done||g.missed||g.latch;
  $('bar').style.width=Math.min(100,100*g.time/TOTAL)+'%';
  if(g.mode==='ready')$('status').textContent='Двата палеца стартират общата задача.';
  else if(g.mode==='playing')$('status').textContent=g.paused?'Пауза':
-  (g.done?'Построихте път!':g.holding?'Синя държи лоста · Корал преминава':'Синя: лост · Корал: мост · ×'+g.pace.toFixed(1));
+  (g.done?'Построихте път!':g.missed?'Пропуснат мост · продължаваме':g.holding?'Синя държи лоста · Корал преминава':'Синя: лост · Корал: мост · ×'+g.pace.toFixed(1));
 }
 function resize(){
  const oldW=W,oldH=H;
@@ -195,6 +196,12 @@ for(let n=0;n<2;n++){
   });
 }
 $('reset').addEventListener('click',reset);
+$('skip').addEventListener('click',()=>{
+ if(g.mode!=='playing'||g.paused||g.done||g.missed||g.latch||g.time<MISSION_STOP)return;
+ g.missed=true;g.holding=false;g.plateArmed=false;g.charge=0;g.extension=0;
+ $('hint').textContent='Мостът е пропуснат — продължаваме без общата награда.';
+ refresh();
+});
 $('again').addEventListener('click',reset);
 $('pause').addEventListener('click',()=>{
  if(g.mode!=='playing')return;
@@ -205,7 +212,7 @@ function update(dt){
  if(g.mode!=='playing'||g.paused)return;
  g.realTime+=dt;
  if(g.toast>0)g.toast=Math.max(0,g.toast-dt);
- if(!g.done&&g.time>=MISSION_IN){
+ if(!g.done&&!g.missed&&g.time>=MISSION_IN){
   g.missionTime+=dt;
   const pressed=pads[0].id!==null&&g.plateArmed&&plateNear();
   if(pressed)g.charge=Math.min(PRESS_DELAY,g.charge+dt);
@@ -238,9 +245,9 @@ function update(dt){
  }
  // Stop the world while the cooperative mission needs attention. Bridge and
  // plate remain world anchored at stageY(t), rather than becoming HUD ghosts.
- const desired=g.done?BASE_PACE:(g.time<MISSION_IN?BASE_PACE:
+ const desired=g.done||g.missed?BASE_PACE:(g.time<MISSION_IN?BASE_PACE:
                 g.time<MISSION_STOP?WORK_PACE:0);
- const oldY=stageY(),nextGate=g.done?TOTAL:(g.time<MISSION_IN?MISSION_IN:MISSION_STOP);
+ const oldY=stageY(),nextGate=g.done||g.missed?TOTAL:(g.time<MISSION_IN?MISSION_IN:MISSION_STOP);
  const change=Math.min(Math.max(0,nextGate-g.time),desired*dt);
  g.time=Math.min(TOTAL,g.time+change);g.pace=desired;
  const drift=stageY()-oldY;
@@ -252,8 +259,8 @@ function update(dt){
  g.energy=g.energy.map(v=>Math.max(0,v-change*.17));
  if(g.time>=TOTAL){
   g.mode='done';g.finished=true;
-  $('outcome').textContent=g.done?'Построихте мост за двама!':'Опитайте пак';
-  $('result').textContent='Обща мисия: '+(g.done?'УСПЕХ':'неуспех')+
+  $('outcome').textContent=g.done?'Построихте мост за двама!':g.missed?'Мостът остана недовършен':'Опитайте пак';
+  $('result').textContent='Обща мисия: '+(g.done?'УСПЕХ':g.missed?'ПРОПУСНАТА':'неуспех')+
    ' · ✦'+g.score+' · Енергия '+g.energy.map(v=>Math.round(v)).join(' / ')+
    ' · Мостът беше разгънат '+Math.round(g.extension*100)+'%.';
   $('finish').style.display='flex';
