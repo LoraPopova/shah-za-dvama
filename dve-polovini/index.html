@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2eee7">
-<title>Две половини — игра за два палеца</title>
+<title>Две половини — падащи топчета</title>
 <style>
 :root{color-scheme:light;--teal:#72a5a4;--coral:#f49d85;--gold:#e7b16f;--ink:#344e4b;--paper:#fffefa}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -44,7 +44,7 @@ header b{font-size:20px;letter-spacing:-.04em}header small{font-size:11px;color:
     <div id="board"><canvas width="720" height="1040" id="canvas" aria-label="Игрално поле"></canvas><div class="inner-caption" id="progress">🩵 0/4　🧡 0/4</div></div>
     <div class="control" id="right-control"><label for="right-pad" style="color:#dd8b74">ДЕСЕН ПАЛЕЦ</label><div class="pad" id="right-pad" aria-label="Десен джойстик"><div class="knob" id="right-knob"></div></div></div>
   </main>
-  <div id="help">Раздели → събери своя цвят → сблъскай половините → вземи жълтите</div>
+  <div id="help">Полето се движи нагоре • топчетата падат бавно • събирай правилния цвят</div>
 </div>
 <script>
 (function(){
@@ -69,8 +69,22 @@ function dots(kind){
  }
  return list;
 }
+function spawnOne(g){
+ var t;
+ if(g.phase==='gold')t='gold';
+ else{
+  var need=[];
+  if(g.teal<4)need.push('teal');
+  if(g.coral<4)need.push('coral');
+  if(!need.length)return;
+  t=need[g.spawnCount%need.length];
+ }
+ g.spawnCount++;
+ var x=t==='teal'?48+Math.random()*108:t==='coral'?205+Math.random()*107:76+Math.random()*210;
+ g.items.push({t:t,x:x,y:70,r:t==='gold'?13:12});
+}
 function fresh(){
- game={level:1,score:0,mode:'joined',phase:'colors',joined:{x:180,y:421},a:{x:146,y:421},b:{x:214,y:421},teal:0,coral:0,gold:0,splitTimer:0,mergeLock:0,items:dots('colors'),fx:[],time:0};
+ game={level:1,score:0,mode:'joined',phase:'colors',joined:{x:180,y:421},a:{x:146,y:421},b:{x:214,y:421},teal:0,coral:0,gold:0,splitTimer:0,mergeLock:0,items:dots('colors'),fx:[],time:0,scroll:0,spawnTimer:1,spawnCount:0};
  resetStick(left,'left-knob');resetStick(right,'right-knob');$('score').textContent='★ 0';refresh();say('Дръпни двата палеца навън, за да разделиш топчето ↙ ↘');
 }
 function refresh(){
@@ -105,7 +119,7 @@ attach('left-pad',left,'left-knob');attach('right-pad',right,'right-knob');
 $('restart').addEventListener('click',fresh);
 document.addEventListener('visibilitychange',function(){prev=0;if(document.hidden){resetStick(left,'left-knob');resetStick(right,'right-knob')}});
 function d(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-function move(obj,v,dt){var size=19,speed=510;obj.x=Math.max(size,Math.min(W-size,obj.x+v.x*speed*dt));obj.y=Math.max(71,Math.min(H-size,obj.y+v.y*speed*dt))}
+function move(obj,v,dt){var size=19,speed=205;obj.x=Math.max(size,Math.min(W-size,obj.x+v.x*speed*dt));obj.y=Math.max(71,Math.min(H-size,obj.y+v.y*speed*dt))}
 function burst(x,y,c){for(var j=0;j<8;j++){var angle=Math.PI*2*j/8;game.fx.push({x:x,y:y,vx:Math.cos(angle)*(40+Math.random()*45),vy:Math.sin(angle)*(40+Math.random()*45),life:.35,c:c})}}
 function collect(it){
  burst(it.x,it.y,it.t==='teal'?teal:it.t==='coral'?coral:gold);
@@ -116,15 +130,21 @@ function collect(it){
 }
 function nextPhase(){
  if(game.phase==='colors'){
-  game.phase='gold';game.gold=0;game.items=dots('gold');say('Сблъскай двете половини! Жълтите са за съединеното топче 🟡');
+  game.phase='gold';game.gold=0;game.items=dots('gold');game.spawnTimer=1;game.spawnCount=0;say('Сблъскай двете половини! Жълтите са за съединеното топче 🟡');
  }else{
-  game.level+=1;game.phase='colors';game.teal=0;game.coral=0;game.gold=0;game.items=dots('colors');
+  game.level+=1;game.phase='colors';game.teal=0;game.coral=0;game.gold=0;game.items=dots('colors');game.spawnTimer=1;game.spawnCount=0;
   say('Браво! Ниво '+game.level+' — раздели топчето отново ↙ ↘');
  }
  refresh();
 }
 function update(dt){
- var g=game;g.time+=dt;g.mergeLock=Math.max(0,g.mergeLock-dt);
+ var g=game;g.time+=dt;g.scroll+=dt*31;g.mergeLock=Math.max(0,g.mergeLock-dt);
+ // Background scrolls upward; fresh collectible balls descend at a gentle steady pace.
+ g.spawnTimer-=dt;
+ if(g.spawnTimer<=0){
+  g.spawnTimer=.88;
+  if(g.items.length<17)spawnOne(g);
+ }
  if(g.mode==='joined'){
   if(left.x<-.55&&right.x>.55){
    g.splitTimer+=dt;
@@ -148,6 +168,8 @@ function update(dt){
  var keep=[],did=false;
  for(var i=0;i<g.items.length;i++){
   var it=g.items[i],target=null;
+  it.y+=49*dt;
+  if(it.y>H+20)continue;
   if(it.t==='gold'&&g.mode==='joined')target=g.joined;
   if(it.t==='teal'&&g.mode==='split')target=g.a;
   if(it.t==='coral'&&g.mode==='split')target=g.b;
@@ -164,6 +186,14 @@ function joinedBall(x,y){ctx.save();ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);
 function draw(){
  var g=game;ctx.fillStyle='#fffefa';ctx.fillRect(0,0,W,H);
  ctx.fillStyle='#f3f9f6';ctx.fillRect(10,70,167,435);ctx.fillStyle='#fff7f1';ctx.fillRect(183,70,167,435);
+ // Repeating scenery drifts from bottom to top; light enough not to distract from the dots.
+ for(var k=0;k<8;k++){
+  var yy=75+k*100-(g.scroll%100);
+  if(yy<75||yy>510)continue;
+  ctx.strokeStyle='#9bbdb128';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(25,yy);ctx.lineTo(166,yy);ctx.moveTo(194,yy);ctx.lineTo(335,yy);ctx.stroke();
+  ctx.globalAlpha=.17;dot(29,yy-12,5,teal);dot(329,yy-12,5,coral);ctx.globalAlpha=1;
+ }
  ctx.setLineDash([2,11]);ctx.strokeStyle='#cedbd4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(180,71);ctx.lineTo(180,505);ctx.stroke();ctx.setLineDash([]);
  ctx.globalAlpha=.36;petals(180,88,22,6,teal,g.time*.22);petals(180,88,22,6,coral,-g.time*.22);ctx.globalAlpha=1;
  for(var i=0;i<g.items.length;i++){
