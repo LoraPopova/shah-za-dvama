@@ -66,18 +66,18 @@ let W=1,H=1,dpr=1,g=null,prevFrame=0,selectedPower=35;
 const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
 // Sparse coins form two smooth, followable world-scrolling paths.
 const coins=[
- {t:12,n:0,x:0.27,value:1},{t:12,n:1,x:0.73,value:1},
- {t:55,n:0,x:0.32,value:1},{t:55,n:1,x:0.78,value:1},
- {t:77,n:0,x:0.38,value:1},{t:77,n:1,x:0.83,value:1},
- {t:100,n:0,x:0.42,value:3},{t:100,n:1,x:0.79,value:3},
- {t:122,n:0,x:0.37,value:1},{t:122,n:1,x:0.74,value:1},
- {t:145,n:0,x:0.31,value:1},{t:145,n:1,x:0.68,value:1},
- {t:168,n:0,x:0.25,value:1},{t:168,n:1,x:0.61,value:1},
- {t:191,n:0,x:0.19,value:3},{t:191,n:1,x:0.66,value:3},
- {t:214,n:0,x:0.23,value:1},{t:214,n:1,x:0.72,value:1},
- {t:237,n:0,x:0.30,value:1},{t:237,n:1,x:0.79,value:1},
- {t:260,n:0,x:0.36,value:3},{t:260,n:1,x:0.82,value:3},
- {t:283,n:0,x:0.41,value:1},{t:283,n:1,x:0.76,value:1}
+ {t:12,n:0,x:0.38,value:1},{t:12,n:1,x:0.60,value:1},
+ {t:55,n:0,x:0.40,value:1},{t:55,n:1,x:0.58,value:1},
+ {t:77,n:0,x:0.42,value:1},{t:77,n:1,x:0.59,value:1},
+ {t:100,n:0,x:0.43,value:3},{t:100,n:1,x:0.61,value:3},
+ {t:122,n:0,x:0.41,value:1},{t:122,n:1,x:0.63,value:1},
+ {t:145,n:0,x:0.39,value:1},{t:145,n:1,x:0.66,value:1},
+ {t:168,n:0,x:0.37,value:1},{t:168,n:1,x:0.69,value:1},
+ {t:191,n:0,x:0.34,value:3},{t:191,n:1,x:0.72,value:3},
+ {t:214,n:0,x:0.30,value:1},{t:214,n:1,x:0.78,value:1},
+ {t:237,n:0,x:0.26,value:1},{t:237,n:1,x:0.83,value:1},
+ {t:260,n:0,x:0.22,value:3},{t:260,n:1,x:0.87,value:3},
+ {t:283,n:0,x:0.19,value:1},{t:283,n:1,x:0.86,value:1}
 ];
 const radius=()=>clamp(Math.min(W,H)*.019,11,19);
 const upper=()=>Math.max(110,H*.16);
