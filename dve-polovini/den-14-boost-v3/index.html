@@ -219,12 +219,12 @@ function resize(){
 }
 function move(n,dx,dy){
  if(!g||g.mode==='done'||g.paused)return;
- const b=g.balls[n],lr=lane(n);
+ const b=g.balls[n],lr=lane(n),fromX=b.x,fromY=b.y;
  b.x=clamp(b.x+dx*GAIN,lr[0],lr[1]);
  b.y=clamp(b.y+dy*GAIN,upper()+radius(),lower()-radius());
  // Thumb displacement is direct. Boost NEVER affects this function.
- // Fast swipe is checked as a swept segment: no tunneling through a spike.
- swipeHazards(n,b.x-dx*GAIN,b.y-dy*GAIN,b.x,b.y);
+ // Fast swipe is checked along ACTUAL clamped trajectory, not out-of-bounds aim.
+ swipeHazards(n,fromX,fromY,b.x,b.y);
 }
 for(let n=0;n<2;n++){
  const p=pads[n],el=p.el;
