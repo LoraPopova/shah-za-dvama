@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#fffaf4">
-<title>Две половини — две ръце и форми</title>
+<title>Две половини — прецизно следване</title>
 <style>
 :root{color-scheme:light;--teal:#72a5a4;--coral:#f49d85;--gold:#e5ac69;--ink:#334d49;--ivory:#fffdfa}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -36,6 +36,9 @@ button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 @media(max-width:650px){.top{gap:4px;left:8px;right:8px}.brand{font-size:15px}.buttons{gap:4px}.pill{padding:7px 7px;font-size:11px}.small{padding:7px 8px;font-size:11px}#status{top:calc(env(safe-area-inset-top) + 52px);left:5%;right:5%}#progress{top:calc(env(safe-area-inset-top) + 79px)}.pad{width:98px;height:98px}#join{bottom:calc(env(safe-area-inset-bottom) + 19px);padding:9px 12px;font-size:11px}.zone{height:36%}.bottom-note{display:none}}
 @media(max-height:560px){.zone{height:42%}.pad{width:96px;height:96px}.zone .hint{display:none}#join{bottom:calc(env(safe-area-inset-bottom) + 7px)}}
 @media(max-width:490px){.brand{display:none}.buttons{width:100%;justify-content:flex-end}.pill{padding:5px;font-size:10px}.small{padding:6px;font-size:10px}#status{top:calc(env(safe-area-inset-top) + 45px)}#progress{top:calc(env(safe-area-inset-top) + 73px)}}
+.trace-active .zone{display:none}
+.trace-active .bottom-note{opacity:1;color:#527e77;font-size:13px;bottom:calc(env(safe-area-inset-bottom) + 13px)}
+.trace-active #playfield{touch-action:none}
 </style>
 </head>
 <body>
@@ -59,6 +62,7 @@ const C={teal:'#72a5a4',coral:'#f49d85',gold:'#e5ac69'};
 const sticks=[{x:0,y:0,id:null,downX:0,downY:0},{x:0,y:0,id:null,downX:0,downY:0}];
 let practice=true,shapes=false;
 let shapeStage=0,shapePaths=[[],[]],shapeBalls=[],shapeProgress=[0,0],shapeWait=0;
+const tracePointers=[null,null],traceLast=[null,null];
 let W=1,H=1,dpr=1,g,prev=0,keyboard={},animStarted=false;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -102,7 +106,7 @@ function setupPad(n){
   const dx=clientX-s.downX,dy=clientY-s.downY;
   const len=Math.hypot(dx,dy);
   // Radial dead zone avoids diagonal bias and prevents jitter around the thumb.
-  const dead=maxR*.10;
+  const dead=maxR*.05;
   const strength=len<=dead?0:Math.min(1,(len-dead)/(maxR-dead));
   s.x=len>0?dx/len*strength:0;
   s.y=len>0?dy/len*strength:0;
@@ -173,7 +177,13 @@ function resize(){
  requestAnimationFrame(defaultPads);
 }
 resize();
-function setMode(name){shapes=name==='shapes';practice=name==='test';resetGame()}
+function setMode(name){
+ shapes=name==='shapes';practice=name==='test';
+ for(let n=0;n<2;n++){tracePointers[n]=null;traceLast[n]=null;touchReset(n)}
+ $('app').classList.toggle('trace-active',shapes);
+ document.querySelector('.bottom-note').textContent=shapes?'Следвай линиите едновременно с два пръста върху екрана':'Ляв палец: синьо · десен палец: оранжево · сблъскай за съединяване';
+ resetGame();
+}
 $('testbtn').addEventListener('click',()=>setMode('test'));
 $('gamebtn').addEventListener('click',()=>setMode('game'));
 $('shapebtn').addEventListener('click',()=>setMode('shapes'));
@@ -188,9 +198,11 @@ $('fullscreen').addEventListener('click',()=>{
 function move(p,v,dt){
  const rad=radius(),speed=clamp(Math.min(W,H)*.32,170,295);
  // The same number of pixels per second in every direction and orientation.
- const mag=Math.hypot(v.x,v.y),scale=mag>1?1/mag:1;
- p.x=clamp(p.x+v.x*scale*speed*dt,rad,W-rad);
- p.y=clamp(p.y+v.y*scale*speed*dt,112,H-rad-4);
+ const mag=Math.hypot(v.x,v.y),unit=mag>0?1/mag:0;
+ // Soft analog curve: tiny thumb inputs produce tiny, controllable movement.
+ const fine=Math.pow(Math.min(1,mag),1.8);
+ p.x=clamp(p.x+v.x*unit*fine*speed*dt,rad,W-rad);
+ p.y=clamp(p.y+v.y*unit*fine*speed*dt,112,H-rad-4);
 }
 
 function completeMerge(){
@@ -360,32 +372,80 @@ function resetShapes(){setShapeStage(0)}
 function setShapeStage(stage){
  shapeStage=stage;shapePaths=buildShapePaths(shapeStage);
  shapeBalls=shapePaths.map(p=>({x:p[0].x,y:p[0].y}));
- shapeProgress=[0,0];shapeWait=0;
- say(stage===0?'Форма 1: вълна и зигзаг. Следвай двете линии едновременно.':stage===1?'Форма 2: кръг с лявата, квадрат с дясната ръка.':'Форма 3: две противоположни спирали.');
+ shapeProgress=[0,0];shapeWait=0;clearTraceTouches();
+ say(stage===0?'Постави два пръста върху началните точки и следвай линиите.':stage===1?'Пръсти върху точките: кръг вляво, квадрат вдясно.':'Пръсти върху точките: две противоположни спирали.');
  refresh();
 }
-function updateShapes(dt){
- const tol=clamp(Math.min(W,H)*.055,24,41);
- let changed=false;
- for(let n=0;n<2;n++){
-  const p=shapeBalls[n],path=shapePaths[n],v=getStick(n);
-  if(!p||shapeProgress[n]>=path.length-1)continue;
-  // Never erase a line when the player is not actively steering that thumb.
-  if(Math.hypot(v.x,v.y)<.08)continue;
-  move(p,v,dt);
-  const last=shapeProgress[n],limit=Math.min(path.length-1,last+29);
-  for(let j=last+1;j<=limit;j++){
-   if(Math.hypot(path[j].x-p.x,path[j].y-p.y)<tol){shapeProgress[n]=j;changed=true;}
+function clearTraceTouches(){
+ for(let n=0;n<2;n++){tracePointers[n]=null;traceLast[n]=null}
+}
+function pointToSegmentDistance(p,a,b){
+ const dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy;
+ const t=den?clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/den,0,1):0;
+ return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);
+}
+function handleTraceMove(n,x,y){
+ const last=traceLast[n];
+ if(!last)return;
+ const pt={x:clamp(x,0,W),y:clamp(y,0,H)};
+ const path=shapePaths[n],at=shapeProgress[n];
+ if(!path||at>=path.length-1){traceLast[n]=pt;return;}
+ const endAt=Math.min(path.length-1,at+48);
+ let best=at;
+ const travel=Math.hypot(pt.x-last.x,pt.y-last.y);
+ if(travel>=1.5){
+  const tol=clamp(Math.min(W,H)*.019,13,23);
+  for(let i=at+1;i<=endAt;i++){
+   if(pointToSegmentDistance(path[i],last,pt)<=tol)best=i;
   }
  }
- if(changed)refresh();
+ if(best>at){
+  shapeProgress[n]=best;shapeBalls[n]={x:path[best].x,y:path[best].y};
+  refresh();
+ }
+ traceLast[n]=pt;
+}
+function tracePoint(e){
+ const rect=canvas.getBoundingClientRect();
+ return {x:(e.clientX-rect.left)*W/rect.width,y:(e.clientY-rect.top)*H/rect.height};
+}
+canvas.addEventListener('pointerdown',e=>{
+ if(!shapes)return;
+ e.preventDefault();
+ const p=tracePoint(e),n=p.x<W*.5?0:1;
+ if(tracePointers[n]!==null)return;
+ const path=shapePaths[n],index=shapeProgress[n];
+ if(!path||index>=path.length-1)return;
+ const spot=path[index];
+ const tol=clamp(Math.min(W,H)*.065,35,63);
+ if(Math.hypot(spot.x-p.x,spot.y-p.y)>tol){
+  say('Започни от цветното топче, после следвай линията с пръст.');
+  return;
+ }
+ tracePointers[n]=e.pointerId;traceLast[n]=p;
+ try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+},{passive:false});
+canvas.addEventListener('pointermove',e=>{
+ if(!shapes)return;
+ for(let n=0;n<2;n++){
+  if(tracePointers[n]===e.pointerId){
+   e.preventDefault();
+   const p=tracePoint(e);handleTraceMove(n,p.x,p.y);break;
+  }
+ }
+},{passive:false});
+function endTrace(e){
+ for(let n=0;n<2;n++)if(tracePointers[n]===e.pointerId){tracePointers[n]=null;traceLast[n]=null}
+}
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,endTrace);
+function updateShapes(dt){
  if(shapeProgress.every((v,n)=>v>=shapePaths[n].length-1)){
   shapeWait+=dt;
-  if(shapeWait>1.3)setShapeStage((shapeStage+1)%3);
+  if(shapeWait>1.4)setShapeStage((shapeStage+1)%3);
  }
 }
 function drawShapes(){
- const mid=W*.5,upper=Math.max(98,H*.12),rad=radius();
+ const mid=W*.5,upper=Math.max(98,H*.12),rad=clamp(radius()*.82,12,20);
  ctx.fillStyle='#f2f8f5';ctx.fillRect(0,upper,mid-5,H-upper);
  ctx.fillStyle='#fff4ec';ctx.fillRect(mid+5,upper,mid-5,H-upper);
  ctx.fillStyle='#fffdfa';ctx.fillRect(mid-5,upper,10,H-upper);
@@ -403,6 +463,7 @@ function drawShapes(){
    ctx.globalAlpha=.32;circle(next.x,next.y,9,col);
   }
   ctx.globalAlpha=1;circle(ball.x,ball.y,rad,col);
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ball.x,ball.y,rad+2,0,Math.PI*2);ctx.stroke();
   circle(ball.x-rad*.29,ball.y-rad*.3,3,'#ffffffdd');
   ctx.fillStyle=col;ctx.font='700 '+clamp(W*.017,12,17)+'px system-ui';ctx.textAlign='center';
   ctx.fillText(n?'ДЯСНА РЪКА':'ЛЯВА РЪКА',n?W*.75:W*.25,Math.max(124,H*.165));
@@ -420,9 +481,9 @@ function frame(t){
 }
 window.addEventListener('resize',resize,{passive:true});
 window.addEventListener('orientationchange',()=>{setTimeout(resize,100)},{passive:true});
-document.addEventListener('visibilitychange',()=>{prev=0;if(document.hidden){keyboard={};for(let i=0;i<2;i++)touchReset(i)}});
-window.addEventListener('blur',()=>{prev=0;keyboard={};for(let i=0;i<2;i++)touchReset(i)});
-window.addEventListener('pagehide',()=>{prev=0;for(let i=0;i<2;i++)touchReset(i)});
+document.addEventListener('visibilitychange',()=>{prev=0;if(document.hidden){keyboard={};clearTraceTouches();for(let i=0;i<2;i++)touchReset(i)}});
+window.addEventListener('blur',()=>{prev=0;keyboard={};clearTraceTouches();for(let i=0;i<2;i++)touchReset(i)});
+window.addEventListener('pagehide',()=>{prev=0;clearTraceTouches();for(let i=0;i<2;i++)touchReset(i)});
 window.addEventListener('keydown',e=>{if(['a','s','w','d','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){keyboard[e.key]=true;e.preventDefault()}});
 window.addEventListener('keyup',e=>{keyboard[e.key]=false});
 document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
