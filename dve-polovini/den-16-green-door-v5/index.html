@@ -155,7 +155,9 @@ function syncGateTransit(){
  // Latch only after Coral has entered the OPEN throat, not simply waited
  // just below the closed door. Hold until orb clears the collidable wall.
  if(!g.gateTransit&&g.open>=.96&&insideX&&dist<r*.60)g.gateTransit=true;
- if(g.gateTransit&&(!insideX||dist>r+wallR()*.52+3))g.gateTransit=false;
+ // Keep the safety latch past the *entire* success/clearance threshold;
+ // the door must not close one frame before the crossing is counted.
+ if(g.gateTransit&&(!insideX||dist>r+wallR()*.52+10))g.gateTransit=false;
 }
 function succeed(){
  if(g.done||g.missed||!g.unlocked||g.open<.96||!g.crossed)return;
