@@ -220,23 +220,19 @@ function update(dt){
  g.realTime+=dt;
  for(let n=0;n<2;n++)g.crushCooldown[n]=Math.max(0,g.crushCooldown[n]-dt);
  const pace=tempoAt(g.time),worldDelta=dt*pace,oldTime=g.time,newTime=Math.min(DURATION,oldTime+worldDelta);
- const moved=g.balls.map(b=>({...b}));let jam=false;
- // A moving physical wall nudges an orb with itself. At the upper boundary
- // it cannot teleport or pass through; the WORLD temporarily jams instead.
+ let jam=false;
+ // Stop the SCROLL just before a solid V wall would touch an orb.
+ // Unlike shoving the orb to the top edge, this gives room to backtrack
+ // and steer toward the gap; no teleport, inertia or involuntary movement.
  for(let n=0;n<2;n++){
   const b=g.balls[n];
-  if(solidAt(n,b.x,b.y,newTime)){
-   const newY=clamp(b.y-(newTime-oldTime)*6.5,upper()+rad(),lower()-rad());
-   if(!solidAt(n,b.x,newY,newTime))b.y=newY;
-   else jam=true;
-  }
+  if(solidAt(n,b.x,b.y,newTime))jam=true;
  }
  if(jam){
-  g.balls.forEach((b,i)=>{b.x=moved[i].x;b.y=moved[i].y});
   // No clock advance: player can slide laterally toward the V gap.
   g.jamTime+=dt;
   for(let n=0;n<2;n++){
-   if(!solidAt(n,moved[n].x,moved[n].y,newTime))continue;
+   if(!solidAt(n,g.balls[n].x,g.balls[n].y,newTime))continue;
    if(g.crushCooldown[n]===0){
     g.crushCooldown[n]=1;g.crushes[n]++;g.energy[n]=Math.max(0,g.energy[n]-7);
    }
