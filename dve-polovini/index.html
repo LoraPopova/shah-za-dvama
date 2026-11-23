@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2eee7">
+<title>Две половини — игра за два палеца</title>
+<style>
+:root{color-scheme:light;--teal:#72a5a4;--coral:#f49d85;--gold:#e7b16f;--ink:#344e4b;--paper:#fffefa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:#f2eee7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+button{font:inherit;cursor:pointer}
+#app{height:100vh;height:100dvh;min-height:360px;max-width:1180px;margin:auto;display:flex;flex-direction:column;gap:7px;padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));}
+header{min-height:43px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+header .brand{display:flex;flex-direction:column;gap:1px}
+header b{font-size:20px;letter-spacing:-.04em}header small{font-size:11px;color:#81928c}
+.actions{display:flex;align-items:center;gap:7px}.pill{border-radius:13px;padding:8px 11px;background:#fffaf4;border:1px solid #e8e3db;font-weight:800;font-size:13px;white-space:nowrap}
+#restart{background:var(--ink);color:#fff;border:0;border-radius:12px;padding:9px 13px;font-size:12px;font-weight:800}
+#status{font-size:13px;font-weight:750;text-align:center;min-height:22px;color:#607970;line-height:1.3}
+#stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(105px,1fr) minmax(0,405px) minmax(105px,1fr);align-items:end;justify-items:center;gap:8px}
+#board{aspect-ratio:360/520;width:min(100%,485px,calc((100dvh - 113px) * 360 / 520));height:auto;max-height:100%;border:5px solid white;border-radius:21px;background:var(--paper);box-shadow:0 6px 24px #37534a20;position:relative;overflow:hidden;align-self:center}
+#canvas{display:block;width:100%;height:100%;touch-action:none}
+#board .inner-caption{position:absolute;pointer-events:none;top:10px;left:10px;right:10px;text-align:center;font-size:12px;font-weight:750;color:#6b8981}
+.control{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;width:100%;padding-bottom:13px;user-select:none;-webkit-user-select:none}
+.control label{font-size:11px;font-weight:850;letter-spacing:.08em;white-space:nowrap}
+.pad{width:clamp(93px,12vw,150px);height:clamp(93px,12vw,150px);border:3px solid #fff9;border-radius:50%;position:relative;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 5px 15px #334d4b15;overflow:hidden}
+#left-pad{background:#d7eae5}#right-pad{background:#fbe5da}
+.pad:before,.pad:after{content:"";position:absolute;background:#55736c28;pointer-events:none}.pad:before{width:1px;height:77%;left:50%;top:11.5%}.pad:after{height:1px;width:77%;left:11.5%;top:50%}
+.knob{position:absolute;left:50%;top:50%;width:47%;height:47%;border:3px solid #ffffffb5;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 3px 9px #1e393529;will-change:transform}
+#left-knob{background:var(--teal)}#right-knob{background:var(--coral)}
+#help{text-align:center;color:#8c9c95;font-size:11px;line-height:1.3;min-height:15px}
+@media(max-width:650px){#app{padding:calc(5px + env(safe-area-inset-top)) 7px calc(5px + env(safe-area-inset-bottom));gap:4px}header b{font-size:17px}header small{font-size:10px}#status{font-size:11px;min-height:16px}#stage{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:5px}#board{grid-column:1 / -1;grid-row:1;align-self:center;width:min(100%,405px,calc((100dvh - 190px) * 360 / 520))}#left-control{grid-column:1;grid-row:2}#right-control{grid-column:2;grid-row:2}.control{padding:0;gap:2px}.control label{font-size:10px}.pad{height:clamp(72px,21vw,106px);width:clamp(72px,21vw,106px)}#help{font-size:9px}.pill{font-size:12px;padding:7px 8px}}
+@media(max-height:560px) and (min-width:651px){#app{gap:3px}header{min-height:36px}.pad{width:100px;height:100px}#help{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><div class="brand"><b>Две половини</b><small>Игра за два палеца</small></div><div class="actions"><div class="pill" id="score">★ 0</div><div class="pill" id="level">Ниво 1</div><button type="button" id="restart">↻ Отначало</button></div></header>
+  <div id="status" role="status" aria-live="polite">Дръпни левия палец наляво, десния надясно ↙ ↘</div>
+  <main id="stage">
+    <div class="control" id="left-control"><label for="left-pad" style="color:#528e8a">ЛЯВ ПАЛЕЦ</label><div class="pad" id="left-pad" aria-label="Ляв джойстик"><div class="knob" id="left-knob"></div></div></div>
+    <div id="board"><canvas width="720" height="1040" id="canvas" aria-label="Игрално поле"></canvas><div class="inner-caption" id="progress">🩵 0/4　🧡 0/4</div></div>
+    <div class="control" id="right-control"><label for="right-pad" style="color:#dd8b74">ДЕСЕН ПАЛЕЦ</label><div class="pad" id="right-pad" aria-label="Десен джойстик"><div class="knob" id="right-knob"></div></div></div>
+  </main>
+  <div id="help">Раздели → събери своя цвят → сблъскай половините → вземи жълтите</div>
+</div>
+<script>
+(function(){
+'use strict';
+var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+if(!ctx){document.getElementById('status').textContent='Браузърът не поддържа тази игра.';return;}
+ctx.setTransform(2,0,0,2,0,0);
+var W=360,H=520,teal='#72a5a4',coral='#f49d85',gold='#e7b16f';
+var $=function(id){return document.getElementById(id)};
+var left={x:0,y:0,id:null},right={x:0,y:0,id:null},game,prev=0,anim=0;
+function say(s){$('status').textContent=s}
+function resetStick(s,knob){s.x=0;s.y=0;s.id=null;$(knob).style.transform='translate(-50%,-50%)'}
+function dots(kind){
+ var list=[],i;
+ if(kind==='colors'){
+  for(i=0;i<6;i++){
+   list.push({t:'teal',x:49+(i%3)*41+(Math.random()-.5)*12,y:110+Math.floor(i/3)*130+(Math.random()-.5)*18,r:12});
+   list.push({t:'coral',x:221+(i%3)*42+(Math.random()-.5)*12,y:110+Math.floor(i/3)*130+(Math.random()-.5)*18,r:12});
+  }
+ }else{
+  for(i=0;i<6;i++)list.push({t:'gold',x:105+(i%3)*75+(Math.random()-.5)*10,y:123+Math.floor(i/3)*160+(Math.random()-.5)*12,r:13});
+ }
+ return list;
+}
+function fresh(){
+ game={level:1,score:0,mode:'joined',phase:'colors',joined:{x:180,y:421},a:{x:146,y:421},b:{x:214,y:421},teal:0,coral:0,gold:0,splitTimer:0,mergeLock:0,items:dots('colors'),fx:[],time:0};
+ resetStick(left,'left-knob');resetStick(right,'right-knob');$('score').textContent='★ 0';refresh();say('Дръпни двата палеца навън, за да разделиш топчето ↙ ↘');
+}
+function refresh(){
+ $('level').textContent='Ниво '+game.level;
+ $('progress').textContent=game.phase==='colors'?'🩵 '+game.teal+'/4　🧡 '+game.coral+'/4':'🟡 '+game.gold+'/3';
+}
+function attach(id,s,knob){
+ var pad=$(id),dot=$(knob),active=false;
+ function position(x,y){
+  var r=pad.getBoundingClientRect(),radius=r.width*.27,dx=x-r.left-r.width/2,dy=y-r.top-r.height/2,n=Math.hypot(dx,dy);
+  if(n>radius){dx*=radius/n;dy*=radius/n}
+  s.x=dx/radius;s.y=dy/radius;
+  dot.style.transform='translate(-50%,-50%) translate('+dx+'px,'+dy+'px)';
+ }
+ function end(){resetStick(s,knob);active=false}
+ if(window.PointerEvent){
+  pad.addEventListener('pointerdown',function(e){if(s.id!==null)return;e.preventDefault();s.id=e.pointerId;active=true;position(e.clientX,e.clientY);try{pad.setPointerCapture(e.pointerId)}catch(err){}});
+  pad.addEventListener('pointermove',function(e){if(s.id===e.pointerId){e.preventDefault();position(e.clientX,e.clientY)}});
+  pad.addEventListener('pointerup',function(e){if(s.id===e.pointerId)end()});
+  pad.addEventListener('pointercancel',function(e){if(s.id===e.pointerId)end()});
+  pad.addEventListener('lostpointercapture',function(e){if(s.id===e.pointerId)end()});
+  window.addEventListener('pointerup',function(e){if(s.id===e.pointerId)end()});
+ }else{
+  pad.addEventListener('touchstart',function(e){if(s.id!==null)return;e.preventDefault();var t=e.changedTouches[0];s.id=t.identifier;position(t.clientX,t.clientY)},{passive:false});
+  pad.addEventListener('touchmove',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];if(t.identifier===s.id)position(t.clientX,t.clientY)}},{passive:false});
+  var stop=function(e){for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===s.id)end()};
+  pad.addEventListener('touchend',stop);pad.addEventListener('touchcancel',stop);
+ }
+ pad.addEventListener('contextmenu',function(e){e.preventDefault()});
+}
+attach('left-pad',left,'left-knob');attach('right-pad',right,'right-knob');
+$('restart').addEventListener('click',fresh);
+document.addEventListener('visibilitychange',function(){prev=0;if(document.hidden){resetStick(left,'left-knob');resetStick(right,'right-knob')}});
+function d(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function move(obj,v,dt){var size=19,speed=510;obj.x=Math.max(size,Math.min(W-size,obj.x+v.x*speed*dt));obj.y=Math.max(71,Math.min(H-size,obj.y+v.y*speed*dt))}
+function burst(x,y,c){for(var j=0;j<8;j++){var angle=Math.PI*2*j/8;game.fx.push({x:x,y:y,vx:Math.cos(angle)*(40+Math.random()*45),vy:Math.sin(angle)*(40+Math.random()*45),life:.35,c:c})}}
+function collect(it){
+ burst(it.x,it.y,it.t==='teal'?teal:it.t==='coral'?coral:gold);
+ if(it.t==='teal')game.teal=Math.min(4,game.teal+1);
+ if(it.t==='coral')game.coral=Math.min(4,game.coral+1);
+ if(it.t==='gold')game.gold=Math.min(3,game.gold+1);
+ game.score+=it.t==='gold'?30:10;$('score').textContent='★ '+game.score;
+}
+function nextPhase(){
+ if(game.phase==='colors'){
+  game.phase='gold';game.gold=0;game.items=dots('gold');say('Сблъскай двете половини! Жълтите са за съединеното топче 🟡');
+ }else{
+  game.level+=1;game.phase='colors';game.teal=0;game.coral=0;game.gold=0;game.items=dots('colors');
+  say('Браво! Ниво '+game.level+' — раздели топчето отново ↙ ↘');
+ }
+ refresh();
+}
+function update(dt){
+ var g=game;g.time+=dt;g.mergeLock=Math.max(0,g.mergeLock-dt);
+ if(g.mode==='joined'){
+  if(left.x<-.55&&right.x>.55){
+   g.splitTimer+=dt;
+   if(g.splitTimer>.065){
+    g.mode='split';g.a={x:Math.max(20,g.joined.x-36),y:g.joined.y};g.b={x:Math.min(340,g.joined.x+36),y:g.joined.y};g.mergeLock=.5;g.splitTimer=0;
+    say(g.phase==='colors'?'Разделени! Всяко топче събира своя цвят.':'Разделени! Сблъскай ги за жълтите.');
+   }
+  }else{
+   g.splitTimer=0;
+   var la=Math.hypot(left.x,left.y),ra=Math.hypot(right.x,right.y),active=(la>.1?1:0)+(ra>.1?1:0);
+   if(active)move(g.joined,{x:(left.x+right.x)/active,y:(left.y+right.y)/active},dt);
+  }
+ }else{
+  move(g.a,left,dt);move(g.b,right,dt);
+  if(g.mergeLock<=0&&d(g.a,g.b)<34){
+   g.mode='joined';g.joined={x:(g.a.x+g.b.x)/2,y:(g.a.y+g.b.y)/2};
+   say(g.phase==='gold'?'Съединени! Събирай жълтите 🟡':'Съединени! Можеш да ги разделиш пак.');
+  }
+ }
+ // Collect without modifying phase or clearing arrays inside the loop.
+ var keep=[],did=false;
+ for(var i=0;i<g.items.length;i++){
+  var it=g.items[i],target=null;
+  if(it.t==='gold'&&g.mode==='joined')target=g.joined;
+  if(it.t==='teal'&&g.mode==='split')target=g.a;
+  if(it.t==='coral'&&g.mode==='split')target=g.b;
+  if(target&&d(it,target)<it.r+20){collect(it);did=true}else keep.push(it);
+ }
+ g.items=keep;
+ if(did)refresh();
+ if(g.phase==='colors'&&g.teal>=4&&g.coral>=4||g.phase==='gold'&&g.gold>=3)nextPhase();
+ for(var j=g.fx.length-1;j>=0;j--){var p=g.fx[j];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.life<=0)g.fx.splice(j,1)}
+}
+function dot(x,y,r,c){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=c;ctx.fill()}
+function petals(x,y,r,n,c,angle){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.strokeStyle=c;ctx.lineWidth=2.2;ctx.lineCap='round';for(var k=0;k<n;k++){ctx.rotate(Math.PI*2/n);ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(r*.45,-r*.3,r*.6,-r*1.5,r,-r*.7);ctx.stroke()}ctx.restore()}
+function joinedBall(x,y){ctx.save();ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.clip();ctx.fillStyle=teal;ctx.fillRect(x-20,y-20,20,40);ctx.fillStyle=coral;ctx.fillRect(x,y-20,20,40);ctx.restore();ctx.strokeStyle='#fffdf9';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.stroke()}
+function draw(){
+ var g=game;ctx.fillStyle='#fffefa';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#f3f9f6';ctx.fillRect(10,70,167,435);ctx.fillStyle='#fff7f1';ctx.fillRect(183,70,167,435);
+ ctx.setLineDash([2,11]);ctx.strokeStyle='#cedbd4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(180,71);ctx.lineTo(180,505);ctx.stroke();ctx.setLineDash([]);
+ ctx.globalAlpha=.36;petals(180,88,22,6,teal,g.time*.22);petals(180,88,22,6,coral,-g.time*.22);ctx.globalAlpha=1;
+ for(var i=0;i<g.items.length;i++){
+  var a=g.items[i],col=a.t==='teal'?teal:a.t==='coral'?coral:gold;
+  ctx.globalAlpha=.14;dot(a.x,a.y,a.r+7,col);ctx.globalAlpha=1;dot(a.x,a.y,a.r,col);
+  ctx.globalAlpha=.8;dot(a.x-3,a.y-3,2,'#ffffff');ctx.globalAlpha=1;
+ }
+ ctx.globalAlpha=.18;petals(180,475,27,5,teal,-g.time*.18);ctx.globalAlpha=1;
+ if(g.mode==='joined')joinedBall(g.joined.x,g.joined.y);
+ else{
+  ctx.strokeStyle='#8aada255';ctx.setLineDash([3,8]);ctx.beginPath();ctx.moveTo(g.a.x,g.a.y);ctx.lineTo(g.b.x,g.b.y);ctx.stroke();ctx.setLineDash([]);
+  dot(g.a.x,g.a.y,18,teal);dot(g.b.x,g.b.y,18,coral);
+  dot(g.a.x-5,g.a.y-6,3,'#ffffffa9');dot(g.b.x-5,g.b.y-6,3,'#ffffffa9');
+ }
+ for(i=0;i<g.fx.length;i++){var f=g.fx[i];ctx.globalAlpha=Math.min(1,f.life*2.8);dot(f.x,f.y,3.2,f.c)}ctx.globalAlpha=1;
+ ctx.fillStyle='#9aaba5';ctx.textAlign='center';ctx.font='700 11px system-ui';
+ ctx.fillText(g.phase==='colors'?'СЪБЕРИ ДВАТА ЦВЯТА':'СЪБЕРИ ЖЪЛТИТЕ',180,54);
+}
+function loop(time){
+ anim=requestAnimationFrame(loop);
+ if(!prev)prev=time;
+ var dt=Math.min(.05,Math.max(0,(time-prev)/1000));prev=time;
+ update(dt);draw();
+}
+window.addEventListener('pagehide',function(){resetStick(left,'left-knob');resetStick(right,'right-knob')});
+fresh();anim=requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
