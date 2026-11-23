@@ -238,7 +238,7 @@ function update(dt){
    }
   }
   g.wasJammed=true;
-  $('hint').textContent='ПРЕГРАДА! Намери осветената пролука — светът чака, не телепортира.';
+  $('hint').textContent='ПРЕГРАДА! Отдръпни се от стената, после се насочи към светлия отвор.';
   if(g.energy.every(e=>e<=0)||g.energy.some(e=>e<=0)&&g.crushes.some(x=>x>=4)){
    finishGame(false);refresh();return;
   }
