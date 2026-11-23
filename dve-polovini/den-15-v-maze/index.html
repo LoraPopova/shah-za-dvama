@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 15 — V-лабиринт</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №8</div><h1>Ден 15 · V-лабиринт</h1><div id="status">Три твърди V-прегради. Намери отворите с двата палеца.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">×5</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="power">Boost ×10</button></div>
+<div id="hint">Пролуките не са една под друга. Потърси светлия отвор преди стената.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),C=['#67a8a3','#ef9882'];
+const GAIN=2.5,BASE_PACE=5,MAZE_PACE=3,DURATION=166;
+const rows=[
+ {t:35,gaps:[.32,.68],flip:0,name:'ПЪРВА ПРОЛУКА'},
+ {t:73,gaps:[.72,.28],flip:1,name:'СМЕНИ ПОСОКАТА'},
+ {t:111,gaps:[.38,.66],flip:0,name:'ПОСЛЕДЕН ЗАВОЙ'}
+];
+let W=1,H=1,dpr=1,g=null,prevFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const rad=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16);
+const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
+const laneWidth=()=>W*.5;
+const boundaries=n=>n===0?[rad(),W*.5-rad()]:[W*.5+rad(),W-rad()];
+const depth=()=>clamp(H*.095,38,82);
+const wallThickness=()=>clamp(Math.min(W,H)*.017,10,15);
+const gapWidth=i=>clamp(laneWidth()*.23,56,108)*[1,.91,.85][i];
+const halfGap=i=>gapWidth(i)/(2*(laneWidth()-rad()*2-12));
+const laneX=(n,u)=>n*laneWidth()+rad()+6+u*(laneWidth()-rad()*2-12);
+const stageY=t=>H*.37+(t-g.time)*6.5;
+function polyY(i,u,time=g.time){
+ const row=rows[i],base=H*.37+(row.t-time)*6.5;
+ return base+(row.flip?1:-1)*depth()*(1-2*Math.abs(u-.5));
+}
+function segments(i,n,time=g.time){
+ const mid=rows[i].gaps[n],half=halfGap(i);
+ const sections=[[0,clamp(mid-half,0,1)],[clamp(mid+half,0,1),1]],out=[];
+ for(const [lo,hi] of sections){
+  if(hi-lo<.005)continue;
+  const us=[lo];if(lo<.5&&hi>.5)us.push(.5);us.push(hi);
+  for(let k=1;k<us.length;k++)out.push([laneX(n,us[k-1]),polyY(i,us[k-1],time),laneX(n,us[k]),polyY(i,us[k],time),wallThickness(),i,n]);
+ }
+ return out;
+}
+function dist2(px,py,seg){
+ const [ax,ay,bx,by]=seg,dx=bx-ax,dy=by-ay,rr=dx*dx+dy*dy;
+ const u=rr?clamp(((px-ax)*dx+(py-ay)*dy)/rr,0,1):0;
+ return (px-ax-u*dx)**2+(py-ay-u*dy)**2;
+}
+function solidAt(n,x,y,time=g.time){
+ if(!g)return false;
+ for(let i=0;i<rows.length;i++){
+  const cy=H*.37+(rows[i].t-time)*6.5;
+  if(y<cy-depth()-rad()-30||y>cy+depth()+rad()+30)continue;
+  for(const seg of segments(i,n,time)){
+   const reach=rad()+seg[4]*.5-.45;
+   if(dist2(x,y,seg)<reach*reach)return true;
+  }
+ }
+ return false;
+}
+function tempoAt(time){
+ let slow=0;
+ for(const row of rows){
+  // Fade from 5x to 3x ahead of complex V rows, and back after.
+  const dist=Math.abs(time-row.t);
+  slow=Math.max(slow,clamp((33-dist)/16,0,1));
+ }
+ return BASE_PACE-(BASE_PACE-MAZE_PACE)*slow;
+}
+const coins=rows.flatMap((r,i)=>[
+ {t:r.t+11,n:0,x:r.gaps[0],value:1},
+ {t:r.t+11,n:1,x:r.gaps[1],value:1},
+ ...(i===1?[{t:r.t+23,n:0,x:.25,value:3}]:[]),
+ ...(i===2?[{t:r.t+23,n:1,x:.27,value:3}]:[])
+]);
+function coinX(c){return laneX(c.n,c.x)}
+function state(){
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,
+  basePace:BASE_PACE,mazePace:MAZE_PACE,gain:GAIN,energy:g.energy.slice(),
+  balls:g.balls.map(b=>({...b})),score:g.score,bumps:g.bumps.slice(),
+  crushes:g.crushes.slice(),jamTime:g.jamTime,
+  passed:g.passed.map(a=>a.slice()),rows:rows.map((r,i)=>({t:r.t,gaps:r.gaps.slice(),flip:r.flip,gapWidth:gapWidth(i)})),
+  coins:coins.map(c=>({...c})),finished:g.finished,survived:g.survived};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,pace:BASE_PACE,
+ energy:[100,100],balls:[{x:W*.26,y:H*.36},{x:W*.74,y:H*.36}],
+ score:0,bumps:[0,0],crushes:[0,0],crushCooldown:[0,0],jamTime:0,
+ passed:[[false,false,false],[false,false,false]],finished:false,survived:null};
+ coins.forEach(c=>c.used=false);
+ for(const p of pads)p.id=null;
+ $('finish').style.display='none';$('pause').textContent='Пауза';
+ $('hint').textContent='Следвай пролуката между твърдите V-прегради — стените спират движението.';
+ refresh();draw();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);
+ $('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent='×'+g.pace.toFixed(1);
+ $('bar').style.width=(100*g.time/DURATION)+'%';
+ if(g.mode==='ready')$('status').textContent='Сложи двата палеца, за да започне лабиринтът.';
+ else if(g.mode==='playing')$('status').textContent=g.paused?'Пауза':'Твърди стени · скрол ×'+g.pace.toFixed(1);
+}
+function resize(){
+ const ow=W,oh=H;W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&ow>1&&oh>1){
+  for(let n=0;n<2;n++){
+   const b=g.balls[n],lr=boundaries(n);
+   b.x=clamp(b.x*W/ow,lr[0],lr[1]);
+   b.y=clamp(b.y*H/oh,upper()+rad(),lower()-rad());
+  }
+  draw();
+ }else reset();
+}
+function slide(n,dx,dy){
+ const b=g.balls[n],limit=boundaries(n),original={x:b.x,y:b.y};
+ const slices=Math.min(300,Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(3,rad()*.35))));
+ let hit=false;
+ for(let k=0;k<slices;k++){
+  const x=b.x;b.x=clamp(b.x+dx/slices,limit[0],limit[1]);
+  if(solidAt(n,b.x,b.y)){b.x=x;hit=true;}
+  const y=b.y;b.y=clamp(b.y+dy/slices,upper()+rad(),lower()-rad());
+  if(solidAt(n,b.x,b.y)){b.y=y;hit=true;}
+ }
+ if(hit)g.bumps[n]++;
+ return {hit,x0:original.x,y0:original.y,x:b.x,y:b.y};
+}
+function move(n,dx,dy){
+ if(g.mode==='done'||g.paused)return;
+ slide(n,dx*GAIN,dy*GAIN);
+ draw();
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(x=>x.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',e=>{
+  if(p.id!==e.pointerId)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx,dy);
+ });
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])
+  el.addEventListener(type,e=>{if(e.pointerId!==p.id)return;p.id=null;try{el.releasePointerCapture(e.pointerId)}catch(_){}});
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;g.paused=!g.paused;
+ $('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
+});
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ g.realTime+=dt;
+ for(let n=0;n<2;n++)g.crushCooldown[n]=Math.max(0,g.crushCooldown[n]-dt);
+ const pace=tempoAt(g.time),worldDelta=dt*pace,oldTime=g.time,newTime=Math.min(DURATION,oldTime+worldDelta);
+ const moved=g.balls.map(b=>({...b}));let jam=false;
+ // A moving physical wall nudges an orb with itself. At the upper boundary
+ // it cannot teleport or pass through; the WORLD temporarily jams instead.
+ for(let n=0;n<2;n++){
+  const b=g.balls[n];
+  if(solidAt(n,b.x,b.y,newTime)){
+   const newY=clamp(b.y-(newTime-oldTime)*6.5,upper()+rad(),lower()-rad());
+   if(!solidAt(n,b.x,newY,newTime))b.y=newY;
+   else jam=true;
+  }
+ }
+ if(jam){
+  g.balls.forEach((b,i)=>{b.x=moved[i].x;b.y=moved[i].y});
+  // No clock advance: player can slide laterally toward the V gap.
+  g.jamTime+=dt;
+  for(let n=0;n<2;n++){
+   if(!solidAt(n,moved[n].x,moved[n].y,newTime))continue;
+   if(g.crushCooldown[n]===0){
+    g.crushCooldown[n]=1;g.crushes[n]++;g.energy[n]=Math.max(0,g.energy[n]-7);
+   }
+  }
+  $('hint').textContent='ПРЕГРАДА! Намери осветената пролука — светът чака, не телепортира.';
+  return;
+ }
+ g.time=newTime;g.pace=tempoAt(g.time);
+ for(let n=0;n<2;n++){
+  const b=g.balls[n];
+  for(let i=0;i<rows.length;i++){
+   const highest=H*.37+(rows[i].t-g.time)*6.5+depth();
+   if(highest<b.y-rad()&&!g.passed[n][i])g.passed[n][i]=true;
+  }
+ }
+ for(const coin of coins){
+  if(coin.used)continue;
+  const ball=g.balls[coin.n],cx=coinX(coin),cy=stageY(coin.t);
+  if(Math.hypot(ball.x-cx,ball.y-cy)<rad()+13){
+   coin.used=true;g.score+=coin.value;
+  }
+ }
+ if(g.time>=DURATION){
+  g.mode='done';g.finished=true;g.survived=g.energy.every(v=>v>=25)&&g.passed.every(list=>list.filter(Boolean).length>=2);
+  $('outcome').textContent=g.survived?'Преминахте лабиринта!':'Почти! Още един опит';
+  $('result').textContent='Преминати V-прегради: '+g.passed.map(list=>list.filter(Boolean).length).join(' / ')+
+   ' · Доход ✦'+g.score+' · Енергия '+g.energy.map(x=>Math.round(x)).join(' / ')+
+   ' · Притискания '+g.crushes.reduce((a,b)=>a+b,0);
+  $('finish').style.display='flex';
+ }
+ refresh();
+}
+function line(x1,y1,x2,y2,color,w=2){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+function circle(x,y,r,fill){ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#91bfb10e';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#e7aa940e';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bottom=lower();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#bfc4b9';ctx.strokeRect(10,top,W-20,bottom-top);ctx.restore();
+ line(W*.5,top-20,W*.5,bottom+15,'#c4beb7',1.5);
+ // World scroll guide marks, unlike solid V-shaped walls.
+ for(let y=top+(g.time*6.5)%90-90;y<bottom+90;y+=90){
+  if(y<top||y>bottom)continue;
+  line(12,y,W-12,y,'#abbeb01b',1);
+ }
+ for(let i=0;i<rows.length;i++){
+  const row=rows[i],cy=stageY(row.t);
+  if(cy<top-depth()-120||cy>bottom+depth()+140)continue;
+  ctx.save();ctx.beginPath();ctx.rect(0,top,W,bottom-top);ctx.clip();
+  for(let n=0;n<2;n++){
+   const parts=segments(i,n),tint=n===0?'#5e8e8a':'#c78876';
+   for(const seg of parts){
+    ctx.lineCap='round';ctx.lineJoin='round';
+    line(seg[0],seg[1],seg[2],seg[3],'#dcd8cf',seg[4]+7);
+    line(seg[0],seg[1],seg[2],seg[3],tint,seg[4]);
+   }
+   const u=row.gaps[n],x=laneX(n,u),y=polyY(i,u);
+   circle(x,y,clamp(gapWidth(i)*.29,13,27),n===0?'#88beba3b':'#f3af9b3b');
+   ctx.strokeStyle=n===0?'#8ab7ad':'#e3a18f';ctx.lineWidth=2;ctx.setLineDash([3,7]);
+   ctx.beginPath();ctx.arc(x,y,clamp(gapWidth(i)*.22,10,22),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  }
+  ctx.restore();
+  if(cy>top+30&&cy<bottom-28){
+   ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillStyle='#647e78';
+   ctx.fillText(row.name,W*.5,cy+depth()+28);
+  }
+ }
+ for(const coin of coins){
+  if(coin.used)continue;
+  const x=coinX(coin),y=stageY(coin.t);
+  if(y<top-26||y>bottom+25)continue;
+  circle(x,y,coin.value===3?15:11,'#e4bd6e63');
+  circle(x,y,coin.value===3?9:6,'#dfb055');
+  if(coin.value===3){ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 11px sans-serif';ctx.fillText('✦',x,y+3);}
+ }
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],r=rad(),gr=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r*2.4);
+  gr.addColorStop(0,C[n]+'6b');gr.addColorStop(1,C[n]+'00');
+  circle(b.x,b.y,r*2.4,gr);circle(b.x,b.y,r,C[n]);
+  circle(b.x-r*.24,b.y-r*.27,r*.17,'#fff9');
+ }
+ if(g.mode==='ready'){
+  ctx.fillStyle='#6e8d85';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+32);
+ }
+}
+function frame(ts){
+ if(!prevFrame)prevFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-prevFrame)/1000));prevFrame=ts;
+ if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,solidAt,segments,polyY,tempoAt,stageY,laneX,halfGap,resize};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
