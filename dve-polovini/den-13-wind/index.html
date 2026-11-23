@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 13 — Вятър</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font:700 12px inherit;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №6</div><h1>Ден 13 · Духа вятър</h1><div id="status">Постави двата палеца, за да започне денят.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button></div>
+<div id="hint">Стрелките предупреждават. Не допускай вятърът да те избута в бодлите!</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),C=['#67a8a3','#ef9882'];
+const GAIN=2.5,BASE_PACE=5,LENGTH=166;
+let W=1,H=1,dpr=1,g,prevFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const bands=[
+ {id:'inward',start:22,end:49,sign:[1,-1],strength:.85,label:'СБЛИЖАВАНЕ',spikes:true},
+ {id:'split',start:69,end:98,sign:[-1,1],strength:1.05,label:'ОТДАЛЕЧАВАНЕ',spikes:false},
+ {id:'cross',start:119,end:150,sign:[1,-1],strength:1.23,label:'СИЛЕН ПОРИВ',spikes:true}
+];
+const pickups=[
+ {t:8,n:0,x:.27,value:1},{t:8,n:1,x:.73,value:1},
+ {t:33,n:0,x:.38,value:3},{t:33,n:1,x:.62,value:3},
+ {t:59,n:0,x:.25,value:1},{t:59,n:1,x:.75,value:1},
+ {t:81,n:0,x:.17,value:1},{t:81,n:1,x:.83,value:1},
+ {t:124,n:0,x:.39,value:3},{t:124,n:1,x:.61,value:3},
+ {t:155,n:0,x:.26,value:1},{t:155,n:1,x:.74,value:1}
+];
+const rad=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16),lower=()=>Math.max(upper()+80,Math.min(H*.68,H-145));
+const stageY=t=>H*.36+(t-g.time)*7;
+const speed=()=>clamp(W*.115,53,126);
+function state(){return {mode:g.mode,time:g.time,realTime:g.realTime,
+ balls:g.balls.map(x=>({...x})),energy:g.energy.slice(),gain:GAIN,pace:BASE_PACE,
+ wind:g.wind.slice(),collisions:g.collisions.slice(),score:g.score,earned:pickups.map(x=>!!x.used),
+ hitCooldown:g.hitCooldown.slice(),survived:g.survived};}
+function reset(){
+ g={mode:'ready',time:0,realTime:0,wind:[0,0],energy:[100,100],score:0,collisions:[0,0],hitCooldown:[0,0],
+ balls:[{x:W*.26,y:H*.35},{x:W*.74,y:H*.35}],paused:false,survived:null};
+ pickups.forEach(x=>x.used=false);
+ pads.forEach(p=>{p.id=null;});
+ $('finish').style.display='none';$('pause').textContent='Пауза';$('status').textContent='Постави двата палеца, за да започне денят.';
+ $('hint').textContent='Поривите се виждат предварително. Пази се от бодлите!';
+ $('bar').style.width='0%';refresh();draw();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);$('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('bar').style.width=(g.time/LENGTH*100)+'%';
+ if(g.mode==='ready')$('status').textContent='Постави двата палеца, за да започне денят.';
+ else if(g.mode==='playing')$('status').textContent=g.paused?'На пауза':'Вятърът сменя посоката · темпо ×5';
+}
+function resize(){
+ const oldW=W,oldH=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&oldW>1&&oldH>1){
+  for(let i=0;i<2;i++){g.balls[i].x=clamp(g.balls[i].x*W/oldW,rad(),W-rad());g.balls[i].y=clamp(g.balls[i].y*H/oldH,upper(),lower());}
+  draw();
+ }else reset();
+}
+const bounds=n=>n===0?[rad(),W*.5-rad()]:[W*.5+rad(),W-rad()];
+function move(n,dx,dy){
+ if(!g||g.mode==='done'||g.paused)return;
+ const b=g.balls[n],lr=bounds(n);
+ b.x=clamp(b.x+dx*GAIN,lr[0],lr[1]);
+ b.y=clamp(b.y+dy*GAIN,upper()+rad(),lower()-rad());
+ // No acceleration from the thumb and no delayed reversal.
+}
+function setupPad(n){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(pads.every(x=>x.id!==null)&&g.mode==='ready'){
+   g.mode='playing';$('status').textContent='Готови! Пази двете светлини от вятъра.';
+  }
+ });
+ el.addEventListener('pointermove',e=>{
+  if(p.id!==e.pointerId)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx,dy);draw();
+ });
+ for(const kind of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(kind,e=>{
+  if(p.id!==e.pointerId)return;p.id=null;try{el.releasePointerCapture(e.pointerId)}catch(_){}
+ });
+}
+setupPad(0);setupPad(1);
+$('reset').addEventListener('click',reset);$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;
+ g.paused=!g.paused;$('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
+});
+function bandAt(y){
+ for(const band of bands){
+  const upperY=stageY(band.start),lowerY=stageY(band.end);
+  if(y>=upperY&&y<=lowerY)return band;
+ }return null;
+}
+function spikeAt(x,y){
+ // Actual visible spikes extend from either side of center into its own lane,
+ // only while their danger strip occupies the player's current world position.
+ for(const band of bands){
+  if(!band.spikes)continue;
+  const a=stageY(band.start),b=stageY(band.end);
+  if(y<a||y>b)continue;
+  const edge=clamp(W*.036,17,32);
+  if(Math.abs(x-W*.5)<edge+rad()*.66)return true;
+ }
+ return false;
+}
+function applyWind(dt){
+ const wind=[0,0];
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],band=bandAt(b.y),lr=bounds(n);
+  if(!band)continue;
+  const force=band.sign[n]*speed()*band.strength;
+  wind[n]=force;
+  b.x=clamp(b.x+force*dt,lr[0],lr[1]);
+  // Pushing into the seam is hazardous, not a hidden collision or teleport.
+  if(spikeAt(b.x,b.y)&&g.hitCooldown[n]<=0){
+   g.energy[n]=Math.max(0,g.energy[n]-9);
+   g.collisions[n]++;g.hitCooldown[n]=.8;
+   b.flash=.26;
+  }
+ }
+ g.wind=wind;
+}
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ g.realTime+=dt;
+ g.time=Math.min(LENGTH,g.time+dt*BASE_PACE);
+ for(let n=0;n<2;n++){
+  g.hitCooldown[n]=Math.max(0,g.hitCooldown[n]-dt);
+  g.balls[n].flash=Math.max(0,(g.balls[n].flash||0)-dt);
+  g.energy[n]=Math.max(0,g.energy[n]-.10*dt);
+ }
+ applyWind(dt);
+ for(const p of pickups){
+  if(p.used)continue;
+  const y=stageY(p.t),b=g.balls[p.n];
+  if(Math.hypot(b.x-p.x*W,b.y-y)<rad()+12){
+   p.used=true;g.score+=p.value;
+  }
+ }
+ const active=g.wind.some(x=>x!==0);
+ $('hint').textContent=active?
+  (g.wind[0]>0?'→ ПОРИВ КЪМ СРЕДАТА ← · противопостави се!':'← ВЯТЪР НАВЪН → · събирай точки!'):
+  (bands.some(b=>{const y=stageY(b.start);return y>g.balls[0].y&&y<g.balls[0].y+155;})?'ВИЖ СТРЕЛКИТЕ — ПОРИВЪТ ПРИБЛИЖАВА':'СПОКОЙНО · подготви двата палеца');
+ if(g.time>=LENGTH){
+  g.mode='done';
+  g.survived=g.energy.every(e=>e>=35);
+  $('outcome').textContent=g.survived?'Устояхте на вятъра!':'Тежък ден — опитайте пак';
+  $('result').textContent='Доход ✦ '+g.score+' · Енергия '+Math.round(g.energy[0])+' / '+Math.round(g.energy[1])+
+   ' · Удари в бодлите '+(g.collisions[0]+g.collisions[1]);
+  $('finish').style.display='flex';
+ }
+ refresh();
+}
+function line(x1,y1,x2,y2,color,width=2){
+ ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+}
+function circle(x,y,r,fill){
+ ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+}
+function arrow(x,y,dir,color){
+ ctx.save();ctx.globalAlpha=.83;line(x-15*dir,y,x+14*dir,y,color,3);
+ line(x+14*dir,y,x+5*dir,y-6,color,3);
+ line(x+14*dir,y,x+5*dir,y+6,color,3);ctx.restore();
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#92beb20b';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#efad930a';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bot=lower();
+ ctx.save();ctx.setLineDash([4,9]);ctx.strokeStyle='#b4bcb342';ctx.strokeRect(10,top,W-20,bot-top);ctx.restore();
+ line(W*.5,top-20,W*.5,bot+20,'#c7c0ba',1.5);
+ const shift=(g.time*7)%74;
+ for(let y=top+shift-74;y<bot+70;y+=74){
+  if(y<top||y>bot)continue;
+  line(24,y,W-24,y,'#b8c3b51a',1);
+ }
+ for(const band of bands){
+  const y1=stageY(band.start),y2=stageY(band.end);
+  const from=Math.max(top,y1),to=Math.min(bot,y2);
+  if(from>=to)continue;
+  ctx.fillStyle=band.sign[0]>0?'#8fb4b91c':'#c7bacb1b';
+  ctx.fillRect(10,from,W-20,to-from);
+  ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#758a89';
+  if(y1>top-30&&y1<bot)ctx.fillText(band.label,W*.5,y1-12);
+  for(let y=Math.ceil(from/38)*38;y<to;y+=38){
+   for(let n=0;n<2;n++){
+    const dir=band.sign[n],xBase=n===0?W*.20:W*.80;
+    arrow(xBase,y,dir,'#8db6b5');
+    if(W>700)arrow(xBase+(n===0?W*.15:-W*.15),y,dir,'#a9c8c4');
+   }
+  }
+  if(band.spikes){
+   for(let y=Math.ceil(from/23)*23;y<to;y+=23){
+    const size=clamp(W*.027,12,24);
+    ctx.fillStyle='#956f7b';
+    ctx.beginPath();ctx.moveTo(W*.5-2,y-8);ctx.lineTo(W*.5-size,y);ctx.lineTo(W*.5-2,y+8);ctx.fill();
+    ctx.beginPath();ctx.moveTo(W*.5+2,y-8);ctx.lineTo(W*.5+size,y);ctx.lineTo(W*.5+2,y+8);ctx.fill();
+   }
+  }
+ }
+ // Coins share world coordinates; yellow rewards near the spiky seam cost risk.
+ for(const p of pickups){
+  if(p.used)continue;
+  const y=stageY(p.t),x=p.x*W;if(y<top-35||y>bot+35)continue;
+  circle(x,y,p.value===3?15:11,'#e7bf6b66');
+  circle(x,y,p.value===3?9:6,'#e2b45d');
+  if(p.value===3){ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText('✦',x,y+4);}
+ }
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],r=rad();
+  const grad=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,r*2.3);
+  grad.addColorStop(0,C[n]+'66');grad.addColorStop(1,C[n]+'00');
+  circle(b.x,b.y,r*2.3,grad);circle(b.x,b.y,r,C[n]);
+  circle(b.x-r*.2,b.y-r*.24,r*.19,'#fff9');
+  if(b.flash>0){ctx.globalAlpha=Math.min(1,b.flash/.26);ctx.strokeStyle='#ae4a6e';ctx.lineWidth=4;ctx.beginPath();ctx.arc(b.x,b.y,r+7,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+ }
+ if(g.mode==='ready'){
+  ctx.textAlign='center';ctx.fillStyle='#6a8c86';ctx.font='bold 17px sans-serif';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bot+32);
+ }
+}
+function frame(ts){
+ if(!prevFrame)prevFrame=ts;
+ let dt=Math.min((ts-prevFrame)/1000,.05);prevFrame=ts;
+ if(g)update(Math.max(0,dt));
+ if(g)draw();
+ requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,bandAt,spikeAt,stageY,resize};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
