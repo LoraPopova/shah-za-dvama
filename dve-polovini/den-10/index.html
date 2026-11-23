@@ -45,7 +45,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 <body>
 <canvas id="world" aria-label="Игрово поле със скролващи препятствия"></canvas>
 <div id="hud">
-  <div><div id="brand">TWO HALVES</div><div id="name">Ден 10 · Общата работа <span id="scoreIndicator" style="font-size:12px;color:#a88745;white-space:nowrap">♢ 0/2 · ✦ 0/20</span></div>
+  <div><div id="brand">TWO HALVES</div><div id="name">Ден 10 · Общата работа <span id="scoreIndicator" style="font-size:12px;color:#a88745;white-space:nowrap">♢ 0/2 · ✦ 0/18</span></div>
     <div id="paceHint" style="font-size:11px;color:#667d78;margin-top:4px;font-weight:700">Нормално темпо ×5</div></div>
   <div id="stats">
     <div class="energy"><div class="head"><span><i class="dot teal"></i>Синя</span><span id="e0">100</span></div><div class="meter"><div id="f0" class="fill teal"></div></div></div>
@@ -65,7 +65,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   'use strict';
   const $=(id)=>document.getElementById(id);
   const canvas=$('world'),ctx=canvas.getContext('2d');
-  const colors=['#67a8a3','#ef9882'],DURATION=191,MIN_FINISH_ENERGY=15,MIN_FINISH_JOBS=2,MIN_FINISH_PAY=20;
+  const colors=['#67a8a3','#ef9882'],DURATION=191,MIN_FINISH_ENERGY=15,MIN_FINISH_JOBS=2,MIN_FINISH_PAY=18;
   // One virtual day runs at the chosen pace. Start fast; switch without resetting or jumping.
   const tempos=[3,5,8];let tempoIndex=1;
   // Explicit A/B sensitivity trial. Fixed per-pixel mapping avoids frame-rate dependent acceleration.
@@ -347,6 +347,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     }
     const seconds=Math.floor(g.realTime);$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
     $('scoreIndicator').textContent='♢ '+g.jobsDone+'/2 · ✦ '+g.score+'/'+MIN_FINISH_PAY;
+    const nextMission=missions.find(m=>!missionState(m).done &&
+      g.time>=m.center-17&&g.time<=m.center+19);
+    if(nextMission){
+      const hold=nextMission.helper===0?'ЛЯВАТА':'ДЯСНАТА';
+      const enter=nextMission.collector===0?'ЛЯВАТА':'ДЯСНАТА';
+      $('help').textContent='♢ МИСИЯ '+(nextMission.id==='morning'?'1':'2')+
+        '/2 · '+hold+' ДЪРЖИ КРЪГА → '+enter+' ВЛИЗА ПРЕЗ ВРАТАТА ЗА ✦8';
+    }else{
+      $('help').textContent='♢ Две общи мисии за успех · ✦18 доход · при сложните участъци светът се забавя';
+    }
     const actual=(g.actualTempo??tempos[tempoIndex]);
     $('paceHint').textContent=g.slowdown>.06
       ?'Сложен участък · темпо ×'+actual.toFixed(1).replace('.',',')+' ↓'
@@ -470,7 +480,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
       $('finishTitle').textContent=g.survived?'Заедно свършихте работата!':'Още един общ опит!';
       $('finishLead').textContent=g.survived?
         'Двете общи мисии са изпълнени, спечелихте доход и си помогнахте.':
-        'Цел: ДВЕ общи мисии ♢, поне 20 доход ✦ и по 15 енергия. При всяка мисия ролите се разменят.';
+        'Цел: ДВЕ общи мисии ♢, поне 18 доход ✦ и по 15 енергия. При всяка мисия ролите се разменят.';
       $('summary').textContent='Общи мисии '+g.jobsDone+'/2 · Доход ✦ '+g.score+' · Срещи ♡ '+g.meets+' · Енергия '+Math.round(g.energy[0])+' / '+Math.round(g.energy[1]);
       $('finish').style.display='flex';
       refresh();return;
@@ -567,7 +577,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
         g.hintUntil=g.realTime+2;
       }
     }
-    const stage=g.time<65?'РИСКОВ МАРШРУТ':g.time<121?'МИСИЯ 1: ДЯСНА ПОМАГА':g.time<173?'МИСИЯ 2: ЛЯВА ПОМАГА':'Среща и отдих';
+    const stage=g.time<65?'РИСКОВ МАРШРУТ':g.time<121?'МИСИЯ 1: ДЯСНАТА ДЪРЖИ, ЛЯВАТА ВЛИЗА':g.time<173?'МИСИЯ 2: ЛЯВАТА ДЪРЖИ, ДЯСНАТА ВЛИЗА':'Среща и отдих';
     if(frameN%24===0&&g.realTime>=g.hintUntil)
       show(stage+' · '+(g.meets<1&&g.time>=179?'♡ Среща +30 · ':'')+'♢ '+g.jobsDone+'/2 · ✦ '+g.score);
     if(frameN%5===0)refresh();
