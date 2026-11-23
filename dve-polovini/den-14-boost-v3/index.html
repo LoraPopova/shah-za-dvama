@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 14 — Boost v3</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №7</div><h1>Ден 14 · Boost v3</h1><div id="status">Оранжевият бонус ускорява целия свят — и за двамата.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">×5</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="power">Boost ×10</button></div>
+<div id="hint">BOOST ×35 · Внимавай! Бодли летят диагонално през двете половини.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),C=['#67a8a3','#ef9882'];
+const GAIN=2.5,BASE_PACE=5,DURATION=298,BOOST_AT=32,BOOST_SECONDS=6.0;
+const SPIKE_DAMAGE=12,SPIKE_COOLDOWN=.72,FLIGHT_TIME=1.95,WARNING_TIME=.63;
+let W=1,H=1,dpr=1,g=null,prevFrame=0,selectedPower=35;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const coins=[
+ {t:10,n:0,x:0.36,value:1},{t:10,n:1,x:0.64,value:1},
+ {t:20,n:0,x:0.40,value:1},{t:20,n:1,x:0.60,value:1},
+ {t:39,n:0,x:0.34,value:1},{t:39,n:1,x:0.66,value:1},
+ {t:47,n:0,x:0.43,value:3},{t:47,n:1,x:0.57,value:3},
+ {t:55,n:0,x:0.35,value:1},{t:55,n:1,x:0.65,value:1},
+ {t:63,n:0,x:0.41,value:1},{t:63,n:1,x:0.59,value:1},
+ {t:71,n:0,x:0.32,value:3},{t:71,n:1,x:0.68,value:3},
+ {t:79,n:0,x:0.42,value:1},{t:79,n:1,x:0.58,value:1},
+ {t:87,n:0,x:0.35,value:1},{t:87,n:1,x:0.65,value:1},
+ {t:95,n:0,x:0.43,value:3},{t:95,n:1,x:0.57,value:3},
+ {t:103,n:0,x:0.33,value:1},{t:103,n:1,x:0.67,value:1},
+ {t:111,n:0,x:0.40,value:1},{t:111,n:1,x:0.60,value:1},
+ {t:119,n:0,x:0.34,value:3},{t:119,n:1,x:0.66,value:3},
+ {t:127,n:0,x:0.43,value:1},{t:127,n:1,x:0.57,value:1},
+ {t:135,n:0,x:0.35,value:1},{t:135,n:1,x:0.65,value:1},
+ {t:143,n:0,x:0.41,value:1},{t:143,n:1,x:0.59,value:1},
+ {t:151,n:0,x:0.33,value:3},{t:151,n:1,x:0.67,value:3},
+ {t:159,n:0,x:0.43,value:1},{t:159,n:1,x:0.57,value:1},
+ {t:167,n:0,x:0.36,value:1},{t:167,n:1,x:0.64,value:1},
+ {t:175,n:0,x:0.40,value:1},{t:175,n:1,x:0.60,value:1},
+ {t:187,n:0,x:0.33,value:1},{t:187,n:1,x:0.67,value:1},
+ {t:201,n:0,x:0.41,value:1},{t:201,n:1,x:0.59,value:1},
+ {t:215,n:0,x:0.34,value:1},{t:215,n:1,x:0.66,value:1},
+ {t:227,n:0,x:0.42,value:3},{t:227,n:1,x:0.58,value:3},
+ {t:239,n:0,x:0.36,value:1},{t:239,n:1,x:0.64,value:1},
+ {t:251,n:0,x:0.43,value:1},{t:251,n:1,x:0.57,value:1},
+ {t:263,n:0,x:0.32,value:3},{t:263,n:1,x:0.68,value:3},
+ {t:275,n:0,x:0.41,value:1},{t:275,n:1,x:0.59,value:1},
+ {t:287,n:0,x:0.35,value:1},{t:287,n:1,x:0.65,value:1}
+];
+const radius=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16);
+const lower=()=>Math.max(upper()+80,Math.min(H*.68,H-145));
+const stageY=t=>H*.36+(t-g.time)*7;
+const orbX=n=>(n===0?.39:.61)*W;
+const currentPace=()=>g.boostLeft>0?selectedPower:BASE_PACE;
+const lane=n=>n===0?[radius(),W*.5-radius()]:[W*.5+radius(),W-radius()];
+const spikeRadius=()=>clamp(Math.min(W,H)*.018,12,20);
+// Every spike crosses BOTH lanes; alternating diagonal sources produce distinct
+// choices. Schedules use real BOOST seconds, not accelerated world time.
+const spikeSchedule=[
+ {id:'A',at:.65,side:0},{id:'B',at:1.33,side:1},
+ {id:'C',at:2.01,side:0},{id:'D',at:2.69,side:1},
+ {id:'E',at:3.37,side:0},{id:'F',at:4.04,side:1}
+];
+function spikePoint(sp,boostSeconds){
+ const age=boostSeconds-sp.at;
+ const u=clamp(age/FLIGHT_TIME,0,1);
+ const margin=spikeRadius()+36;
+ const x=sp.side===0?-margin+(W+2*margin)*u:W+margin-(W+2*margin)*u;
+ const y=upper()-58+(lower()-upper()+116)*u;
+ return {x,y,age,u,active:age>=0&&age<=FLIGHT_TIME};
+}
+function segmentDistSq(px,py,x0,y0,x1,y1){
+ const dx=x1-x0,dy=y1-y0,den=dx*dx+dy*dy;
+ const u=den?clamp(((px-x0)*dx+(py-y0)*dy)/den,0,1):0;
+ const ex=px-(x0+u*dx),ey=py-(y0+u*dy);
+ return ex*ex+ey*ey;
+}
+function hazardHit(n){
+ if(g.hitCooldown[n]>0||g.mode!=='playing')return;
+ g.energy[n]=Math.max(0,g.energy[n]-SPIKE_DAMAGE);
+ g.hitCooldown[n]=SPIKE_COOLDOWN;
+ g.hits[n]++;
+ g.balls[n].flash=.28;
+ $('hint').textContent='⚠ БОДЛИ! −'+SPIKE_DAMAGE+' ЕНЕРГИЯ · пази и двете светлини!';
+}
+function swipeHazards(n,x0,y0,x1,y1){
+ if(g.boostLeft<=0||g.hitCooldown[n]>0)return;
+ const r=radius()+spikeRadius()*.78;
+ for(const sp of spikeSchedule){
+  const point=spikePoint(sp,g.boostElapsed);
+  if(point.active&&segmentDistSq(point.x,point.y,x0,y0,x1,y1)<=r*r){
+   hazardHit(n);break;
+  }
+ }
+}
+function movingHazards(oldTime,newTime){
+ if(g.boostLeft<=0&&newTime===oldTime)return;
+ const r=radius()+spikeRadius()*.78;
+ for(const sp of spikeSchedule){
+  if(newTime<sp.at||oldTime>sp.at+FLIGHT_TIME)continue;
+  const t0=Math.max(oldTime,sp.at),t1=Math.min(newTime,sp.at+FLIGHT_TIME);
+  if(t1<t0)continue;
+  const p0=spikePoint(sp,t0),p1=spikePoint(sp,t1);
+  for(let n=0;n<2;n++){
+   if(g.hitCooldown[n]>0)continue;
+   const ball=g.balls[n];
+   if(segmentDistSq(ball.x,ball.y,p0.x,p0.y,p1.x,p1.y)<=r*r){
+    hazardHit(n);
+   }
+  }
+ }
+}
+function state(){
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,energy:g.energy.slice(),
+  balls:g.balls.map(b=>({...b})),score:g.score,earned:coins.map(c=>!!c.used),
+  boosterUsed:g.boosterUsed,boosterMissed:g.boosterMissed,boostActivations:g.boostActivations,
+  boostLeft:g.boostLeft,boostElapsed:g.boostElapsed,boostTriggeredBy:g.triggeredBy,
+  selectedPower,currentPace:currentPace(),basePace:BASE_PACE,gain:GAIN,
+  initialBoostTime:BOOST_AT,boostDuration:BOOST_SECONDS,
+  coinPositions:coins.map(c=>({t:c.t,n:c.n,x:c.x,value:c.value,used:!!c.used})),
+  hits:g.hits.slice(),hitCooldown:g.hitCooldown.slice(),spikeDamage:SPIKE_DAMAGE,
+  spikeSchedule:spikeSchedule.map(sp=>({...sp,position:spikePoint(sp,g.boostElapsed)})),
+  flightTime:FLIGHT_TIME,warningTime:WARNING_TIME,
+  survived:g.survived,finished:g.finished};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,energy:[100,100],
+    score:0,balls:[{x:W*.26,y:H*.35},{x:W*.74,y:H*.35}],
+    boosterUsed:false,boosterMissed:false,boostActivations:0,boostLeft:0,
+    boostElapsed:0,triggeredBy:null,finished:false,boostEndAt:-1,
+    hits:[0,0],hitCooldown:[0,0],survived:null};
+ coins.forEach(c=>c.used=false);
+ for(const p of pads)p.id=null;
+ $('pause').textContent='Пауза';$('finish').style.display='none';
+ $('status').textContent='Вземи оранжевия бонус за кратка по-бърза смяна.';
+ $('hint').textContent='BOOST ×35 · бодли ще прелитат ДИАГОНАЛНО и през двете полета!';
+ $('power').textContent='Boost ×'+selectedPower;
+ $('power').disabled=false;
+ refresh();draw();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0])+' ♡';
+ $('e1').textContent='● Корал '+Math.round(g.energy[1])+' ♡';
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent=g.boostLeft>0?
+  '×'+selectedPower+' · '+g.boostLeft.toFixed(1)+'s':'×5';
+ $('bar').style.width=(100*g.time/DURATION)+'%';
+ if(g.mode==='ready')$('status').textContent='Постави двата палеца, за да започне тестът.';
+ else if(g.mode==='playing'&&!g.paused){
+  $('status').textContent=g.boostLeft>0?
+   'BOOST! Светът е ×'+selectedPower+' · палците продължават 2,50×':
+   'Нормален скрол ×5 · следвай монетите ✦';
+ }
+}
+function resize(){
+ const oldW=W,oldH=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&oldW>1&&oldH>1){
+  for(let n=0;n<2;n++){
+   const b=g.balls[n],lr=lane(n);
+   b.x=clamp(b.x*W/oldW,lr[0],lr[1]);
+   b.y=clamp(b.y*H/oldH,upper()+radius(),lower()-radius());
+  }
+  draw();
+ }else reset();
+}
+function move(n,dx,dy){
+ if(!g||g.mode==='done'||g.paused)return;
+ const b=g.balls[n],lr=lane(n);
+ b.x=clamp(b.x+dx*GAIN,lr[0],lr[1]);
+ b.y=clamp(b.y+dy*GAIN,upper()+radius(),lower()-radius());
+ // Thumb displacement is direct. Boost NEVER affects this function.
+ // Fast swipe is checked as a swept segment: no tunneling through a spike.
+ swipeHazards(n,b.x-dx*GAIN,b.y-dy*GAIN,b.x,b.y);
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;
+  e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(x=>x.id!==null)){
+   g.mode='playing';
+   $('power').disabled=true;
+   $('hint').textContent='Приближи се до оранжевия Boost — после хващай парите!';
+  }
+ });
+ el.addEventListener('pointermove',e=>{
+  if(p.id!==e.pointerId)return;
+  e.preventDefault();const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx,dy);draw();
+ });
+ for(const k of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(k,e=>{
+  if(e.pointerId!==p.id)return;
+  p.id=null;try{el.releasePointerCapture(e.pointerId)}catch(_){}
+ });
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;g.paused=!g.paused;
+ $('pause').textContent=g.paused?'Продължи':'Пауза';
+ $('status').textContent=g.paused?'На пауза':'Продължаваме!';
+ refresh();
+});
+$('power').addEventListener('click',()=>{
+ if(g.mode!=='ready')return;
+ selectedPower=selectedPower===35?25:35;
+ $('power').textContent='Boost ×'+selectedPower;
+});
+function activate(n){
+ if(g.boosterUsed||g.boosterMissed||g.mode!=='playing')return;
+ g.boosterUsed=true;g.boostActivations++;g.triggeredBy=n;g.boostLeft=BOOST_SECONDS;g.boostElapsed=0;
+ $('hint').textContent='BOOST ×'+selectedPower+' · ЛЕТЯЩИ БОДЛИ! ГЛЕДАЙ ДИАГОНАЛИТЕ ⚠';
+}
+function checkBooster(){
+ if(g.boosterUsed||g.boosterMissed)return;
+ const y=stageY(BOOST_AT);
+ for(let n=0;n<2;n++){
+  const b=g.balls[n];
+  if(Math.hypot(b.x-orbX(n),b.y-y)<radius()+27){activate(n);return;}
+ }
+ if(y<upper()-48){
+  g.boosterMissed=true;
+  $('hint').textContent='Boost пропуснат — можеш да събереш монетите и без него.';
+ }
+}
+function update(dt){
+ if(!g||g.mode!=='playing'||g.paused)return;
+ g.realTime+=dt;
+ const boosted=g.boostLeft>0,pace=boosted?selectedPower:BASE_PACE;
+ g.time=Math.min(DURATION,g.time+dt*pace);
+ for(let n=0;n<2;n++){
+  g.hitCooldown[n]=Math.max(0,g.hitCooldown[n]-dt);
+  g.balls[n].flash=Math.max(0,(g.balls[n].flash||0)-dt);
+ }
+ if(boosted){
+  const oldBoostTime=g.boostElapsed;
+  g.boostElapsed+=Math.min(dt,g.boostLeft);
+  // Continuous collision for fast diagonal hazards between render frames.
+  movingHazards(oldBoostTime,g.boostElapsed);
+  g.boostLeft=Math.max(0,g.boostLeft-dt);
+  if(g.boostLeft===0&&g.boosterUsed){
+   g.boostEndAt=g.realTime;
+   $('hint').textContent='Boost приключи · връщаме нормалния скрол ×5';
+  }
+ }
+ checkBooster();
+ for(const c of coins){
+  if(c.used)continue;
+  const b=g.balls[c.n],y=stageY(c.t);
+  if(Math.hypot(b.x-c.x*W,b.y-y)<radius()+12){
+   c.used=true;g.score+=c.value;
+  }
+ }
+ if(g.time>=DURATION){
+  g.mode='done';g.finished=true;
+  g.survived=g.energy.every(v=>v>=25);
+  $('outcome').textContent=g.survived?'Оцеляхте след турбото!':'Тежко турбо — опитай пак';
+  $('result').textContent='Пари ✦ '+g.score+
+    ' · Енергия '+Math.round(g.energy[0])+' / '+Math.round(g.energy[1])+
+    ' · Удари в бодли '+(g.hits[0]+g.hits[1])+
+    ' · Boost '+(g.boosterUsed?'×'+selectedPower+' за '+g.boostElapsed.toFixed(1)+' s':'пропуснат')+
+    '. Сравни и другата мощност.';
+  $('finish').style.display='flex';
+ }
+ refresh();
+}
+function line(x1,y1,x2,y2,col,width=2){
+ ctx.strokeStyle=col;ctx.lineWidth=width;ctx.beginPath();
+ ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+}
+function disk(x,y,r,fill){
+ ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#92beb20c';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#efad930a';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bottom=lower();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#bfc4b9';ctx.lineWidth=1;
+ ctx.strokeRect(11,top,W-22,bottom-top);
+ ctx.restore();
+ line(W*.5,top-15,W*.5,bottom+15,'#c7c0ba',1.5);
+ // Light horizontal world lines give an unambiguous sense of speed.
+ let shift=(g.time*7)%62;
+ for(let y=top+shift-62;y<=bottom+62;y+=62){
+  if(y<top||y>bottom)continue;
+  line(20,y,W-20,y,g.boostLeft>0?'#e0ac684b':'#b8c3b526',g.boostLeft>0?2:1);
+ }
+ // Long safe sprint: salary continues throughout the 6-second burst.
+ const start=stageY(BOOST_AT+6),end=stageY(BOOST_AT+225);
+ const a=Math.max(top,Math.min(start,end)),b=Math.min(bottom,Math.max(start,end));
+ if(b>a){
+  ctx.fillStyle=g.boostLeft>0?'#f4dfb43d':'#ecdcb522';
+  ctx.fillRect(10,a,W-20,b-a);
+ }
+ if(!g.boosterUsed&&!g.boosterMissed){
+  const y=stageY(BOOST_AT);
+  if(y>=top-40&&y<=bottom+55){
+   ctx.save();ctx.setLineDash([7,8]);
+   line(orbX(0),y,orbX(1),y,'#d8a354',3);ctx.restore();
+   for(let n=0;n<2;n++){
+    const x=orbX(n);
+    disk(x,y,30,'#e9bd6980');disk(x,y,21,'#e3ab50');
+    ctx.fillStyle='#fffdf5';ctx.textAlign='center';
+    ctx.font='bold 15px sans-serif';ctx.fillText('×'+selectedPower,x,y+5);
+   }
+   ctx.fillStyle='#a47e47';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+   ctx.fillText('BOOST ЗА ДВАМАТА',W*.5,y-43);
+  }
+ }
+ if(g.boostLeft>0){
+  ctx.fillStyle='#d7a155';ctx.textAlign='center';ctx.font='bold 19px sans-serif';
+  ctx.fillText('BOOST ×'+selectedPower+' · '+g.boostLeft.toFixed(1)+' s',W*.5,top+38);
+  // Long speed streams show the world motion, not artificial orb inertia.
+  for(let n=0;n<2;n++){
+   const x=n===0?W*.25:W*.75;
+   for(let k=0;k<9;k++){
+    const xx=x+(k-4)*clamp(W*.021,9,24);
+    const from=top+40+((g.realTime*selectedPower*18+k*73)%Math.max(110,bottom-top-72));
+    line(xx,from,xx,Math.min(bottom,from+clamp(selectedPower*3.3,46,90)),
+      '#cba36675',3);
+   }
+  }
+  // Crossing hazard flight paths: a pale dashed line appears before launch.
+  for(const sp of spikeSchedule){
+   const until=sp.at-g.boostElapsed;
+   const flight=spikePoint(sp,g.boostElapsed);
+   if(until>0&&until<=WARNING_TIME){
+    const margin=spikeRadius()+36;
+    const x0=sp.side===0?-margin:W+margin;
+    const x1=sp.side===0?W+margin:-margin;
+    ctx.save();ctx.globalAlpha=.26+.55*(1-until/WARNING_TIME);
+    ctx.setLineDash([10,9]);line(x0,upper()-58,x1,lower()+58,'#b76b79',3);
+    ctx.setLineDash([]);
+    ctx.fillStyle='#a75465';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
+    ctx.fillText('⚠ ↘ ↖',W*.5,top+64);
+    ctx.restore();
+   }
+   if(flight.active){
+    const r=spikeRadius();
+    ctx.save();ctx.translate(flight.x,flight.y);
+    ctx.rotate((sp.side===0?1:-1)*Math.PI*.25+g.boostElapsed*3.3);
+    // Clear visible sharp projectile silhouette, not an invisible hitbox.
+    disk(0,0,r*2.15,'#b26a7a38');
+    ctx.fillStyle='#a4556b';ctx.beginPath();
+    for(let i=0;i<16;i++){
+     const angle=i*Math.PI/8,rr=i%2?r*.70:r*1.45;
+     if(i===0)ctx.moveTo(Math.cos(angle)*rr,Math.sin(angle)*rr);
+     else ctx.lineTo(Math.cos(angle)*rr,Math.sin(angle)*rr);
+    }
+    ctx.closePath();ctx.fill();
+    disk(0,0,r*.45,'#ffe9dc');
+    ctx.restore();
+   }
+  }
+ }
+ for(const c of coins){
+  if(c.used)continue;
+  const y=stageY(c.t),x=c.x*W;
+  if(y<top-35||y>bottom+35)continue;
+  disk(x,y,c.value===3?17:12,'#e6bc6975');
+  disk(x,y,c.value===3?9:6,'#dcb05b');
+  if(c.value===3){ctx.fillStyle='#fffdf7';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText('✦',x,y+4);}
+ }
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],r=radius(),gr=ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,r*2.4);
+  gr.addColorStop(0,C[n]+'66');gr.addColorStop(1,C[n]+'00');
+  disk(b.x,b.y,r*2.4,gr);
+  disk(b.x,b.y,r,C[n]);disk(b.x-r*.23,b.y-r*.25,r*.18,'#fff9');
+  if((b.flash||0)>0){
+   ctx.globalAlpha=clamp(b.flash/.28,0,1);
+   ctx.strokeStyle='#b34d69';ctx.lineWidth=4;ctx.beginPath();
+   ctx.arc(b.x,b.y,r+8,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+  }
+ }
+ if(g.mode==='ready'){
+  ctx.fillStyle='#6a8c86';ctx.font='bold 17px sans-serif';ctx.textAlign='center';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+33);
+ }
+}
+function frame(ts){
+ if(!prevFrame)prevFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-prevFrame)/1000));prevFrame=ts;
+ if(g)update(dt);
+ if(g)draw();
+ requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,stageY,activate,resize,
+ spikePoint,segmentDistSq,choosePower:v=>{
+ if(g.mode!=='ready'||![25,35].includes(v))return false;
+ selectedPower=v;$('power').textContent='Boost ×'+v;return true;
+}};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
