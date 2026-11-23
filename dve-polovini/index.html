@@ -324,6 +324,93 @@ function draw(){
  }
  for(const f of g.fx){ctx.globalAlpha=Math.max(0,f.life/.30);circle(f.x,f.y,3.5,f.color)}ctx.globalAlpha=1;
 }
+
+function buildShapePaths(stage){
+ const paths=[[],[]],count=230,mid=W/2,amp=Math.min(W*.105,H*.19);
+ for(let n=0;n<2;n++){
+  const center=n?W*.75:W*.25;
+  for(let j=0;j<=count;j++){
+   const t=j/count;let x,y;
+   if(stage===0){
+    x=center+amp*(n?(.63*Math.asin(Math.sin(4*Math.PI*t))):Math.sin(2*Math.PI*t));
+    y=H*(.69-.46*t);
+   }else if(stage===1){
+    if(n===0){
+     x=center+amp*Math.sin(2*Math.PI*t);
+     y=H*(.46+.21*Math.cos(2*Math.PI*t));
+    }else{
+     let u,v;
+     if(t<.25){u=.5+2*t;v=.67;}
+     else if(t<.5){u=1;v=.67-(t-.25)*1.68;}
+     else if(t<.75){u=1-4*(t-.5);v=.25;}
+     else{u=2*(t-.75);v=.25+1.68*(t-.75);}
+     x=center+(u-.5)*amp*2;y=H*v;
+    }
+   }else{
+    const r=.14+.86*t,theta=4*Math.PI*t;
+    x=center+amp*r*Math.sin((n?-1:1)*theta);
+    y=H*(.45+.21*r*Math.cos(theta));
+   }
+   paths[n].push({x:clamp(x,n?mid+20:20,n?W-20:mid-20),y:clamp(y,115,H*.72)});
+  }
+ }
+ return paths;
+}
+function resetShapes(){setShapeStage(0)}
+function setShapeStage(stage){
+ shapeStage=stage;shapePaths=buildShapePaths(shapeStage);
+ shapeBalls=shapePaths.map(p=>({x:p[0].x,y:p[0].y}));
+ shapeProgress=[0,0];shapeWait=0;
+ say(stage===0?'Форма 1: вълна и зигзаг. Следвай двете линии едновременно.':stage===1?'Форма 2: кръг с лявата, квадрат с дясната ръка.':'Форма 3: две противоположни спирали.');
+ refresh();
+}
+function updateShapes(dt){
+ const tol=clamp(Math.min(W,H)*.055,24,41);
+ let changed=false;
+ for(let n=0;n<2;n++){
+  const p=shapeBalls[n],path=shapePaths[n],v=getStick(n);
+  if(!p||shapeProgress[n]>=path.length-1)continue;
+  move(p,v,dt);
+  const last=shapeProgress[n],limit=Math.min(path.length-1,last+29);
+  for(let j=last+1;j<=limit;j++){
+   if(Math.hypot(path[j].x-p.x,path[j].y-p.y)<tol){shapeProgress[n]=j;changed=true;}
+  }
+ }
+ if(changed)refresh();
+ if(shapeProgress.every((v,n)=>v>=shapePaths[n].length-1)){
+  shapeWait+=dt;
+  if(shapeWait>1.3)setShapeStage((shapeStage+1)%3);
+ }
+}
+function drawShapes(){
+ const mid=W*.5,upper=Math.max(98,H*.12),rad=radius();
+ ctx.fillStyle='#f2f8f5';ctx.fillRect(0,upper,mid-5,H-upper);
+ ctx.fillStyle='#fff4ec';ctx.fillRect(mid+5,upper,mid-5,H-upper);
+ ctx.fillStyle='#fffdfa';ctx.fillRect(mid-5,upper,10,H-upper);
+ ctx.strokeStyle='#c9ddd4';ctx.setLineDash([3,10]);
+ ctx.beginPath();ctx.moveTo(mid,upper);ctx.lineTo(mid,H);ctx.stroke();ctx.setLineDash([]);
+ for(let n=0;n<2;n++){
+  const path=shapePaths[n],at=shapeProgress[n],col=n?C.coral:C.teal,ball=shapeBalls[n];
+  if(!path||!path.length||!ball)continue;
+  ctx.strokeStyle=col;ctx.globalAlpha=.68;ctx.lineWidth=10;ctx.lineCap='round';ctx.lineJoin='round';
+  if(at<path.length-1){
+   ctx.beginPath();ctx.moveTo(path[at].x,path[at].y);
+   for(let k=at+1;k<path.length;k++)ctx.lineTo(path[k].x,path[k].y);
+   ctx.stroke();
+   const next=path[Math.min(at+13,path.length-1)];
+   ctx.globalAlpha=.32;circle(next.x,next.y,9,col);
+  }
+  ctx.globalAlpha=1;circle(ball.x,ball.y,rad,col);
+  circle(ball.x-rad*.29,ball.y-rad*.3,3,'#ffffffdd');
+  ctx.fillStyle=col;ctx.font='700 '+clamp(W*.017,12,17)+'px system-ui';ctx.textAlign='center';
+  ctx.fillText(n?'ДЯСНА РЪКА':'ЛЯВА РЪКА',n?W*.75:W*.25,Math.max(124,H*.165));
+  if(at>=path.length-1){
+   ctx.font='800 '+clamp(W*.023,16,22)+'px system-ui';
+   ctx.fillText('✓ ГОТОВО',n?W*.75:W*.25,H*.78);
+  }
+ }
+}
+
 function frame(t){
  if(!prev)prev=t;
  const dt=Math.min(.05,Math.max(0,(t-prev)/1000));prev=t;
