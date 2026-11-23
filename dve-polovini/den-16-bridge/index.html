@@ -240,7 +240,8 @@ function update(dt){
  // plate remain world anchored at stageY(t), rather than becoming HUD ghosts.
  const desired=g.done?BASE_PACE:(g.time<MISSION_IN?BASE_PACE:
                 g.time<MISSION_STOP?WORK_PACE:0);
- const oldY=stageY(),change=Math.min(TOTAL-g.time,desired*dt);
+ const oldY=stageY(),nextGate=g.done?TOTAL:(g.time<MISSION_IN?MISSION_IN:MISSION_STOP);
+ const change=Math.min(Math.max(0,nextGate-g.time),desired*dt);
  g.time=Math.min(TOTAL,g.time+change);g.pace=desired;
  const drift=stageY()-oldY;
  // Moving platform carries a passenger already across the open gap.
@@ -276,7 +277,7 @@ function draw(){
  // World-travel markers: background flows slowly when the puzzle engages.
  for(let y=top+(g.time*4.5)%85-85;y<bottom+80;y+=85)
   if(y>=top&&y<=bottom)line(16,y,W-16,y,'#adbab01a',1);
- if(g.time>12&&cy>top-90&&cy<bottom+130){
+ if(cy>top-90&&cy<bottom+130){
   // A vertical, non-walkable water rift across the entire right-hand lane.
   // This is an actual collision interval, not decoration.
   ctx.fillStyle='#b9cacf76';ctx.fillRect(left,top,right-left,bottom-top);
