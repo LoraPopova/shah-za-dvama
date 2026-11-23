@@ -293,30 +293,19 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
       $('e'+n).style.color=g.energy[n]<25?'#b45d68':'';
       $('f'+n).style.width=g.energy[n]+'%';
     }
-    const seconds=Math.floor(g.realTime);$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
-    $('scoreIndicator').textContent='♢ '+g.jobsDone+'/2 · ✦ '+g.score+'/'+MIN_FINISH_PAY;
-    const nextMission=missions.find(m=>!missionState(m).done &&
-      g.time>=m.center-17&&g.time<=m.center+19);
-    if(nextMission){
-      const hold=nextMission.helper===0?'ЛЯВАТА':'ДЯСНАТА';
-      const enter=nextMission.collector===0?'ЛЯВАТА':'ДЯСНАТА';
-      $('help').textContent=nextMission.type==='moving'?
-        '♢ МИСИЯ 2/2 · ЛЯВАТА ДОКОСВА КРЪГА → ПРОЦЕПЪТ СПИРА → ДЯСНАТА МИНАВА И ВЗЕМА ✦8':
-        '♢ МИСИЯ 1/2 · '+hold+' ДЪРЖИ КРЪГА → '+enter+' ВЛИЗА ПРЕЗ ВРАТАТА ЗА ✦8';
-    }else{
-      $('help').textContent='♢ Две общи мисии за успех · ✦18 доход · при сложните участъци светът се забавя';
-    }
-    const actual=(g.actualTempo??tempos[tempoIndex]);
-    $('paceHint').textContent=g.slowdown>.06
-      ?'Сложен участък · темпо ×'+actual.toFixed(1).replace('.',',')+' ↓'
-      :'Нормално темпо ×'+actual.toFixed(0);
-    $('progressFill').style.width=(100*g.time/DURATION)+'%';
-  }
-  function clampBall(b,n){
-    const mid=W*.5;
-    // Both halves may touch at the seam. No teleporting or lane switching.
-    b.x=n===0?clamp(b.x,rad(),mid):clamp(b.x,mid,W-rad());
-    b.y=clamp(b.y,topBand(),bottomBand());
+    const seconds=Math.floor(g.realTime);
+    $('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+
+      String(seconds%60).padStart(2,'0');
+    $('scoreIndicator').textContent='♢ '+g.jobsDone+'/1 · ✦ '+g.score+'/10';
+    $('help').textContent=g.clean.done?
+      '✓ ЧИСТО И ОТ ДВЕТЕ СТРАНИ · може да се срещнете за енергия ♡':
+      '♢ ЧИСТЕНЕ · ЛЯВА '+cleanCount(0)+'/9 · ДЯСНА '+cleanCount(1)+
+      '/9 · почиствай с истинско движение на двата палеца';
+    const actual=g.actualTempo??tempos[tempoIndex];
+    $('paceHint').textContent=g.slowdown>.06?
+      'Чистене · бавно темпо ×'+actual.toFixed(1).replace('.',',')+' ↓':
+      'Нормално темпо ×'+actual.toFixed(0);
+    $('progressFill').style.width=100*g.time/DURATION+'%';
   }
   function move(n,dx,dy){
     if(!g||g.paused||g.mode==='done')return;
@@ -403,11 +392,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     // Keep passive fatigue consistent per virtual-day distance, not per
     // extra real second created by the slowdown. Avoid punishing careful play.
     const worldDt=dt*g.actualTempo/basePace;
-    const fatigue=g.time<70?.4:g.time<176?.7:.4;
+    const fatigue=g.time<45?.45:g.time<101?.65:.40;
     for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-fatigue*worldDt);
     updateCooperation(dt);
     // Meeting unlocks after challenges. Touch anywhere at the seam for 0.4s.
-    const unlocks=[179];
+    const unlocks=[102];
     const ready=g.meets<unlocks.length&&g.time>=unlocks[g.meets]&&g.realTime-g.lastMeetTime>=7;
     const a=g.balls[0],b=g.balls[1];
     const touching=Math.hypot(a.x-b.x,a.y-b.y)<rad()*2+10;
@@ -427,12 +416,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     }else{g.meetHold=0;}
     if(g.time>=DURATION){
       g.time=DURATION;g.mode='done';running=false;
-      g.survived=g.energy.every(e=>e>=MIN_FINISH_ENERGY)&&g.score>=MIN_FINISH_PAY&&g.jobsDone===2;
-      $('finishTitle').textContent=g.survived?'Заедно свършихте работата!':'Още един общ опит!';
+      g.survived=g.energy.every(e=>e>=MIN_FINISH_ENERGY)&&
+        g.score>=MIN_FINISH_PAY&&g.jobsDone===1;
+      $('finishTitle').textContent=g.survived?'Заедно изчистихте!':'Опитайте още веднъж заедно';
       $('finishLead').textContent=g.survived?
-        'Двете общи мисии са изпълнени, спечелихте доход и си помогнахте.':
-        'Цел: ДВЕ общи мисии ♢, поне 18 доход ✦ и по 15 енергия. При всяка мисия ролите се разменят.';
-      $('summary').textContent='Общи мисии '+g.jobsDone+'/2 · Доход ✦ '+g.score+' · Срещи ♡ '+g.meets+' · Енергия '+Math.round(g.energy[0])+' / '+Math.round(g.energy[1]);
+        'Тъмното петно изчезна благодарение на двете светлини.':
+        'Цел: 9 от 12 петънца за всяка светлина и общ доход 10.';
+      $('summary').textContent='Изчистени: '+cleanCount(0)+'/12 и '+
+        cleanCount(1)+'/12 · Доход ✦ '+g.score+' · Енергия '+
+        Math.round(g.energy[0])+' / '+Math.round(g.energy[1]);
       $('finish').style.display='flex';
       refresh();return;
     }
@@ -528,9 +520,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
         g.hintUntil=g.realTime+2;
       }
     }
-    const stage=g.time<65?'РИСКОВ МАРШРУТ':g.time<121?'МИСИЯ 1: ДЯСНАТА ДЪРЖИ, ЛЯВАТА ВЛИЗА':g.time<173?'МИСИЯ 2: ЛЯВАТА СПИРА ПРОЦЕПА, ДЯСНАТА МИНАВА':'Среща и отдих';
+    const stage=g.time<46?'СЪБИРАЙ ДОХОД ✦':g.time<101?'♢ ЧИСТЕТЕ ЗАЕДНО':'♡ СРЕЩА И ПОЧИВКА';
     if(frameN%24===0&&g.realTime>=g.hintUntil)
-      show(stage+' · '+(g.meets<1&&g.time>=179?'♡ Среща +30 · ':'')+'♢ '+g.jobsDone+'/2 · ✦ '+g.score);
+      show(stage+' · ЛЯВО '+cleanCount(0)+'/9 · ДЯСНО '+cleanCount(1)+'/9 · ✦ '+g.score);
     if(frameN%5===0)refresh();
   }
   function line(x,y,x2,y2,color,width){
@@ -790,7 +782,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   function draw(){
     drawBackground();
     if(g&&g.mode==='split'){
-      const ready=g.meets<1&&g.time>=179&&g.realTime-g.lastMeetTime>=7;
+      const ready=g.meets<1&&g.time>=102&&g.realTime-g.lastMeetTime>=7;
       if(ready){
         ctx.save();ctx.textAlign='center';
         ctx.fillStyle='#528f88';ctx.font='700 14px sans-serif';
@@ -858,7 +850,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   window.addEventListener('resize',resize,{passive:true});
   setupPad(0);setupPad(1);
   // Test hook is read-only except for manually advancing time in automated smoke tests.
-  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],actualTempo:g.actualTempo,slowdown:g.slowdown,gain:gainOptions[gainIndex],gold:g.gold,score:g.score,intentAt:g.intentAt.slice(),missions:missions.map(m=>({id:m.id,type:m.type||'door',center:m.center,collector:m.collector,helper:m.helper,geometry:coopGeometry(m),active:coopActive(m),...missionState(m)})),synced:g.synced,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,workPairs:Object.keys(g.workPairs).map(key=>({key,...g.workPairs[key]})),meets:g.meets,crushRecoveries:g.crushRecoveries,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<1&&g.time>=179&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),solidAt:(x,y)=>solidAt(x,y),coopWalls:()=>coopWalls(),wallShapes:(i)=>wallShapes(g.events[i]),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
+  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],actualTempo:g.actualTempo,slowdown:g.slowdown,gain:gainOptions[gainIndex],gold:g.gold,score:g.score,intentAt:g.intentAt.slice(),missions:missions.map(m=>({id:m.id,type:m.type||'door',center:m.center,collector:m.collector,helper:m.helper,geometry:coopGeometry(m),active:coopActive(m),...missionState(m)})),synced:g.synced,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,workPairs:Object.keys(g.workPairs).map(key=>({key,...g.workPairs[key]})),meets:g.meets,crushRecoveries:g.crushRecoveries,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<1&&g.time>=102&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),solidAt:(x,y)=>solidAt(x,y),coopWalls:()=>coopWalls(),wallShapes:(i)=>wallShapes(g.events[i]),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
   resize();reset();requestAnimationFrame(frame);
 })();
 </script>
