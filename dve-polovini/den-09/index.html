@@ -151,6 +151,54 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     if(e.kind==='burn')return [[x,y,x,y,66]]; // solid circular contact patch
     return [];
   }
+  // A temporary screen-anchored cooperative worksite. Visible preview begins
+  // before it is solid; only the gate opens, not the chamber walls.
+  const coopPreview=()=>g&&g.mode==='split'&&g.time>=55&&g.time<109;
+  const coopActive=()=>g&&g.mode==='split'&&g.time>=66&&g.time<109;
+  function coopGeometry(){
+    const top=topBand(),span=bottomBand()-top;
+    return {
+      xLeft:W*.22,xRight:W*.5,
+      topY:top+span*.065,
+      doorY:top+span*.31,
+      bonusX:W*.37,bonusY:top+span*.18,
+      plateX:W*.78,plateY:top+span*.44,
+      plateRadius:clamp(W*.04,32,43)
+    };
+  }
+  function coopWalls(){
+    if(!coopActive())return [];
+    const a=coopGeometry();
+    const walls=[
+      [a.xLeft,a.topY,a.xRight,a.topY,16],
+      [a.xLeft,a.topY,a.xLeft,a.doorY,16]
+    ];
+    if(!g.gateOpen)walls.push([a.xLeft,a.doorY,a.xRight,a.doorY,18]);
+    return walls;
+  }
+  function updateCooperation(dt){
+    if(!coopActive()){g.plateHold=0;g.gateOpen=false;return;}
+    const a=coopGeometry(),right=g.balls[1],left=g.balls[0];
+    const pressing=Math.hypot(right.x-a.plateX,right.y-a.plateY)<a.plateRadius;
+    g.plateHold=pressing?Math.min(.55,g.plateHold+dt):0;
+    // A player inside the reward chamber can still exit if the partner
+    // releases the plate, preventing an accidental soft-lock.
+    const inside=left.x>a.xLeft+rad()*.6&&left.y<a.doorY-rad()*.25
+      &&left.y>a.topY+rad()*.4;
+    const opened=g.plateHold>=.34||(g.gateOpen&&inside);
+    if(opened&&!g.gateOpen){
+      g.gateOpens++;
+      show('♢ ВРАТАТА Е ОТВОРЕНА! Лявата светлина може да вземе ✦ +9');
+      g.hintUntil=g.realTime+2.3;
+    }
+    g.gateOpen=opened;
+    if(!g.bonusClaimed&&g.gateOpen&&Math.hypot(left.x-a.bonusX,left.y-a.bonusY)<rad()+18){
+      g.bonusClaimed=true;g.score+=9;
+      miniMessage(a.bonusX,a.bonusY,'✦ +9','#aa8a42');
+      show('ПОМОГНАХТЕ СИ! +9 доход заедно.');
+      g.hintUntil=g.realTime+2.8;
+    }
+  }
   function segmentDistanceSq(x,y,seg){
     const [ax,ay,bx,by]=seg,dx=bx-ax,dy=by-ay;
     const m=dx*dx+dy*dy;
@@ -168,6 +216,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
         const threshold=rad()+seg[4]*.5-0.4;
         if(segmentDistanceSq(x,y,seg)<threshold*threshold)return true;
       }
+    }
+    // Include the chamber and the conditional gate in exactly the same
+    // solid-body test as the scrolling walls.
+    for(const seg of coopWalls()){
+      const threshold=rad()+seg[4]*.5-.4;
+      if(segmentDistanceSq(x,y,seg)<threshold*threshold)return true;
     }
     return false;
   }
@@ -361,6 +415,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     const worldDt=dt*g.actualTempo/basePace;
     const fatigue=g.time<58?.35:g.time<110?.65:.35;
     for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-fatigue*worldDt);
+    updateCooperation(dt);
     // Meeting unlocks after challenges. Touch anywhere at the seam for 0.4s.
     const unlocks=[111];
     const ready=g.meets<unlocks.length&&g.time>=unlocks[g.meets]&&g.realTime-g.lastMeetTime>=7;
@@ -624,6 +679,49 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
       ctx.restore();
     }
   }
+  // Narrative signs connect geometry, player choice, and earned outcome.
+  function drawScenario(){
+    if(g.mode!=='split'&&g.mode!=='done')return;
+    const top=topBand(),span=bottomBand()-top;
+    if(g.time>=5&&g.time<54){
+      ctx.save();ctx.textAlign='center';
+      ctx.font='bold 12px sans-serif';
+      ctx.fillStyle='#467b74';ctx.fillText('✓ СИГУРНО +3',W*.115,top+20);
+      ctx.fillStyle='#a47a38';ctx.fillText('✦ РИСК +9',W*.395,top+20);
+      ctx.font='11px sans-serif';ctx.fillStyle='#687879';
+      ctx.fillText('Избери път ПРЕДИ стената',W*.25,top+39);
+      ctx.restore();
+    }
+    if(!coopPreview())return;
+    const a=coopGeometry(),active=coopActive();
+    ctx.save();ctx.globalAlpha=active?1:.36;ctx.lineCap='round';
+    line(a.xLeft,a.topY,a.xRight,a.topY,'#607d80',16);
+    line(a.xLeft,a.topY,a.xLeft,a.doorY,'#607d80',16);
+    line(a.xLeft,a.doorY,a.xRight,a.doorY,
+      g.gateOpen?'#7ac5a085':'#c49c5e',g.gateOpen?5:18);
+    // The reward is physically within the upper-left pocket.
+    circle(a.bonusX,a.bonusY,26,'#e7bf682a');
+    if(!g.bonusClaimed){
+      circle(a.bonusX,a.bonusY,17,'#d4a54f');
+      ctx.fillStyle='#fff9e9';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+      ctx.fillText('✦ 9',a.bonusX,a.bonusY+4);
+    }
+    // A readable pressure plate on the RIGHT, linked to the LEFT door.
+    const pressed=g.plateHold>=.34;
+    circle(a.plateX,a.plateY,a.plateRadius+11,'#a5b5d92a');
+    circle(a.plateX,a.plateY,a.plateRadius,
+      pressed?'#89c7ac':'#9baad2');
+    ctx.beginPath();ctx.arc(a.plateX,a.plateY,a.plateRadius+6,
+      -Math.PI/2,-Math.PI/2+Math.PI*2*clamp(g.plateHold/.34,0,1));
+    ctx.lineWidth=4;ctx.strokeStyle='#578d76';ctx.stroke();
+    ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';
+    ctx.fillText('ДРЪЖ',a.plateX,a.plateY+4);
+    ctx.font='bold 12px sans-serif';ctx.fillStyle='#52646c';
+    ctx.fillText('♢ ДЯСНА: ПЛОЧА',a.plateX,a.plateY-a.plateRadius-19);
+    ctx.fillText(g.gateOpen?'ВРАТАТА Е ОТВОРЕНА':'ЛЯВА: ✦ +9 ЗАД ВРАТАТА',
+      W*.37,top+span*.66);
+    ctx.textAlign='left';ctx.restore();
+  }
   function drawBackground(){
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
@@ -671,7 +769,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
         ctx.restore();
       }
     }
-    if(g.mode==='split'||g.mode==='done')drawEvents();
+    if(g.mode==='split'||g.mode==='done'){drawEvents();drawScenario();}
     const r=rad();
     if(g.mode==='joined'){
       const p=g.balls[0];drawBall(p.x-7,p.y,r,'#67a8a3');drawBall(p.x+7,p.y,r,'#ef9882');
@@ -727,7 +825,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   window.addEventListener('resize',resize,{passive:true});
   setupPad(0);setupPad(1);
   // Test hook is read-only except for manually advancing time in automated smoke tests.
-  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],actualTempo:g.actualTempo,slowdown:g.slowdown,gain:gainOptions[gainIndex],gold:g.gold,score:g.score,synced:g.synced,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,workPairs:Object.keys(g.workPairs).map(key=>({key,...g.workPairs[key]})),meets:g.meets,crushRecoveries:g.crushRecoveries,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<1&&g.time>=111&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),solidAt:(x,y)=>solidAt(x,y),wallShapes:(i)=>wallShapes(g.events[i]),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
+  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],actualTempo:g.actualTempo,slowdown:g.slowdown,gain:gainOptions[gainIndex],gold:g.gold,score:g.score,gateOpen:g.gateOpen,gateOpens:g.gateOpens,plateHold:g.plateHold,bonusClaimed:g.bonusClaimed,coopActive:coopActive(),coopGeometry:coopGeometry(),synced:g.synced,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,workPairs:Object.keys(g.workPairs).map(key=>({key,...g.workPairs[key]})),meets:g.meets,crushRecoveries:g.crushRecoveries,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<1&&g.time>=111&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),solidAt:(x,y)=>solidAt(x,y),coopWalls:()=>coopWalls(),wallShapes:(i)=>wallShapes(g.events[i]),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
   resize();reset();requestAnimationFrame(frame);
 })();
 </script>
