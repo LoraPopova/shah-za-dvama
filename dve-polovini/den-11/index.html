@@ -240,7 +240,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
         state.open=g.realTime<state.pulseUntil;
         // The collector must physically approach from BELOW and cross through
         // the actual moving slot, not simply touch a reward from above.
-        if(collecting.y>a.doorY+rad()+10&&collecting.x>W*.5)state.below=true;
+        if(collecting.y>=a.doorY-3&&collecting.x>W*.5&&
+          Math.abs(collecting.x-a.gapX)<a.gapHalf+rad()*.7)state.below=true;
         if(state.pulses>0&&state.below&&!state.crossed&&
           collecting.y<a.doorY-rad()-8&&
           Math.abs(collecting.x-a.gapX)<a.gapHalf+rad()*.7){
