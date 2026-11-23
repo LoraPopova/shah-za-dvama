@@ -126,8 +126,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
       const laterOuter=flip?.02:.5,laterInner=flip?.32:.19;
       mazeWalls.push(
         {kind:'wall',side:n,x:mirror(outer),x2:mirror(inner),t:t-3,t2:t-3},
-        {kind:'wall',side:n,x:mirror(inner),x2:mirror(inner),t:t-3,t2:t-1.0},
-        {kind:'wall',side:n,x:mirror(laterInner),x2:mirror(laterInner),t:t+1.0,t2:t+3},
+        {kind:'wall',side:n,x:mirror(inner),x2:mirror(inner),t:t-3,t2:t-2.0},
+        {kind:'wall',side:n,x:mirror(laterInner),x2:mirror(laterInner),t:t+2.0,t2:t+3},
         {kind:'wall',side:n,x:mirror(laterInner),x2:mirror(laterOuter),t:t+3,t2:t+3}
       );
       // A clear pay trail: first opening, then opposite opening.
