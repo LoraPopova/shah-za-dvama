@@ -2,224 +2,334 @@
 <html lang="bg">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f2eee7">
-<title>Две половини — падащи топчета</title>
+<meta name="theme-color" content="#fffaf4">
+<title>Две половини — цял екран</title>
 <style>
-:root{color-scheme:light;--teal:#72a5a4;--coral:#f49d85;--gold:#e7b16f;--ink:#344e4b;--paper:#fffefa}
+:root{color-scheme:light;--teal:#72a5a4;--coral:#f49d85;--gold:#e5ac69;--ink:#334d49;--ivory:#fffdfa}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:#f2eee7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
-button{font:inherit;cursor:pointer}
-#app{height:100vh;height:100dvh;min-height:360px;max-width:1180px;margin:auto;display:flex;flex-direction:column;gap:7px;padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));}
-header{min-height:43px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-header .brand{display:flex;flex-direction:column;gap:1px}
-header b{font-size:20px;letter-spacing:-.04em}header small{font-size:11px;color:#81928c}
-.actions{display:flex;align-items:center;gap:7px}.pill{border-radius:13px;padding:8px 11px;background:#fffaf4;border:1px solid #e8e3db;font-weight:800;font-size:13px;white-space:nowrap}
-#restart{background:var(--ink);color:#fff;border:0;border-radius:12px;padding:9px 13px;font-size:12px;font-weight:800}
-#status{font-size:13px;font-weight:750;text-align:center;min-height:22px;color:#607970;line-height:1.3}
-#stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(105px,1fr) minmax(0,405px) minmax(105px,1fr);align-items:end;justify-items:center;gap:8px}
-#board{aspect-ratio:360/520;width:min(100%,485px,calc((100dvh - 113px) * 360 / 520));height:auto;max-height:100%;border:5px solid white;border-radius:21px;background:var(--paper);box-shadow:0 6px 24px #37534a20;position:relative;overflow:hidden;align-self:center}
-#canvas{display:block;width:100%;height:100%;touch-action:none}
-#board .inner-caption{position:absolute;pointer-events:none;top:10px;left:10px;right:10px;text-align:center;font-size:12px;font-weight:750;color:#6b8981}
-.control{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;width:100%;padding-bottom:13px;user-select:none;-webkit-user-select:none}
-.control label{font-size:11px;font-weight:850;letter-spacing:.08em;white-space:nowrap}
-.pad{width:clamp(93px,12vw,150px);height:clamp(93px,12vw,150px);border:3px solid #fff9;border-radius:50%;position:relative;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 5px 15px #334d4b15;overflow:hidden}
-#left-pad{background:#d7eae5}#right-pad{background:#fbe5da}
-.pad:before,.pad:after{content:"";position:absolute;background:#55736c28;pointer-events:none}.pad:before{width:1px;height:77%;left:50%;top:11.5%}.pad:after{height:1px;width:77%;left:11.5%;top:50%}
-.knob{position:absolute;left:50%;top:50%;width:47%;height:47%;border:3px solid #ffffffb5;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 3px 9px #1e393529;will-change:transform}
+html,body{width:100%;height:100%;padding:0;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--ivory);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#app{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:var(--ivory);touch-action:none}
+#playfield{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.top{position:absolute;z-index:3;top:calc(env(safe-area-inset-top) + 9px);left:calc(env(safe-area-inset-left) + 13px);right:calc(env(safe-area-inset-right) + 13px);display:flex;gap:10px;align-items:center;justify-content:space-between;pointer-events:none}
+.brand{font-weight:850;font-size:clamp(14px,2.6vw,22px);letter-spacing:-.04em;white-space:nowrap;text-shadow:0 1px #fff}
+.buttons{display:flex;gap:6px;pointer-events:auto;align-items:center}
+.pill{border-radius:999px;background:#fffef3de;border:1px solid #dce4dc;box-shadow:0 1px 6px #324c4810;font-size:clamp(11px,1.8vw,14px);font-weight:800;padding:8px 10px;white-space:nowrap}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.small{border:1px solid #dce4dc;background:#fffcf6ee;color:var(--ink);border-radius:100px;font-size:13px;font-weight:750;padding:8px 12px;min-height:36px;touch-action:manipulation}
+#status{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 57px);left:14%;right:14%;text-align:center;font-size:clamp(11px,1.8vw,14px);font-weight:750;line-height:1.35;color:#65877d;pointer-events:none;text-shadow:0 1px #fff}
+#progress{position:absolute;z-index:2;top:calc(env(safe-area-inset-top) + 85px);left:0;right:0;text-align:center;font-weight:800;font-size:clamp(12px,2vw,16px);color:#67847b;pointer-events:none}
+.zone{position:absolute;bottom:0;z-index:5;height:34%;width:45%;min-height:148px;max-height:340px;touch-action:none;overscroll-behavior:contain}
+#left-zone{left:0}#right-zone{right:0}
+.pad{position:absolute;left:20px;top:20px;width:116px;height:116px;border-radius:50%;border:2px solid #ffffffd8;box-shadow:0 5px 24px #324a4214,inset 0 0 0 1px #ffffff64;pointer-events:none;transform:translate(-50%,-50%);will-change:left,top}
+#left-pad{background:#cee4dfac}#right-pad{background:#f8dacf9e}
+.pad:before,.pad:after{content:"";position:absolute;pointer-events:none;background:#577b7530}
+.pad:before{top:15%;bottom:15%;left:50%;width:1px}.pad:after{top:50%;left:15%;right:15%;height:1px}
+.knob{position:absolute;top:50%;left:50%;width:50%;height:50%;border:2px solid #fff9;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 3px 12px #233d3b2a;will-change:transform}
 #left-knob{background:var(--teal)}#right-knob{background:var(--coral)}
-#help{text-align:center;color:#8c9c95;font-size:11px;line-height:1.3;min-height:15px}
-@media(max-width:650px){#app{padding:calc(5px + env(safe-area-inset-top)) 7px calc(5px + env(safe-area-inset-bottom));gap:4px}header b{font-size:17px}header small{font-size:10px}#status{font-size:11px;min-height:16px}#stage{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:5px}#board{grid-column:1 / -1;grid-row:1;align-self:center;width:min(100%,405px,calc((100dvh - 190px) * 360 / 520))}#left-control{grid-column:1;grid-row:2}#right-control{grid-column:2;grid-row:2}.control{padding:0;gap:2px}.control label{font-size:10px}.pad{height:clamp(72px,21vw,106px);width:clamp(72px,21vw,106px)}#help{font-size:9px}.pill{font-size:12px;padding:7px 8px}}
-@media(max-height:560px) and (min-width:651px){#app{gap:3px}header{min-height:36px}.pad{width:100px;height:100px}#help{display:none}}
+.zone .hint{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 7px);font-weight:850;font-size:11px;letter-spacing:.05em;pointer-events:none;white-space:nowrap;opacity:.9}
+#left-zone .hint{left:clamp(17px,7vw,85px);color:#5d928b}#right-zone .hint{right:clamp(17px,7vw,85px);color:#d88c75}
+#join{position:absolute;z-index:8;left:50%;bottom:calc(env(safe-area-inset-bottom) + 27px);transform:translateX(-50%);background:#334d49;color:#fff;border:2px solid #ffffffd9;box-shadow:0 4px 18px #334d4933;padding:12px 19px;border-radius:999px;font-size:13px;font-weight:800;white-space:nowrap;touch-action:manipulation;display:none}
+#join.show{display:block}
+.bottom-note{position:absolute;z-index:1;bottom:calc(env(safe-area-inset-bottom) + 9px);left:0;right:0;font-size:11px;font-weight:750;text-align:center;color:#82948a;pointer-events:none;opacity:.75}
+@media(max-width:650px){.top{gap:4px;left:8px;right:8px}.brand{font-size:15px}.buttons{gap:4px}.pill{padding:7px 7px;font-size:11px}.small{padding:7px 8px;font-size:11px}#status{top:calc(env(safe-area-inset-top) + 52px);left:5%;right:5%}#progress{top:calc(env(safe-area-inset-top) + 79px)}.pad{width:98px;height:98px}#join{bottom:calc(env(safe-area-inset-bottom) + 19px);padding:9px 12px;font-size:11px}.zone{height:32%}.bottom-note{display:none}}
+@media(max-height:560px){.zone{height:42%}.pad{width:96px;height:96px}.zone .hint{display:none}#join{bottom:calc(env(safe-area-inset-bottom) + 7px)}}
 </style>
 </head>
 <body>
 <div id="app">
-  <header><div class="brand"><b>Две половини</b><small>Игра за два палеца</small></div><div class="actions"><div class="pill" id="score">★ 0</div><div class="pill" id="level">Ниво 1</div><button type="button" id="restart">↻ Отначало</button></div></header>
-  <div id="status" role="status" aria-live="polite">Дръпни левия палец наляво, десния надясно ↙ ↘</div>
-  <main id="stage">
-    <div class="control" id="left-control"><label for="left-pad" style="color:#528e8a">ЛЯВ ПАЛЕЦ</label><div class="pad" id="left-pad" aria-label="Ляв джойстик"><div class="knob" id="left-knob"></div></div></div>
-    <div id="board"><canvas width="720" height="1040" id="canvas" aria-label="Игрално поле"></canvas><div class="inner-caption" id="progress">🩵 0/4　🧡 0/4</div></div>
-    <div class="control" id="right-control"><label for="right-pad" style="color:#dd8b74">ДЕСЕН ПАЛЕЦ</label><div class="pad" id="right-pad" aria-label="Десен джойстик"><div class="knob" id="right-knob"></div></div></div>
-  </main>
-  <div id="help">Полето се движи нагоре • топчетата падат бавно • събирай правилния цвят</div>
+  <canvas id="playfield" aria-label="Пълноекранна игра Две половини"></canvas>
+  <div class="top"><div class="brand">Две половини</div><div class="buttons"><span class="pill" id="score">★ 0</span><span class="pill" id="level">Ниво 1</span><button class="small" id="fullscreen" type="button" title="Цял екран">⛶</button><button class="small" id="restart" type="button">↻</button></div></div>
+  <div id="status" role="status" aria-live="polite">Раздалечи двата палеца, за да разделиш топчето ↙ ↘</div>
+  <div id="progress">🩵 0/4 &nbsp; 🧡 0/4</div>
+  <div class="zone" id="left-zone" aria-label="Управление на синьото топче"><div class="pad" id="left-pad"><div class="knob" id="left-knob"></div></div><div class="hint">ЛЯВ ПАЛЕЦ</div></div>
+  <div class="zone" id="right-zone" aria-label="Управление на оранжевото топче"><div class="pad" id="right-pad"><div class="knob" id="right-knob"></div></div><div class="hint">ДЕСЕН ПАЛЕЦ</div></div>
+  <button id="join" type="button">↘ ↙ СЪЕДИНИ</button>
+  <div class="bottom-note">Раздели → събери цветовете → съедини → вземи жълтите</div>
 </div>
 <script>
 (function(){
 'use strict';
-var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
-if(!ctx){document.getElementById('status').textContent='Браузърът не поддържа тази игра.';return;}
-ctx.setTransform(2,0,0,2,0,0);
-var W=360,H=520,teal='#72a5a4',coral='#f49d85',gold='#e7b16f';
-var $=function(id){return document.getElementById(id)};
-var left={x:0,y:0,id:null},right={x:0,y:0,id:null},game,prev=0,anim=0;
-function say(s){$('status').textContent=s}
-function resetStick(s,knob){s.x=0;s.y=0;s.id=null;$(knob).style.transform='translate(-50%,-50%)'}
-function dots(kind){
- var list=[],i;
- if(kind==='colors'){
-  for(i=0;i<6;i++){
-   list.push({t:'teal',x:49+(i%3)*41+(Math.random()-.5)*12,y:110+Math.floor(i/3)*130+(Math.random()-.5)*18,r:12});
-   list.push({t:'coral',x:221+(i%3)*42+(Math.random()-.5)*12,y:110+Math.floor(i/3)*130+(Math.random()-.5)*18,r:12});
-  }
- }else{
-  for(i=0;i<6;i++)list.push({t:'gold',x:105+(i%3)*75+(Math.random()-.5)*10,y:123+Math.floor(i/3)*160+(Math.random()-.5)*12,r:13});
- }
- return list;
-}
-function spawnOne(g){
- var t;
- if(g.phase==='gold')t='gold';
- else{
-  var need=[];
-  if(g.teal<4)need.push('teal');
-  if(g.coral<4)need.push('coral');
-  if(!need.length)return;
-  t=need[g.spawnCount%need.length];
- }
- g.spawnCount++;
- var x=t==='teal'?48+Math.random()*108:t==='coral'?205+Math.random()*107:76+Math.random()*210;
- g.items.push({t:t,x:x,y:70,r:t==='gold'?13:12});
-}
-function fresh(){
- game={level:1,score:0,mode:'joined',phase:'colors',joined:{x:180,y:421},a:{x:146,y:421},b:{x:214,y:421},teal:0,coral:0,gold:0,splitTimer:0,mergeLock:0,items:dots('colors'),fx:[],time:0,scroll:0,spawnTimer:1,spawnCount:0};
- resetStick(left,'left-knob');resetStick(right,'right-knob');$('score').textContent='★ 0';refresh();say('Дръпни двата палеца навън, за да разделиш топчето ↙ ↘');
-}
+const $=id=>document.getElementById(id);
+const canvas=$('playfield'),ctx=canvas.getContext('2d',{alpha:false});
+if(!ctx){$('status').textContent='Невъзможно е да се стартира играта в този браузър.';return;}
+const C={teal:'#72a5a4',coral:'#f49d85',gold:'#e5ac69'};
+const sticks=[{x:0,y:0,id:null,downX:0,downY:0},{x:0,y:0,id:null,downX:0,downY:0}];
+let W=1,H=1,dpr=1,g,prev=0,keyboard={},animStarted=false;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const radius=()=>clamp(Math.min(W,H)*.026,16,23);
+function say(text){$('status').textContent=text}
 function refresh(){
- $('level').textContent='Ниво '+game.level;
- $('progress').textContent=game.phase==='colors'?'🩵 '+game.teal+'/4　🧡 '+game.coral+'/4':'🟡 '+game.gold+'/3';
+ $('score').textContent='★ '+g.score;
+ $('level').textContent='Ниво '+g.level;
+ $('progress').textContent=g.phase==='colors'?'🩵 '+g.teal+'/4　🧡 '+g.coral+'/4':'🟡 '+g.gold+'/3';
+ $('join').classList.toggle('show',g.mode==='split');
 }
-function attach(id,s,knob){
- var pad=$(id),dot=$(knob),active=false;
- function position(x,y){
-  var r=pad.getBoundingClientRect(),radius=r.width*.27,dx=x-r.left-r.width/2,dy=y-r.top-r.height/2,n=Math.hypot(dx,dy);
-  if(n>radius){dx*=radius/n;dy*=radius/n}
-  s.x=dx/radius;s.y=dy/radius;
-  dot.style.transform='translate(-50%,-50%) translate('+dx+'px,'+dy+'px)';
+function touchReset(which){
+ const s=sticks[which];s.x=0;s.y=0;s.id=null;
+ $(which?'right-knob':'left-knob').style.transform='translate(-50%,-50%)';
+}
+function defaultPads(){
+ for(let n=0;n<2;n++){
+  if(sticks[n].id!==null)continue;
+  const zone=$(n?'right-zone':'left-zone'),r=zone.getBoundingClientRect(),pad=$(n?'right-pad':'left-pad');
+  const size=pad.offsetWidth||110,localX=n?r.width-Math.max(65,size*.65):Math.max(65,size*.65),localY=r.height-Math.max(80,size*.64);
+  pad.style.left=clamp(localX,size/2,r.width-size/2)+'px';
+  pad.style.top=clamp(localY,size/2,r.height-size/2)+'px';
  }
- function end(){resetStick(s,knob);active=false}
+}
+function setupPad(n){
+ const zone=$(n?'right-zone':'left-zone'),pad=$(n?'right-pad':'left-pad'),knob=$(n?'right-knob':'left-knob'),s=sticks[n];
+ const act=(clientX,clientY)=>{
+  const maxR=(pad.offsetWidth||116)*.39;
+  const dx=clientX-s.downX,dy=clientY-s.downY;
+  const len=Math.hypot(dx,dy),ratio=len>maxR?maxR/len:1;
+  const mx=dx*ratio,my=dy*ratio;
+  // Dead-zone keeps little finger vibrations from making the ball wander.
+  const dead=.12;
+  const norm=(n)=>Math.abs(n)<dead?0:Math.sign(n)*(Math.abs(n)-dead)/(1-dead);
+  s.x=norm(mx/maxR);s.y=norm(my/maxR);
+  knob.style.transform='translate(-50%,-50%) translate('+mx+'px,'+my+'px)';
+ };
+ const begin=(id,x,y)=>{
+  if(s.id!==null)return false;
+  s.id=id;s.downX=x;s.downY=y;s.x=0;s.y=0;
+  const rect=zone.getBoundingClientRect(),sz=pad.offsetWidth||116;
+  pad.style.left=clamp(x-rect.left,sz/2,rect.width-sz/2)+'px';
+  pad.style.top=clamp(y-rect.top,sz/2,rect.height-sz/2)+'px';
+  knob.style.transform='translate(-50%,-50%)';return true;
+ };
+ const end=()=>{touchReset(n);defaultPads()};
  if(window.PointerEvent){
-  pad.addEventListener('pointerdown',function(e){if(s.id!==null)return;e.preventDefault();s.id=e.pointerId;active=true;position(e.clientX,e.clientY);try{pad.setPointerCapture(e.pointerId)}catch(err){}});
-  pad.addEventListener('pointermove',function(e){if(s.id===e.pointerId){e.preventDefault();position(e.clientX,e.clientY)}});
-  pad.addEventListener('pointerup',function(e){if(s.id===e.pointerId)end()});
-  pad.addEventListener('pointercancel',function(e){if(s.id===e.pointerId)end()});
-  pad.addEventListener('lostpointercapture',function(e){if(s.id===e.pointerId)end()});
-  window.addEventListener('pointerup',function(e){if(s.id===e.pointerId)end()});
+  zone.addEventListener('pointerdown',e=>{
+   e.preventDefault();if(begin(e.pointerId,e.clientX,e.clientY))try{zone.setPointerCapture(e.pointerId)}catch(_){ }
+  });
+  zone.addEventListener('pointermove',e=>{if(s.id===e.pointerId){e.preventDefault();act(e.clientX,e.clientY)}});
+  for(const eventName of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(eventName,e=>{if(s.id===e.pointerId)end()});
+  window.addEventListener('pointerup',e=>{if(s.id===e.pointerId)end()});
  }else{
-  pad.addEventListener('touchstart',function(e){if(s.id!==null)return;e.preventDefault();var t=e.changedTouches[0];s.id=t.identifier;position(t.clientX,t.clientY)},{passive:false});
-  pad.addEventListener('touchmove',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];if(t.identifier===s.id)position(t.clientX,t.clientY)}},{passive:false});
-  var stop=function(e){for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===s.id)end()};
-  pad.addEventListener('touchend',stop);pad.addEventListener('touchcancel',stop);
+  zone.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches)if(begin(t.identifier,t.clientX,t.clientY))break},{passive:false});
+  zone.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===s.id)act(t.clientX,t.clientY)},{passive:false});
+  const stop=e=>{for(const t of e.changedTouches)if(t.identifier===s.id){end();break}};
+  zone.addEventListener('touchend',stop);zone.addEventListener('touchcancel',stop);
  }
- pad.addEventListener('contextmenu',function(e){e.preventDefault()});
+ zone.addEventListener('contextmenu',e=>e.preventDefault());
 }
-attach('left-pad',left,'left-knob');attach('right-pad',right,'right-knob');
-$('restart').addEventListener('click',fresh);
-document.addEventListener('visibilitychange',function(){prev=0;if(document.hidden){resetStick(left,'left-knob');resetStick(right,'right-knob')}});
-function d(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-function move(obj,v,dt){var size=19,speed=205;obj.x=Math.max(size,Math.min(W-size,obj.x+v.x*speed*dt));obj.y=Math.max(71,Math.min(H-size,obj.y+v.y*speed*dt))}
-function burst(x,y,c){for(var j=0;j<8;j++){var angle=Math.PI*2*j/8;game.fx.push({x:x,y:y,vx:Math.cos(angle)*(40+Math.random()*45),vy:Math.sin(angle)*(40+Math.random()*45),life:.35,c:c})}}
+setupPad(0);setupPad(1);
+function resetGame(){
+ const r=radius();
+ g={level:1,score:0,phase:'colors',mode:'joined',joined:{x:W*.5,y:H*.64},a:{x:W*.5-r*2,y:H*.64},b:{x:W*.5+r*2,y:H*.64},items:[],fx:[],teal:0,coral:0,gold:0,scroll:0,splitHold:0,joinHold:0,mergeLock:0,spawnTime:.9,spawnCount:0,time:0};
+ for(let n=0;n<2;n++)touchReset(n);
+ defaultPads();generateTargets();refresh();say('Раздалечи двата палеца, за да разделиш топчето ↙ ↘');prev=0;
+}
+function generateTargets(){
+ g.items=[];
+ for(let i=0;i<5;i++){
+  if(g.phase==='colors'){
+   g.items.push(newTarget('teal',.15+i*.115));
+   g.items.push(newTarget('coral',.20+i*.112));
+  }else g.items.push(newTarget('gold',.17+i*.125));
+ }
+}
+function newTarget(type,fraction){
+ const x=type==='teal'?W*(.09+Math.random()*.35):type==='coral'?W*(.56+Math.random()*.35):W*(.20+Math.random()*.60);
+ const y=typeof fraction==='number'?H*fraction:-radius()*2;
+ return {type,x:clamp(x,30,W-30),y,r:clamp(radius()*.54,10,14)};
+}
+function resize(){
+ const oldW=W,oldH=H;
+ W=Math.max(320,window.innerWidth||document.documentElement.clientWidth||320);
+ H=Math.max(360,window.innerHeight||document.documentElement.clientHeight||360);
+ dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g){
+  for(const p of [g.joined,g.a,g.b,...g.items,...g.fx]){p.x=p.x/oldW*W;p.y=p.y/oldH*H;}
+  g.joined.x=clamp(g.joined.x,radius(),W-radius());
+  g.joined.y=clamp(g.joined.y,90,H-radius());
+ }
+ requestAnimationFrame(defaultPads);
+}
+resize();
+function startMerge(){
+ if(g.mode!=='split')return;
+ g.mode='joining';g.joinHold=0;$('join').classList.remove('show');
+ say('Половините се привличат…');
+}
+$('join').addEventListener('click',startMerge);
+$('restart').addEventListener('click',resetGame);
+$('fullscreen').addEventListener('click',()=>{
+ if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+ else if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{
+  say('За цял екран на iPad: Safari → Споделяне → Добавяне към началния екран');
+ });
+ else say('За цял екран на iPad: Safari → Споделяне → Добавяне към началния екран');
+});
+function move(p,v,dt,side){
+ const r=radius(),sx=W*.39,sy=H*.40;
+ p.x=clamp(p.x+v.x*sx*dt,r,W-r);
+ p.y=clamp(p.y+v.y*sy*dt,112,H-r-4);
+ if(side==='teal')p.x=Math.min(p.x,W/2-r);
+ if(side==='coral')p.x=Math.max(p.x,W/2+r);
+}
+function toward(p,tx,ty,maxStep){
+ const dx=tx-p.x,dy=ty-p.y,len=Math.hypot(dx,dy);
+ if(len<=maxStep){p.x=tx;p.y=ty;return;}
+ p.x+=dx/len*maxStep;p.y+=dy/len*maxStep;
+}
+function completeMerge(){
+ g.mode='joined';g.mergeLock=.5;
+ g.joined={x:(g.a.x+g.b.x)/2,y:(g.a.y+g.b.y)/2};
+ say(g.phase==='gold'?'Съединени! Събирай жълтите 🟡':'Съединени! За разделяне — дръпни двата палеца навън.');
+ refresh();
+}
+function particle(x,y,color){
+ for(let i=0;i<7;i++){const angle=Math.PI*2*i/7;
+  g.fx.push({x,y,vx:Math.cos(angle)*(30+Math.random()*44),vy:Math.sin(angle)*(30+Math.random()*44),life:.30,color});
+ }
+}
 function collect(it){
- burst(it.x,it.y,it.t==='teal'?teal:it.t==='coral'?coral:gold);
- if(it.t==='teal')game.teal=Math.min(4,game.teal+1);
- if(it.t==='coral')game.coral=Math.min(4,game.coral+1);
- if(it.t==='gold')game.gold=Math.min(3,game.gold+1);
- game.score+=it.t==='gold'?30:10;$('score').textContent='★ '+game.score;
+ particle(it.x,it.y,C[it.type]);
+ if(it.type==='teal')g.teal++;
+ if(it.type==='coral')g.coral++;
+ if(it.type==='gold')g.gold++;
+ g.score+=it.type==='gold'?30:10;
 }
 function nextPhase(){
- if(game.phase==='colors'){
-  game.phase='gold';game.gold=0;game.items=dots('gold');game.spawnTimer=1;game.spawnCount=0;say('Сблъскай двете половини! Жълтите са за съединеното топче 🟡');
+ if(g.phase==='colors'){
+  g.phase='gold';g.gold=0;g.spawnTime=1;g.spawnCount=0;generateTargets();
+  say('Цветовете са събрани! Приближи двата палеца навътре или натисни „Съедини“.');
  }else{
-  game.level+=1;game.phase='colors';game.teal=0;game.coral=0;game.gold=0;game.items=dots('colors');game.spawnTimer=1;game.spawnCount=0;
-  say('Браво! Ниво '+game.level+' — раздели топчето отново ↙ ↘');
+  g.level++;g.phase='colors';g.teal=0;g.coral=0;g.gold=0;g.spawnTime=1;g.spawnCount=0;generateTargets();
+  say('Браво! Ниво '+g.level+' — раздели топчето и събирай цветовете.');
  }
  refresh();
 }
+function getStick(n){
+ const s=sticks[n],v={x:s.x,y:s.y};
+ // Keyboard option for testing and accessibility: WASD teal, arrows coral.
+ if(n===0){v.x+=(keyboard.a?-1:0)+(keyboard.d?1:0);v.y+=(keyboard.w?-1:0)+(keyboard.s?1:0)}
+ else{v.x+=(keyboard.ArrowLeft?-1:0)+(keyboard.ArrowRight?1:0);v.y+=(keyboard.ArrowUp?-1:0)+(keyboard.ArrowDown?1:0)}
+ v.x=clamp(v.x,-1,1);v.y=clamp(v.y,-1,1);return v;
+}
 function update(dt){
- var g=game;g.time+=dt;g.scroll+=dt*31;g.mergeLock=Math.max(0,g.mergeLock-dt);
- // Background scrolls upward; fresh collectible balls descend at a gentle steady pace.
- g.spawnTimer-=dt;
- if(g.spawnTimer<=0){
-  g.spawnTimer=.88;
-  if(g.items.length<17)spawnOne(g);
- }
+ if(!g)return;
+ g.time+=dt;g.scroll+=(H*.046)*dt;g.mergeLock=Math.max(0,g.mergeLock-dt);
+ const l=getStick(0),r=getStick(1),rad=radius();
  if(g.mode==='joined'){
-  if(left.x<-.55&&right.x>.55){
-   g.splitTimer+=dt;
-   if(g.splitTimer>.065){
-    g.mode='split';g.a={x:Math.max(20,g.joined.x-36),y:g.joined.y};g.b={x:Math.min(340,g.joined.x+36),y:g.joined.y};g.mergeLock=.5;g.splitTimer=0;
-    say(g.phase==='colors'?'Разделени! Всяко топче събира своя цвят.':'Разделени! Сблъскай ги за жълтите.');
+  // Opposite outward directions mean SPLIT, but otherwise either thumb controls the joined ball.
+  if(l.x<-.62&&r.x>.62&&g.mergeLock<=0){g.splitHold+=dt;
+   if(g.splitHold>.15){
+    g.mode='split';g.a={x:clamp(g.joined.x-rad*1.9,rad,W/2-rad),y:g.joined.y};
+    g.b={x:clamp(g.joined.x+rad*1.9,W/2+rad,W-rad),y:g.joined.y};
+    g.splitHold=0;g.mergeLock=.65;refresh();say('Разделени! Ляв палец = синьо, десен = оранжево.');
    }
   }else{
-   g.splitTimer=0;
-   var la=Math.hypot(left.x,left.y),ra=Math.hypot(right.x,right.y),active=(la>.1?1:0)+(ra>.1?1:0);
-   if(active)move(g.joined,{x:(left.x+right.x)/active,y:(left.y+right.y)/active},dt);
+   g.splitHold=0;
+   const la=Math.hypot(l.x,l.y),ra=Math.hypot(r.x,r.y);
+   const v=la>.1&&ra>.1?{x:(l.x+r.x)/2,y:(l.y+r.y)/2}:la>.1?l:r;
+   move(g.joined,v,dt);
   }
- }else{
-  move(g.a,left,dt);move(g.b,right,dt);
-  if(g.mergeLock<=0&&d(g.a,g.b)<34){
-   g.mode='joined';g.joined={x:(g.a.x+g.b.x)/2,y:(g.a.y+g.b.y)/2};
-   say(g.phase==='gold'?'Съединени! Събирай жълтите 🟡':'Съединени! Можеш да ги разделиш пак.');
+ }else if(g.mode==='split'){
+  move(g.a,l,dt,'teal');move(g.b,r,dt,'coral');
+  if(g.mergeLock<=0){
+   // Any real collision combines the balls.
+   if(distance(g.a,g.b)<=rad*2+9)completeMerge();
+   else if(l.x>.55&&r.x<-.55){
+    // A deliberate inward gesture initiates a magnetic collision, regardless of vertical offset.
+    g.joinHold+=dt;
+    if(g.joinHold>.34)startMerge();
+   }else g.joinHold=0;
+  }
+ }else if(g.mode==='joining'){
+  const tx=(g.a.x+g.b.x)/2,ty=(g.a.y+g.b.y)/2;
+  toward(g.a,tx,ty,Math.max(W,H)*.82*dt);
+  toward(g.b,tx,ty,Math.max(W,H)*.82*dt);
+  if(distance(g.a,g.b)<rad*2+3)completeMerge();
+ }
+ g.spawnTime-=dt;
+ if(g.spawnTime<=0){
+  g.spawnTime=1.1;
+  if(g.items.length<18){
+   let typ;
+   if(g.phase==='gold')typ='gold';
+   else{
+    const choices=[];if(g.teal<4)choices.push('teal');if(g.coral<4)choices.push('coral');
+    typ=choices.length?choices[g.spawnCount%choices.length]:null;
+   }
+   if(typ)g.items.push(newTarget(typ));g.spawnCount++;
   }
  }
- // Collect without modifying phase or clearing arrays inside the loop.
- var keep=[],did=false;
- for(var i=0;i<g.items.length;i++){
-  var it=g.items[i],target=null;
-  it.y+=49*dt;
-  if(it.y>H+20)continue;
-  if(it.t==='gold'&&g.mode==='joined')target=g.joined;
-  if(it.t==='teal'&&g.mode==='split')target=g.a;
-  if(it.t==='coral'&&g.mode==='split')target=g.b;
-  if(target&&d(it,target)<it.r+20){collect(it);did=true}else keep.push(it);
+ // Slow falling balls, separate from the rising scenery. Never mutate the phase inside this loop.
+ const keep=[];let picked=false;
+ for(const it of g.items){
+  it.y+=H*.063*dt;
+  if(it.y>H+30)continue;
+  const target=it.type==='gold'&&g.mode==='joined'?g.joined:it.type==='teal'&&g.mode==='split'?g.a:it.type==='coral'&&g.mode==='split'?g.b:null;
+  if(target&&distance(target,it)<rad+it.r+4){collect(it);picked=true;}
+  else keep.push(it);
  }
  g.items=keep;
- if(did)refresh();
+ if(picked)refresh();
  if(g.phase==='colors'&&g.teal>=4&&g.coral>=4||g.phase==='gold'&&g.gold>=3)nextPhase();
- for(var j=g.fx.length-1;j>=0;j--){var p=g.fx[j];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.life<=0)g.fx.splice(j,1)}
+ for(let i=g.fx.length-1;i>=0;i--){const f=g.fx[i];f.x+=f.vx*dt;f.y+=f.vy*dt;f.life-=dt;if(f.life<=0)g.fx.splice(i,1)}
 }
-function dot(x,y,r,c){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=c;ctx.fill()}
-function petals(x,y,r,n,c,angle){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.strokeStyle=c;ctx.lineWidth=2.2;ctx.lineCap='round';for(var k=0;k<n;k++){ctx.rotate(Math.PI*2/n);ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(r*.45,-r*.3,r*.6,-r*1.5,r,-r*.7);ctx.stroke()}ctx.restore()}
-function joinedBall(x,y){ctx.save();ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.clip();ctx.fillStyle=teal;ctx.fillRect(x-20,y-20,20,40);ctx.fillStyle=coral;ctx.fillRect(x,y-20,20,40);ctx.restore();ctx.strokeStyle='#fffdf9';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.stroke()}
+function circle(x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()}
+function joinedBall(x,y,r){
+ ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();ctx.fillStyle=C.teal;ctx.fillRect(x-r,y-r,r,2*r);ctx.fillStyle=C.coral;ctx.fillRect(x,y-r,r,2*r);ctx.restore();
+ ctx.lineWidth=2.5;ctx.strokeStyle='#fffefa';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();
+}
 function draw(){
- var g=game;ctx.fillStyle='#fffefa';ctx.fillRect(0,0,W,H);
- ctx.fillStyle='#f3f9f6';ctx.fillRect(10,70,167,435);ctx.fillStyle='#fff7f1';ctx.fillRect(183,70,167,435);
- // Repeating scenery drifts from bottom to top; light enough not to distract from the dots.
- for(var k=0;k<8;k++){
-  var yy=75+k*100-(g.scroll%100);
-  if(yy<75||yy>510)continue;
-  ctx.strokeStyle='#9bbdb128';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(25,yy);ctx.lineTo(166,yy);ctx.moveTo(194,yy);ctx.lineTo(335,yy);ctx.stroke();
-  ctx.globalAlpha=.17;dot(29,yy-12,5,teal);dot(329,yy-12,5,coral);ctx.globalAlpha=1;
+ if(!g)return;
+ ctx.fillStyle='#fffdfa';ctx.fillRect(0,0,W,H);
+ const mid=W/2,top=95;
+ ctx.fillStyle='#f3f9f6';ctx.fillRect(0,top,mid-8,H-top);
+ ctx.fillStyle='#fff7f1';ctx.fillRect(mid+8,top,mid-8,H-top);
+ ctx.fillStyle='#fffdfa';ctx.fillRect(mid-8,top,16,H-top);
+ // Scrolling guides create the sensation of continuous upward travel.
+ for(let j=0;j<14;j++){
+  const gap=H/7,y=top+j*gap-(g.scroll%gap);
+  if(y<top||y>H+5)continue;
+  ctx.strokeStyle='#77a79d18';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(W*.06,y);ctx.lineTo(mid-W*.04,y);
+  ctx.moveTo(mid+W*.04,y);ctx.lineTo(W*.94,y);ctx.stroke();
+  ctx.globalAlpha=.15;circle(W*.07,y-12,4.5,C.teal);circle(W*.93,y-12,4.5,C.coral);ctx.globalAlpha=1;
  }
- ctx.setLineDash([2,11]);ctx.strokeStyle='#cedbd4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(180,71);ctx.lineTo(180,505);ctx.stroke();ctx.setLineDash([]);
- ctx.globalAlpha=.36;petals(180,88,22,6,teal,g.time*.22);petals(180,88,22,6,coral,-g.time*.22);ctx.globalAlpha=1;
- for(var i=0;i<g.items.length;i++){
-  var a=g.items[i],col=a.t==='teal'?teal:a.t==='coral'?coral:gold;
-  ctx.globalAlpha=.14;dot(a.x,a.y,a.r+7,col);ctx.globalAlpha=1;dot(a.x,a.y,a.r,col);
-  ctx.globalAlpha=.8;dot(a.x-3,a.y-3,2,'#ffffff');ctx.globalAlpha=1;
+ ctx.setLineDash([3,10]);ctx.strokeStyle='#b9cfc8b7';ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(mid,top);ctx.lineTo(mid,H);ctx.stroke();ctx.setLineDash([]);
+ const rad=radius();
+ for(const it of g.items){
+  if(it.y<top-8)continue;
+  const col=C[it.type];ctx.globalAlpha=.14;circle(it.x,it.y,it.r+6,col);ctx.globalAlpha=1;
+  circle(it.x,it.y,it.r,col);circle(it.x-3,it.y-3,2.3,'#fff9');
  }
- ctx.globalAlpha=.18;petals(180,475,27,5,teal,-g.time*.18);ctx.globalAlpha=1;
- if(g.mode==='joined')joinedBall(g.joined.x,g.joined.y);
+ if(g.mode==='joined')joinedBall(g.joined.x,g.joined.y,rad);
  else{
-  ctx.strokeStyle='#8aada255';ctx.setLineDash([3,8]);ctx.beginPath();ctx.moveTo(g.a.x,g.a.y);ctx.lineTo(g.b.x,g.b.y);ctx.stroke();ctx.setLineDash([]);
-  dot(g.a.x,g.a.y,18,teal);dot(g.b.x,g.b.y,18,coral);
-  dot(g.a.x-5,g.a.y-6,3,'#ffffffa9');dot(g.b.x-5,g.b.y-6,3,'#ffffffa9');
+  // A dotted joining line reveals the relationship between the halves.
+  ctx.strokeStyle=g.mode==='joining'?'#719d93a8':'#89ada348';
+  ctx.setLineDash([4,9]);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(g.a.x,g.a.y);ctx.lineTo(g.b.x,g.b.y);ctx.stroke();ctx.setLineDash([]);
+  circle(g.a.x,g.a.y,rad,C.teal);circle(g.b.x,g.b.y,rad,C.coral);
+  circle(g.a.x-rad*.28,g.a.y-rad*.32,3.3,'#ffffffab');circle(g.b.x-rad*.28,g.b.y-rad*.32,3.3,'#ffffffab');
  }
- for(i=0;i<g.fx.length;i++){var f=g.fx[i];ctx.globalAlpha=Math.min(1,f.life*2.8);dot(f.x,f.y,3.2,f.c)}ctx.globalAlpha=1;
- ctx.fillStyle='#9aaba5';ctx.textAlign='center';ctx.font='700 11px system-ui';
- ctx.fillText(g.phase==='colors'?'СЪБЕРИ ДВАТА ЦВЯТА':'СЪБЕРИ ЖЪЛТИТЕ',180,54);
+ for(const f of g.fx){ctx.globalAlpha=Math.max(0,f.life/.30);circle(f.x,f.y,3.5,f.color)}ctx.globalAlpha=1;
 }
-function loop(time){
- anim=requestAnimationFrame(loop);
- if(!prev)prev=time;
- var dt=Math.min(.05,Math.max(0,(time-prev)/1000));prev=time;
- update(dt);draw();
+function frame(t){
+ if(!prev)prev=t;
+ const dt=Math.min(.05,Math.max(0,(t-prev)/1000));prev=t;
+ update(dt);draw();requestAnimationFrame(frame);
 }
-window.addEventListener('pagehide',function(){resetStick(left,'left-knob');resetStick(right,'right-knob')});
-fresh();anim=requestAnimationFrame(loop);
+window.addEventListener('resize',resize,{passive:true});
+window.addEventListener('orientationchange',()=>{setTimeout(resize,100)},{passive:true});
+document.addEventListener('visibilitychange',()=>{prev=0;if(document.hidden)for(let i=0;i<2;i++)touchReset(i)});
+window.addEventListener('pagehide',()=>{prev=0;for(let i=0;i<2;i++)touchReset(i)});
+window.addEventListener('keydown',e=>{if(['a','s','w','d','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){keyboard[e.key]=true;e.preventDefault()}});
+window.addEventListener('keyup',e=>{keyboard[e.key]=false});
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+resetGame();requestAnimationFrame(frame);
 })();
 </script>
 </body>
