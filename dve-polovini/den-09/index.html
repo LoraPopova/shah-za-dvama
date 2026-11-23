@@ -107,7 +107,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   const initialEvents=[
     {kind:'pick',c:0,x:.13,t:5},{kind:'pick',c:1,x:.80,t:5},
     {kind:'wall',x:.25,x2:.25,t:19,t2:33,thick:18},
-    {kind:'pick',c:0,x:.11,t:23},{kind:'pick',c:0,x:.12,t:31},{kind:'pick',c:0,x:.10,t:39},
+    {kind:'pick',c:0,x:.11,t:23},{kind:'pick',c:0,x:.20,t:31},{kind:'pick',c:0,x:.08,t:39},
     {kind:'gold',c:0,x:.39,t:23},{kind:'gold',c:0,x:.40,t:32},{kind:'gold',c:0,x:.39,t:41},
     {kind:'wall',x:.34,x2:.485,t:35,t2:35,thick:16},
     {kind:'pick',c:1,x:.64,t:24},{kind:'pick',c:1,x:.88,t:32},
@@ -686,7 +686,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     if(g.time>=5&&g.time<54){
       ctx.save();ctx.textAlign='center';
       ctx.font='bold 12px sans-serif';
-      ctx.fillStyle='#467b74';ctx.fillText('✓ СИГУРНО +3',W*.115,top+20);
+      ctx.fillStyle='#467b74';ctx.fillText('✓ ОБХОД +3',W*.115,top+20);
       ctx.fillStyle='#a47a38';ctx.fillText('✦ РИСК +9',W*.395,top+20);
       ctx.font='11px sans-serif';ctx.fillStyle='#687879';
       ctx.fillText('Избери път ПРЕДИ стената',W*.25,top+39);
