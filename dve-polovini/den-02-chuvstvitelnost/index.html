@@ -148,8 +148,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     if(!g||g.paused||g.mode==='done')return;
     if(g.mode==='joined'){
       const b=g.balls[0];
-      b.x=clamp(b.x+dx*.85,rad(),W-rad());
-      b.y=clamp(b.y+dy*.85,topBand(),bottomBand());
+      // Keep the original joined-ball ratio at 1.58x; scale it only in this A/B variant.
+      const sharedGain=.85*(gainOptions[gainIndex]/gainOptions[0]);
+      b.x=clamp(b.x+dx*sharedGain,rad(),W-rad());
+      b.y=clamp(b.y+dy*sharedGain,topBand(),bottomBand());
       g.balls[1].x=b.x;g.balls[1].y=b.y;
       if(pads[0].id!==null&&pads[1].id!==null&&pads[0].lastX-pads[0].downX<-22&&pads[1].lastX-pads[1].downX>22)split();
       return;
