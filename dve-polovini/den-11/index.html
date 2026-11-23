@@ -238,7 +238,17 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
           }
         }
         state.open=g.realTime<state.pulseUntil;
-        if(!state.done&&state.pulses>0&&
+        // The collector must physically approach from BELOW and cross through
+        // the actual moving slot, not simply touch a reward from above.
+        if(collecting.y>a.doorY+rad()+10&&collecting.x>W*.5)state.below=true;
+        if(state.pulses>0&&state.below&&!state.crossed&&
+          collecting.y<a.doorY-rad()-8&&
+          Math.abs(collecting.x-a.gapX)<a.gapHalf+rad()*.7){
+          state.crossed=true;
+          show('♢ ПРОХОД ✓ СЕГА ВЗЕМИ ЗЛАТНАТА НАГРАДА ✦8!');
+          g.hintUntil=g.realTime+1.6;
+        }
+        if(!state.done&&state.crossed&&
           Math.hypot(collecting.x-a.bonusX,collecting.y-a.bonusY)<rad()+18){
           state.done=true;g.jobsDone++;g.score+=m.bonus;
           for(let k=0;k<2;k++)g.energy[k]=Math.min(100,g.energy[k]+8);
@@ -363,7 +373,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   function reset(){
     tempoIndex=1;
     $('tempoButton').textContent='Темпо ×5';
-    g={mode:'joined',time:0,realTime:0,actualTempo:tempos[tempoIndex],slowdown:0,missions:Object.fromEntries(missions.map(m=>[m.id,{hold:0,open:false,opens:0,done:false,missed:false,motionPhase:0,pulseUntil:-1,pulses:0,latched:false}])),intentAt:[-999,-999],energy:[100,100],picked:[0,0],gold:0,score:0,synced:0,crushRecoveries:0,jobsDone:0,jobsMissed:0,workPairs:{},meets:0,meetHold:0,meetArmed:false,lastMeetTime:-999,syncPairs:{},hintUntil:0,balls:[
+    g={mode:'joined',time:0,realTime:0,actualTempo:tempos[tempoIndex],slowdown:0,missions:Object.fromEntries(missions.map(m=>[m.id,{hold:0,open:false,opens:0,done:false,missed:false,motionPhase:0,pulseUntil:-1,pulses:0,latched:false,below:false,crossed:false}])),intentAt:[-999,-999],energy:[100,100],picked:[0,0],gold:0,score:0,synced:0,crushRecoveries:0,jobsDone:0,jobsMissed:0,workPairs:{},meets:0,meetHold:0,meetArmed:false,lastMeetTime:-999,syncPairs:{},hintUntil:0,balls:[
       {x:W*.5,y:H*.35,flash:0},{x:W*.5,y:H*.35,flash:0}
     ],events:initialEvents.map(e=>Object.assign({used:false},e)),
       floaters:[],paused:false};
@@ -398,7 +408,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
       const hold=nextMission.helper===0?'ЛЯВАТА':'ДЯСНАТА';
       const enter=nextMission.collector===0?'ЛЯВАТА':'ДЯСНАТА';
       $('help').textContent=nextMission.type==='moving'?
-        '♢ МИСИЯ 2/2 · ЛЯВАТА ДОКОСВА КРЪГА → ПРОЦЕПЪТ СПИРА → ДЯСНАТА МИНАВА ЗА ✦8':
+        '♢ МИСИЯ 2/2 · ЛЯВАТА ДОКОСВА КРЪГА → ПРОЦЕПЪТ СПИРА → ДЯСНАТА МИНАВА И ВЗЕМА ✦8':
         '♢ МИСИЯ 1/2 · '+hold+' ДЪРЖИ КРЪГА → '+enter+' ВЛИЗА ПРЕЗ ВРАТАТА ЗА ✦8';
     }else{
       $('help').textContent='♢ Две общи мисии за успех · ✦18 доход · при сложните участъци светът се забавя';
