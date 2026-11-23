@@ -74,7 +74,7 @@ const upper=()=>Math.max(110,H*.16);
 const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
 const lane=n=>n===0?[radius(),W*.5-radius()]:[W*.5+radius(),W-radius()];
 const playH=()=>lower()-upper();
-const gateY=(time=g.time)=>upper()+playH()*.28+(PUZZLE_AT-time)*playH()*.0075;
+const gateY=(time=g.time)=>upper()+playH()*.39+(PUZZLE_AT-time)*playH()*.0075;
 const keyX=()=>W*.27;
 const gateX=()=>W*.75;
 const doorHalf=()=>clamp(W*.5*.165,32,67);
@@ -252,9 +252,13 @@ function draw(){
  ctx.fillStyle=g.unlocked?'#7ac49b':'#b5d5c4';
  ctx.fillRect(kx-kr*.75,y-kr*.9,kr*1.5,kr*1.8);
  ctx.strokeStyle='#4c9981';ctx.lineWidth=2;ctx.strokeRect(kx-kr*.75,y-kr*.9,kr*1.5,kr*1.8);
- ctx.font='bold '+clamp(kr*.9,17,28)+'px sans-serif';
- ctx.fillStyle='#397862';ctx.textAlign='center';ctx.fillText('⚿',kx,y+kr*.35);
- ctx.font='bold 12px sans-serif';ctx.fillText(g.unlocked?'ОТКЛЮЧЕНО':'КЛЮЧ',kx,y-kr*1.65);
+ // Actual hand-drawn key silhouette instead of a missing-font glyph.
+ ctx.strokeStyle='#397862';ctx.lineWidth=clamp(kr*.12,2.6,4);ctx.lineCap='round';
+ ctx.beginPath();ctx.arc(kx-kr*.16,y-kr*.18,kr*.18,0,Math.PI*2);ctx.stroke();
+ line(kx-kr*.05,y-kr*.05,kx+kr*.29,y+kr*.29,'#397862',clamp(kr*.12,2.6,4));
+ line(kx+kr*.20,y+kr*.20,kx+kr*.05,y+kr*.35,'#397862',clamp(kr*.1,2.1,3.5));
+ line(kx+kr*.28,y+kr*.28,kx+kr*.16,y+kr*.43,'#397862',clamp(kr*.1,2.1,3.5));
+ ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#397862';ctx.fillText(g.unlocked?'ОТКЛЮЧЕНО':'КЛЮЧ',kx,y-kr*1.65);
  // The right field is physically blocked by the two long connected wall pieces.
  ctx.lineCap='round';ctx.lineJoin='round';
  for(const [x0,x1] of [[W*.5+4,gl],[gr,W-4]]){
