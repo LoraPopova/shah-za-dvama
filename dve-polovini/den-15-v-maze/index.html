@@ -138,7 +138,7 @@ function reset(){
  g={mode:'ready',paused:false,time:0,realTime:0,pace:BASE_PACE,
  energy:[100,100],balls:[{x:W*.26,y:H*.36},{x:W*.74,y:H*.36}],
  score:0,bumps:[0,0],crushes:[0,0],crushCooldown:[0,0],jamTime:0,
- passed:[[false,false,false],[false,false,false]],finished:false,survived:null};
+ passed:[[false,false,false],[false,false,false]],finished:false,survived:null,wasJammed:false};
  coins.forEach(c=>c.used=false);
  for(const p of pads)p.id=null;
  $('finish').style.display='none';$('pause').textContent='Пауза';
@@ -207,6 +207,14 @@ $('pause').addEventListener('click',()=>{
  if(g.mode!=='playing')return;g.paused=!g.paused;
  $('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
 });
+function finishGame(success){
+ g.mode='done';g.finished=true;g.survived=success;
+ $('outcome').textContent=success?'Преминахте лабиринта!':'Почти! Още един опит';
+ $('result').textContent='Преминати V-прегради: '+g.passed.map(list=>list.filter(Boolean).length).join(' / ')+
+  ' · Доход ✦'+g.score+' · Енергия '+g.energy.map(x=>Math.round(x)).join(' / ')+
+  ' · Притискания '+g.crushes.reduce((a,b)=>a+b,0);
+ $('finish').style.display='flex';
+}
 function update(dt){
  if(g.mode!=='playing'||g.paused)return;
  g.realTime+=dt;
@@ -233,10 +241,18 @@ function update(dt){
     g.crushCooldown[n]=1;g.crushes[n]++;g.energy[n]=Math.max(0,g.energy[n]-7);
    }
   }
+  g.wasJammed=true;
   $('hint').textContent='ПРЕГРАДА! Намери осветената пролука — светът чака, не телепортира.';
-  return;
+  if(g.energy.every(e=>e<=0)||g.energy.some(e=>e<=0)&&g.crushes.some(x=>x>=4)){
+   finishGame(false);refresh();return;
+  }
+  refresh();return;
  }
  g.time=newTime;g.pace=tempoAt(g.time);
+ if(g.wasJammed){
+  g.wasJammed=false;
+  $('hint').textContent='Свободно! Подготви се за следващия V-отвор.';
+ }
  for(let n=0;n<2;n++){
   const b=g.balls[n];
   for(let i=0;i<rows.length;i++){
@@ -252,12 +268,7 @@ function update(dt){
   }
  }
  if(g.time>=DURATION){
-  g.mode='done';g.finished=true;g.survived=g.energy.every(v=>v>=25)&&g.passed.every(list=>list.filter(Boolean).length>=2);
-  $('outcome').textContent=g.survived?'Преминахте лабиринта!':'Почти! Още един опит';
-  $('result').textContent='Преминати V-прегради: '+g.passed.map(list=>list.filter(Boolean).length).join(' / ')+
-   ' · Доход ✦'+g.score+' · Енергия '+g.energy.map(x=>Math.round(x)).join(' / ')+
-   ' · Притискания '+g.crushes.reduce((a,b)=>a+b,0);
-  $('finish').style.display='flex';
+  finishGame(g.energy.every(v=>v>=25)&&g.passed.every(list=>list.filter(Boolean).length>=2));
  }
  refresh();
 }
