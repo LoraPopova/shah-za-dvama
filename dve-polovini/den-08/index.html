@@ -191,7 +191,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     ...earnings,
     ...highValue
   ].filter(e=>!['sweep','teeth','wave','bar','burn','cross'].includes(e.kind) ||
-    !mazeCenters.some(c=>Math.abs(e.t-c)<7))
+    (!mazeCenters.some(c=>Math.abs(e.t-c)<7) &&
+     ![49,140,210].some(c=>Math.abs(e.t-c)<8)))
     .concat(mazeWalls,mazeCoins);
   const show=(text)=>{$('sub').textContent=text;};
   const rad=()=>clamp(Math.min(W,H)*.019,11,19);
