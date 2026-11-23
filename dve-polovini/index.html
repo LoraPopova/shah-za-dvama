@@ -370,6 +370,8 @@ function updateShapes(dt){
  for(let n=0;n<2;n++){
   const p=shapeBalls[n],path=shapePaths[n],v=getStick(n);
   if(!p||shapeProgress[n]>=path.length-1)continue;
+  // Never erase a line when the player is not actively steering that thumb.
+  if(Math.hypot(v.x,v.y)<.08)continue;
   move(p,v,dt);
   const last=shapeProgress[n],limit=Math.min(path.length-1,last+29);
   for(let j=last+1;j<=limit;j++){
