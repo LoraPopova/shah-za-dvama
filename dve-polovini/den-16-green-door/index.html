@@ -169,7 +169,9 @@ function move(n,dx,dy){
   const y=b.y;b.y=clamp(y+dy/steps,upper()+r,lower()-r);
   if(n===1&&solidGate(b.x,b.y)){b.y=y;g.collisions++;}
   if(n===0&&keyTouched())unlock();
-  if(n===1&&g.unlocked&&g.open>=.96&&!g.passageStart&&b.y>oldGateY+r*1.2)
+  // Mark the below-gate approach even if the closed solid door had kept the
+  // passenger just one small step from its contact boundary.
+  if(n===1&&g.unlocked&&g.open>=.96&&!g.passageStart&&b.y>oldGateY+r*.6)
    g.passageStart=true;
   if(n===1&&g.passageStart&&g.unlocked&&g.open>=.96&&b.y<oldGateY-r*1.2&&b.x>=gateLeft()+r*.7&&b.x<=gateRight()-r*.7){
    g.crossed=true;succeed();
