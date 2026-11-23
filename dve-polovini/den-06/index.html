@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#f4f0e6">
+<title>Две половини · Ден 06 — Без почивка</title>
+<style>
+:root{--teal:#67a8a3;--coral:#ef9882;--ink:#343f3e;--paper:#f5f1e8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+#world{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;padding:12px 18px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none;z-index:3}
+#brand{font-size:11px;letter-spacing:2.2px;font-weight:800;opacity:.62}
+#name{font-size:19px;font-weight:750;letter-spacing:-.5px;margin-top:3px}
+#stats{display:flex;align-items:center;gap:12px}
+.energy{width:min(14vw,110px);min-width:60px}
+.energy .head{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:5px}
+.energy .head span:first-child{display:flex;align-items:center;gap:5px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%}.teal{background:var(--teal)}.coral{background:var(--coral)}
+.meter{height:7px;border-radius:9px;overflow:hidden;background:#ddd9d0}
+.fill{height:100%;width:100%;border-radius:9px;transition:width .1s linear}.fill.teal{background:var(--teal)}.fill.coral{background:var(--coral)}
+#clock{font-variant-numeric:tabular-nums;font-weight:750;font-size:13px;white-space:nowrap;margin-top:15px}
+#sub{position:fixed;top:calc(74px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);text-align:center;color:#64716b;font-size:12px;max-width:86vw;z-index:3;pointer-events:none}
+#progress{position:fixed;top:calc(69px + env(safe-area-inset-top,0px));left:4vw;width:92vw;height:3px;z-index:2;background:#e5e0d5;border-radius:9px;overflow:hidden}
+#progressFill{height:100%;width:0;background:#b4b1a3;transition:width .1s linear}
+#menu{position:fixed;top:calc(100px + env(safe-area-inset-top,0px));left:15px;display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100vw - 25px);z-index:5}
+.smallbtn{font:inherit;font-size:11px;letter-spacing:.1px;font-weight:750;background:#ffffffdf;border:1px solid #dedcd3;color:#475550;border-radius:999px;padding:9px 12px;box-shadow:0 2px 9px #4b50410e;touch-action:manipulation}
+#help{position:fixed;bottom:calc(clamp(80px, 14vh, 185px) + 145px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:12px;color:#8a948d;text-align:center;max-width:90vw;pointer-events:none;z-index:4}
+.pad{position:fixed;bottom:calc(clamp(80px, 14vh, 185px) + env(safe-area-inset-bottom,0px));width:128px;height:128px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:6;box-shadow:inset 0 0 0 9px #ffffff55,0 3px 18px #51595110}
+.pad.left{left:calc(24% - 64px);background:#72aca51b;border-color:#89b6b0}
+.pad.right{left:calc(76% - 64px);background:#ef9d861b;border-color:#ecb4a5}
+.pad .knob{width:40px;height:40px;border-radius:50%;pointer-events:none;transition:transform 40ms;box-shadow:0 3px 12px #5c57542f}
+.left .knob{background:#78aaa5}.right .knob{background:#ef9e86}
+.pad .pad-label{position:absolute;bottom:12px;font-size:11px;letter-spacing:.6px;color:#89968e;pointer-events:none}
+#finish{position:fixed;inset:0;background:#f5f1e8ed;z-index:9;display:none;align-items:center;justify-content:center;padding:20px}
+#finish .card{width:min(430px,95vw);background:#fffefa;border:1px solid #e8e2d7;border-radius:26px;padding:30px 26px;text-align:center;box-shadow:0 24px 80px #6d6b5622}
+#finish h1{font-size:29px;margin:12px 0}#finish p{color:#626e68;line-height:1.6;font-size:15px}
+#finish .duo{font-size:35px;letter-spacing:9px}#finish .big{font-size:16px;font-weight:700;color:#405653}
+#again{background:#6b9f99;color:white;border:0;padding:14px 27px;border-radius:100px;font:inherit;font-weight:750;margin-top:12px}
+@media(max-width:620px){#hud{padding:10px 11px;gap:4px}#name{font-size:15px}#brand{font-size:9px}#stats{gap:5px}.energy{min-width:48px;width:13vw}.energy .head{font-size:9px}#clock{font-size:11px;margin-top:12px}#sub{top:calc(82px + env(safe-area-inset-top,0px));font-size:11px}#progress{top:calc(70px + env(safe-area-inset-top,0px))}#menu{top:calc(116px + env(safe-area-inset-top,0px))}.pad{width:105px;height:105px}.pad.left{left:calc(24% - 52px)}.pad.right{left:calc(76% - 52px)}#help{bottom:calc(clamp(80px, 14vh, 185px) + 122px + env(safe-area-inset-bottom,0px));font-size:11px}}
+@media(max-height:580px){.pad{width:90px;height:90px;bottom:calc(40px + env(safe-area-inset-bottom,0px))}.pad.left{left:calc(24% - 45px)}.pad.right{left:calc(76% - 45px)}#help{bottom:calc(142px + env(safe-area-inset-bottom,0px))}#menu{top:80px}#sub{top:61px}#progress{top:58px}#name{font-size:14px}}
+</style>
+</head>
+<body>
+<canvas id="world" aria-label="Игрово поле със скролващи препятствия"></canvas>
+<div id="hud">
+  <div><div id="brand">TWO HALVES</div><div id="name">Ден 06 · Без почивка <span id="scoreIndicator" style="font-size:12px;color:#a88745;white-space:nowrap">▣ 0/3 · ✦ 0</span></div></div>
+  <div id="stats">
+    <div class="energy"><div class="head"><span><i class="dot teal"></i>Синя</span><span id="e0">100</span></div><div class="meter"><div id="f0" class="fill teal"></div></div></div>
+    <div class="energy"><div class="head"><span><i class="dot coral"></i>Корал</span><span id="e1">100</span></div><div class="meter"><div id="f1" class="fill coral"></div></div></div>
+    <div id="clock">00:00</div>
+  </div>
+</div>
+<div id="progress"><div id="progressFill"></div></div>
+<div id="sub" aria-live="polite">Плъзни двата палеца навън, за да разделиш светлините</div>
+<div id="menu"><button type="button" class="smallbtn" id="splitButton">Раздели</button><button type="button" class="smallbtn" id="pauseButton">Пауза</button><button type="button" class="smallbtn" id="resetButton">Отначало</button><button type="button" class="smallbtn" id="tempoButton">Темпо ×5</button><button type="button" class="smallbtn" id="gainButton" aria-label="Чувствителност на палците">Палец ×2,50</button></div>
+<div id="help">Препятствията идват на серии! Избягвай с ДВАТА палеца · ▣ 2/3 задачи · ♡ среща за +30</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><div class="pad-label">ЛЯВ ПАЛЕЦ</div></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><div class="pad-label">ДЕСЕН ПАЛЕЦ</div></div>
+<div id="finish"><div class="card"><div class="duo">● ●</div><h1 id="finishTitle">Денят премина</h1><p id="finishLead">Двете светлини могат да си помагат, дори когато са разделени. Синхронът е награда, не задължение.</p><p class="big" id="summary"></p><button type="button" id="again">Нов опит</button></div></div>
+<script>
+(function(){
+  'use strict';
+  const $=(id)=>document.getElementById(id);
+  const canvas=$('world'),ctx=canvas.getContext('2d');
+  const colors=['#67a8a3','#ef9882'],DURATION=265,MIN_FINISH_ENERGY=25,MIN_FINISH_JOBS=2;
+  // One virtual day runs at the chosen pace. Start fast; switch without resetting or jumping.
+  const tempos=[3,5,8];let tempoIndex=1;
+  // Explicit A/B sensitivity trial. Fixed per-pixel mapping avoids frame-rate dependent acceleration.
+  const gainOptions=[1.58,2.10,2.50];let gainIndex=2;
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  const pads=[{id:null,lastX:0,lastY:0,downX:0,knob:$('knob0')},{id:null,lastX:0,lastY:0,downX:0,knob:$('knob1')}];
+  let W=1,H=1,dpr=1,g,then=0,frameN=0;
+  let running=true;
+  // Inspired by the actual sketches: toothed danger, dark contact stains, swirls,
+  // parallel barriers, winding waves, energy "coffee" and rest areas. The sketch
+  // is an element library, NOT a prescribed level layout.
+  // Three hand-authored deadlines; both hands must act. A missed deadline costs
+  // energy, but never freezes movement or prevents meeting for recovery.
+  // DAY 06: intentional, compact obstacle rhythm. Each burst alternates hands,
+  // positions and geometry; deadlines/meetings remain feasible. Never procedural random.
+  const initialEvents=[
+    // Morning immediately demands action. Hazards arrive 4–7 virtual ticks apart.
+    {kind:'pick',c:0,x:.20,t:0},{kind:'pick',c:1,x:.80,t:0},
+    {kind:'sweep',x:.24,t:7},{kind:'sweep',x:.77,t:11},
+    {kind:'teeth',x:.41,t:15},{kind:'burn',x:.60,t:19},
+    {kind:'sweep',x:.36,t:24},{kind:'sweep',x:.64,t:28},
+    {kind:'bar',x:.17,t:33},{kind:'wave',x:.80,t:37},
+    {kind:'teeth',x:.26,t:41},{kind:'sweep',x:.68,t:45},
+    {kind:'work',c:0,pair:'morning',x:.17,t:49},
+    {kind:'work',c:1,pair:'morning',x:.83,t:49},
+
+    // First rush: alternating lanes, occasionally two hazards at similar height.
+    {kind:'sweep',x:.43,t:55},{kind:'burn',x:.76,t:59},
+    {kind:'teeth',x:.20,t:64},{kind:'sweep',x:.61,t:67},
+    {kind:'wave',x:.39,t:72},{kind:'teeth',x:.82,t:76},
+    {kind:'bar',x:.17,t:80},{kind:'sweep',x:.70,t:83},
+    {kind:'coffee',c:0,x:.20,t:86},
+    {kind:'sync',c:0,pair:'break',x:.24,t:90},{kind:'sync',c:1,pair:'break',x:.76,t:90},
+
+    // Stronger middle section: moving hazards + vortex pressure.
+    {kind:'sweep',x:.30,t:95},{kind:'sweep',x:.73,t:99},
+    {kind:'teeth',x:.41,t:104},{kind:'vortex',x:.5,t:108},
+    {kind:'burn',x:.22,t:112},{kind:'sweep',x:.64,t:116},
+    {kind:'wave',x:.40,t:121},{kind:'teeth',x:.76,t:125},
+    {kind:'sweep',x:.18,t:130},{kind:'sweep',x:.83,t:133},
+    {kind:'work',c:0,pair:'noon',x:.47,t:140},
+    {kind:'work',c:1,pair:'noon',x:.53,t:140},
+
+    // Dense asymmetry: one thumb finishes a dodge while the other starts.
+    {kind:'teeth',x:.27,t:146},{kind:'sweep',x:.70,t:150},
+    {kind:'wave',x:.39,t:155},{kind:'burn',x:.81,t:159},
+    {kind:'sweep',x:.18,t:163},{kind:'teeth',x:.61,t:167},
+    {kind:'coffee',c:1,x:.80,t:171},
+    {kind:'burn',x:.31,t:176},{kind:'sweep',x:.77,t:180},
+
+    // Final pressure peak: frequent reversals and one last shared deadline.
+    {kind:'teeth',x:.43,t:185},{kind:'wave',x:.63,t:189},
+    {kind:'sweep',x:.25,t:194},{kind:'sweep',x:.76,t:197},
+    {kind:'burn',x:.17,t:201},{kind:'teeth',x:.83,t:204},
+    {kind:'work',c:0,pair:'afternoon',x:.21,t:210},
+    {kind:'work',c:1,pair:'afternoon',x:.79,t:210},
+    {kind:'sweep',x:.40,t:216},{kind:'bar',x:.68,t:220},
+    {kind:'teeth',x:.18,t:224},{kind:'sweep',x:.82,t:228},
+
+    // Short earned breather, then one last tight sequence and finish.
+    {kind:'rest',x:.22,t:232},{kind:'rest',x:.78,t:232},
+    {kind:'sweep',x:.37,t:237},{kind:'wave',x:.66,t:242},
+    {kind:'sync',c:0,pair:'evening',x:.23,t:246},
+    {kind:'sync',c:1,pair:'evening',x:.77,t:246},
+    {kind:'burn',x:.25,t:251},{kind:'sweep',x:.75,t:255},
+    {kind:'teeth',x:.43,t:259},{kind:'bar',x:.58,t:262}
+  ];
+  const show=(text)=>{$('sub').textContent=text;};
+  const rad=()=>clamp(Math.min(W,H)*.019,11,19);
+  const scrollSpeed=()=>clamp(H*.041,24,37);
+  const topBand=()=>Math.max(100,H*.15);
+  const bottomBand=()=>Math.max(topBand()+50,Math.min(H*.68,H-145));
+  const eventY=(e)=>H*.70-(g.time-e.t)*scrollSpeed();
+  const eventX=(e)=>e.x*W+(e.kind==='sweep'?Math.sin(g.time*.22+e.t)*Math.min(24,W*.06):0);
+  function resize(){
+    const ow=W,oh=H;W=window.innerWidth||document.documentElement.clientWidth;
+    H=window.innerHeight||document.documentElement.clientHeight;
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.ceil(W*dpr);canvas.height=Math.ceil(H*dpr);
+    canvas.style.width=W+'px';canvas.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(g&&ow>1&&oh>1){
+      const balls=g.balls;
+      for(let n=0;n<2;n++){balls[n].x=clamp(balls[n].x*W/ow,rad(),W-rad());balls[n].y=clamp(balls[n].y*H/oh,topBand(),bottomBand());}
+    }
+  }
+  function reset(){
+    tempoIndex=1;
+    $('tempoButton').textContent='Темпо ×5';
+    g={mode:'joined',time:0,realTime:0,energy:[100,100],picked:[0,0],gold:0,score:0,synced:0,jobsDone:0,jobsMissed:0,workPairs:{},meets:0,meetHold:0,meetArmed:false,lastMeetTime:-999,syncPairs:{},hintUntil:0,balls:[
+      {x:W*.5,y:H*.35,flash:0},{x:W*.5,y:H*.35,flash:0}
+    ],events:initialEvents.map(e=>Object.assign({used:false},e)),
+      floaters:[],paused:false};
+    then=0;running=true;
+    $('splitButton').style.display='inline-block';
+    $('pauseButton').textContent='Пауза';
+    $('finish').style.display='none';
+    pads.forEach((p,n)=>{p.id=null;p.knob.style.transform='translate(0px,0px)';});
+    show('Плъзни двата палеца навън, за да разделиш светлините');
+    refresh();
+  }
+  function split(){
+    if(g.mode!=='joined')return;
+    g.mode='split';
+    g.balls[0].x=W*.35;g.balls[1].x=W*.65;
+    g.balls.forEach(b=>b.y=clamp(H*.35,topBand(),bottomBand()));
+    pads.forEach(p=>{p.downX=p.lastX;});
+    $('splitButton').style.display='none';
+    show('СЕРИИ ОТ ПРЕПЯТСТВИЯ! Движи двата палеца непрекъснато, пази енергията.');
+  }
+  function refresh(){
+    for(let n=0;n<2;n++){
+      $('e'+n).textContent=Math.round(g.energy[n]);
+      $('e'+n).style.color=g.energy[n]<25?'#b45d68':'';
+      $('f'+n).style.width=g.energy[n]+'%';
+    }
+    const seconds=Math.floor(g.realTime);$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+    $('scoreIndicator').textContent='▣ '+g.jobsDone+'/3 · ✦ '+g.score;
+    $('progressFill').style.width=(100*g.time/DURATION)+'%';
+  }
+  function clampBall(b,n){
+    const mid=W*.5;
+    // Both halves may touch at the seam. No teleporting or lane switching.
+    b.x=n===0?clamp(b.x,rad(),mid):clamp(b.x,mid,W-rad());
+    b.y=clamp(b.y,topBand(),bottomBand());
+  }
+  function move(n,dx,dy){
+    if(!g||g.paused||g.mode==='done')return;
+    if(g.mode==='joined'){
+      const b=g.balls[0];
+      // Keep the original joined-ball ratio at 1.58x; scale it only in this A/B variant.
+      const sharedGain=.85*(gainOptions[gainIndex]/gainOptions[0]);
+      b.x=clamp(b.x+dx*sharedGain,rad(),W-rad());
+      b.y=clamp(b.y+dy*sharedGain,topBand(),bottomBand());
+      g.balls[1].x=b.x;g.balls[1].y=b.y;
+      if(pads[0].id!==null&&pads[1].id!==null&&pads[0].lastX-pads[0].downX<-22&&pads[1].lastX-pads[1].downX>22)split();
+      return;
+    }
+    const p=g.balls[n];
+    const gain=gainOptions[gainIndex]*(.78+.22*g.energy[n]/100);
+    p.x+=dx*gain;p.y+=dy*gain;
+    clampBall(p,n);
+  }
+  function setupPad(n){
+    const el=$('pad'+n),p=pads[n];
+    el.addEventListener('pointerdown',function(e){
+      if(p.id!==null)return;
+      p.id=e.pointerId;p.lastX=e.clientX;p.lastY=e.clientY;p.downX=e.clientX;
+      if(el.setPointerCapture)try{el.setPointerCapture(e.pointerId);}catch(_){}
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove',function(e){
+      if(p.id!==e.pointerId)return;
+      const dx=e.clientX-p.lastX,dy=e.clientY-p.lastY;
+      p.lastX=e.clientX;p.lastY=e.clientY;
+      p.knob.style.transform='translate('+clamp(p.lastX-p.downX,-32,32)+'px,0px)';
+      move(n,dx,dy);
+      e.preventDefault();
+    });
+    const end=(e)=>{
+      if(p.id!==e.pointerId)return;
+      p.id=null;p.downX=p.lastX;
+      p.knob.style.transform='translate(0px,0px)';
+      e.preventDefault();
+    };
+    el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);
+  }
+  function miniMessage(x,y,msg,color){
+    g.floaters.push({x,y,msg,color,life:1.2});
+  }
+  function hurt(n,amount,x,y,impact=0){
+    if(g.energy[n]<=0)return;
+    const ball=g.balls[n];
+    if(impact>0&&ball.hitCooldown<=0){amount+=impact;ball.hitCooldown=.75;}
+    g.energy[n]=Math.max(0,g.energy[n]-amount);
+    const p=g.balls[n];p.flash=Math.min(.32,p.flash+.08);
+    if(p.noteCooldown<=0||!p.noteCooldown){miniMessage(x,y,'− енергия','#ac708b');p.noteCooldown=.9;}
+  }
+  function collides(e,x,y,b){
+    if(e.kind==='cross'||e.kind==='teeth'){
+      const dx=Math.abs(b.x-x),dy=Math.abs(b.y-y);
+      return (dx<55&&dy<9+rad())||(dx<10+rad()&&dy<54);
+    }
+    if(e.kind==='bar'||e.kind==='sweep')return Math.abs(b.y-y)<(rad()+9)&&Math.abs(b.x-x)<45;
+    if(e.kind==='wave'){
+      let best=100000;
+      for(let i=-85;i<=85;i+=8){
+        const vx=x+Math.sin(i/23)*25,vy=y+i;
+        best=Math.min(best,Math.hypot(b.x-vx,b.y-vy));
+      }
+      return best<rad()+7;
+    }
+    return false;
+  }
+  function update(dt){
+    if(!g||g.mode==='done')return;
+    g.floaters.forEach(f=>{f.life-=dt;f.y-=dt*18;});
+    g.floaters=g.floaters.filter(f=>f.life>0);
+    for(const b of g.balls){b.flash=Math.max(0,b.flash-dt);b.noteCooldown=Math.max(0,(b.noteCooldown||0)-dt);b.hitCooldown=Math.max(0,(b.hitCooldown||0)-dt);}
+    if(g.mode!=='split'||g.paused)return;
+    g.realTime+=dt;
+    g.time+=dt*tempos[tempoIndex];
+    // Everyday fatigue creates a real reason to reunite. No random damage.
+    const fatigue=g.time<65?1.15:g.time<208?1.9:1.15;
+    for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-fatigue*dt);
+    // Meeting unlocks after challenges. Touch anywhere at the seam for 0.4s.
+    const unlocks=[90,181,229];
+    const ready=g.meets<unlocks.length&&g.time>=unlocks[g.meets]&&g.realTime-g.lastMeetTime>=7;
+    const a=g.balls[0],b=g.balls[1];
+    const touching=Math.hypot(a.x-b.x,a.y-b.y)<rad()*2+10;
+    // Staying together does not generate automatic future recharges.
+    if(ready&&!touching)g.meetArmed=true;
+    if(ready&&touching&&g.meetArmed){
+      g.meetHold=Math.min(.42,g.meetHold+dt);
+      if(g.meetHold>=.42){
+        for(let n=0;n<2;n++){
+          g.energy[n]=Math.min(100,g.energy[n]+30);
+          miniMessage(g.balls[n].x,g.balls[n].y-30,'♡ +30','#519f91');
+        }
+        g.meets++;g.meetHold=0;g.meetArmed=false;g.lastMeetTime=g.realTime;
+        show('СРЕЩА! Двете светлини възстановиха по 30 енергия');
+        g.hintUntil=g.realTime+2.8;
+      }
+    }else{g.meetHold=0;}
+    if(g.time>=DURATION){
+      g.time=DURATION;g.mode='done';running=false;
+      g.survived=g.energy.every(e=>e>=MIN_FINISH_ENERGY)&&g.jobsDone>=MIN_FINISH_JOBS;
+      $('finishTitle').textContent=g.survived?'Справихте се с деня!':'Денят ви претовари';
+      $('finishLead').textContent=g.survived?
+        'И двете светлини издържаха и свършиха поне две общи задачи.':
+        'Успех: поне две общи задачи и по 25 енергия. Срещите ♡ зареждат и двете светлини.';
+      $('summary').textContent='Работа: '+g.jobsDone+'/3 · Пропуснати: '+g.jobsMissed+' · Срещи: '+g.meets+' · Енергия: '+Math.round(g.energy[0])+' / '+Math.round(g.energy[1]);
+      $('finish').style.display='flex';
+      refresh();return;
+    }
+    for(const e of g.events){
+      const y=eventY(e),x=eventX(e);
+      if(y>H+140||y<-170)continue;
+      for(let n=0;n<2;n++){
+        const b=g.balls[n];
+        if(e.kind==='work'){
+          if(!e.used&&e.c===n&&Math.hypot(b.x-x,b.y-y)<rad()+17){
+            e.used=true;
+            const job=g.workPairs[e.pair]||(g.workPairs[e.pair]={times:{},closed:false,success:false});
+            if(!job.closed){
+              job.times[n]=g.realTime;
+              if(job.times[1-n]!==undefined&&Math.abs(job.times[0]-job.times[1])<=1.8){
+                job.closed=true;job.success=true;g.jobsDone++;g.score+=6;
+                for(let k=0;k<2;k++){
+                  g.energy[k]=Math.min(100,g.energy[k]+10);
+                  miniMessage(g.balls[k].x,g.balls[k].y-20,'РАБОТА ✓ +10','#577b9c');
+                }
+                show('ДВОЙНА ЗАДАЧА ✓ Двете светлини се справиха!');
+                g.hintUntil=g.realTime+2.4;
+              }else{
+                show('ЗАДАЧА ▣ Вземи и другия квадрат преди срока!');
+                g.hintUntil=g.realTime+1.6;
+              }
+            }
+          }
+        }else if(e.kind==='pick'||e.kind==='sync'||e.kind==='gold'||e.kind==='coffee'){
+          if(!e.used&&e.c===n&&Math.hypot(b.x-x,b.y-y)<rad()+(e.kind==='sync'?14:e.kind==='gold'?12:e.kind==='coffee'?17:11)){
+            e.used=true;g.picked[n]++;
+            const isGold=e.kind==='gold',isCoffee=e.kind==='coffee';
+            g.score+=isGold?3:isCoffee?0:1;
+            if(isGold)g.gold++;
+            const amount=isCoffee?20:e.kind==='sync'?5:isGold?7:5;
+            g.energy[n]=Math.min(100,g.energy[n]+amount);
+            miniMessage(x,y,isGold?'✦ +3':('+'+amount),isGold?'#ad8740':'#578c7b');
+            if(isGold){
+              show('Златна искра! Рискът донесе 3 точки');
+              g.hintUntil=g.realTime+1.8;
+            }
+            if(e.kind==='sync'){
+              const pair=g.syncPairs[e.pair]||(g.syncPairs[e.pair]={times:{},awarded:false});
+              pair.times[n]=g.realTime;
+              const other=1-n;
+              if(pair.times[other]!==undefined&&!pair.awarded){
+                if(Math.abs(pair.times[n]-pair.times[other])<=2.2){
+                  pair.awarded=true;g.synced++;g.score+=5;
+                  for(let j=0;j<2;j++){
+                    g.energy[j]=Math.min(100,g.energy[j]+12);
+                    miniMessage(g.balls[j].x,g.balls[j].y-25,'СИНХРОН! +12','#b38a41');
+                  }
+                  show('Синхрон! Двете светлини се заредиха');g.hintUntil=g.realTime+2.5;
+                }else{
+                  show('Почти синхрон — опитай при следващата двойка');g.hintUntil=g.realTime+2;
+                }
+              }else if(pair.times[other]===undefined){
+                show('Синхрон: вземи и другата светлинка!');g.hintUntil=g.realTime+1.7;
+              }
+            }
+          }
+        }else if(e.kind==='rest'){
+          if(Math.hypot(b.x-x,b.y-y)<62){
+            g.energy[n]=Math.min(100,g.energy[n]+dt*3);
+          }
+        }else if(e.kind==='vortex'){
+          const dx=x-b.x,dy=y-b.y,r=Math.hypot(dx,dy);
+          if(r<125&&r>1){
+            const factor=(1-r/125),pull=31*factor*dt,spin=20*factor*dt;
+            b.x+=(dx/r)*pull+(-dy/r)*spin;
+            b.y+=(dy/r)*pull+(dx/r)*spin;
+            clampBall(b,n);
+            if(r<65)hurt(n,dt*22,b.x,b.y,7);
+          }
+        }else if(e.kind==='sweep'&&collides(e,x,y,b)){
+          hurt(n,dt*48,b.x,b.y,9);
+        }else if(e.kind==='burn'&&Math.hypot(b.x-x,b.y-y)<rad()+32){
+          hurt(n,dt*50,b.x,b.y,12);
+        }else if(collides(e,x,y,b)){
+          hurt(n,dt*34,b.x,b.y,8);
+        }
+      }
+    }
+    // A missed deadline is checked when the station passes the reachable top edge.
+    // One penalty per pair; never lock the day or block movement.
+    for(const e of g.events){
+      if(e.kind!=='work'||e.c!==0)continue;
+      const job=g.workPairs[e.pair]||(g.workPairs[e.pair]={times:{},closed:false,success:false});
+      if(!job.closed&&eventY(e)<topBand()-rad()-18){
+        job.closed=true;g.jobsMissed++;
+        for(let n=0;n<2;n++){
+          g.energy[n]=Math.max(0,g.energy[n]-13);
+          g.balls[n].flash=.3;
+          miniMessage(g.balls[n].x,g.balls[n].y-25,'ЗАКЪСНЯ! −13','#b35d71');
+        }
+        show('Закъсняхте със задачата! −13 за всяка светлина');
+        g.hintUntil=g.realTime+2;
+      }
+    }
+    const stage=g.time<48?'Без свободен старт':g.time<90?'Първи наплив':g.time<141?'Вихър и прекъсвания':g.time<210?'Претоварване':'Последен напън';
+    if(frameN%24===0&&g.realTime>=g.hintUntil)
+      show(stage+' · '+(g.meets<3&&g.time>=[90,181,229][g.meets]?'♡ Среща +30 · ':'')+'▣ '+g.jobsDone+'/3 задачи');
+    if(frameN%5===0)refresh();
+  }
+  function line(x,y,x2,y2,color,width){
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.stroke();
+  }
+  function circle(x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+  function drawEvents(){
+    // Pale golden threads visually pair the two simultaneous pickups.
+    for(const a of g.events){
+      if(a.kind==='work'&&a.c===0){
+        const b=g.events.find(q=>q.kind==='work'&&q.pair===a.pair&&q.c===1);
+        if(!b)continue;
+        const y=eventY(a),job=g.workPairs[a.pair];
+        if(y<topBand()-45||y>H+90||job?.closed)continue;
+        ctx.save();ctx.setLineDash([5,6]);
+        line(a.x*W,y,b.x*W,y,'#6d779c66',2.4);ctx.setLineDash([]);
+        ctx.font='bold 11px sans-serif';ctx.fillStyle='#74647b';ctx.textAlign='center';
+        ctx.fillText('▣ ДВОЙНА ЗАДАЧА',W*.5,y-30);ctx.textAlign='left';ctx.restore();
+      }
+      if(a.kind!=='sync'||a.c!==0||a.used)continue;
+      const b=g.events.find(q=>q.kind==='sync'&&q.pair===a.pair&&q.c===1&&!q.used);
+      if(!b)continue;
+      const y=eventY(a);
+      if(y<-50||y>H+80)continue;
+      ctx.save();ctx.setLineDash([4,8]);line(a.x*W,y,b.x*W,y,'#d1b67a77',2);ctx.setLineDash([]);ctx.restore();
+    }
+    for(const e of g.events){
+      const y=eventY(e),x=eventX(e);
+      if(y>H+160||y<-170||((e.kind==='pick'||e.kind==='sync'||e.kind==='gold'||e.kind==='coffee'||e.kind==='work')&&e.used))continue;
+      ctx.save();
+      if(e.kind==='work'){
+        const job=g.workPairs[e.pair];
+        const closed=job?.closed&&!job.success;
+        ctx.save();ctx.translate(x,y);
+        circle(0,0,28,'#698aaa27');
+        ctx.fillStyle=closed?'#b8b4b0':colors[e.c];
+        ctx.fillRect(-13,-13,26,26);
+        ctx.strokeStyle='#466577';ctx.lineWidth=2;ctx.strokeRect(-16,-16,32,32);
+        ctx.fillStyle='#fffbe9';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+        ctx.fillText('!',0,6);ctx.textAlign='left';ctx.restore();
+      }else if(e.kind==='sweep'){
+        line(x-47,y,x+47,y,'#a46083',17);
+        for(let k=-2;k<=2;k++)circle(x+k*18,y,3,'#f0c2d2');
+        circle(x,y,8,'#885974');
+      }else if(e.kind==='coffee'){
+        circle(x,y,25,'#f0c98533');circle(x,y,15,'#f5e3b4');
+        circle(x,y,10,'#c49a60');
+        circle(x-2,y-3,4,'#fff8e3');
+        ctx.font='700 9px sans-serif';ctx.fillStyle='#8b704a';ctx.textAlign='center';
+        ctx.fillText('+20',x,y+33);ctx.textAlign='left';
+      }else if(e.kind==='burn'){
+        circle(x,y,43,'#7a646a20');
+        circle(x,y,33,'#856976');
+        ctx.strokeStyle='#5c4754';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(x,y,37,0,Math.PI*2);ctx.stroke();
+        circle(x-8,y-8,5,'#b99ba2');
+      }else if(e.kind==='gold'){
+        circle(x,y,24,'#deb55e24');
+        circle(x,y,15,'#e6ba673d');
+        ctx.beginPath();
+        for(let k=0;k<10;k++){
+          const a=-Math.PI/2+k*Math.PI/5,r=k%2===0?13:6;
+          if(k===0)ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);
+          else ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);
+        }
+        ctx.closePath();ctx.fillStyle='#d5a64a';ctx.fill();
+        circle(x-3,y-4,2,'#fff6d8');
+        ctx.beginPath();ctx.arc(x,y,23,0,Math.PI*2);
+        ctx.strokeStyle='#c8a76b';ctx.lineWidth=1.5;ctx.setLineDash([4,5]);ctx.stroke();ctx.setLineDash([]);
+      }else if(e.kind==='pick'||e.kind==='sync'){
+        circle(x,y,e.kind==='sync'?24:17,colors[e.c]+'22');
+        circle(x,y,e.kind==='sync'?11:9,colors[e.c]);circle(x-3,y-3,2,'#fff7e5');
+        if(e.kind==='sync'){
+          ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);
+          ctx.strokeStyle='#c4a15e';ctx.lineWidth=2;ctx.stroke();
+          for(let i=0;i<4;i++){const a=i*Math.PI/2;circle(x+Math.cos(a)*20,y+Math.sin(a)*20,2,'#d6aa69');}
+        }
+      }else if(e.kind==='teeth'){
+        // The toothy obstacle appears in the sketch; collision uses the same cross core.
+        line(x-50,y,x+50,y,'#94596c',15);
+        line(x,y-50,x,y+50,'#9c6c78',15);
+        for(let k=-3;k<=3;k++){
+          const xx=x+k*14;
+          ctx.beginPath();ctx.moveTo(xx-6,y-8);ctx.lineTo(xx,y-20);ctx.lineTo(xx+6,y-8);
+          ctx.fillStyle='#bc8590';ctx.fill();
+          ctx.beginPath();ctx.moveTo(x+8,y+k*14-6);ctx.lineTo(x+20,y+k*14);ctx.lineTo(x+8,y+k*14+6);
+          ctx.fill();
+        }
+        circle(x,y,10,'#744e61');
+      }else if(e.kind==='cross'){
+        line(x-53,y,x+53,y,'#b67f81',15);line(x,y-53,x,y+53,'#b67f81',15);
+        circle(x,y,11,'#986d80');circle(x,y,4,'#efd5c8');
+      }else if(e.kind==='bar'){
+        line(x-44,y,x+44,y,'#b67f81',15);
+        for(let i=-1;i<=1;i++)circle(x+i*34,y,3,'#f4d9c9');
+      }else if(e.kind==='wave'){
+        ctx.beginPath();
+        for(let i=-85;i<=85;i+=4){
+          const xx=x+Math.sin(i/23)*25,yy=y+i;
+          if(i===-85)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+        }
+        ctx.strokeStyle='#c58076';ctx.lineWidth=15;ctx.lineCap='round';ctx.stroke();
+        ctx.strokeStyle='#f1c0a5';ctx.lineWidth=2;ctx.stroke();
+      }else if(e.kind==='rest'){
+        circle(x,y,64,'#91b7a320');
+        ctx.beginPath();ctx.arc(x,y,58,0,Math.PI*2);ctx.lineWidth=2;ctx.strokeStyle='#92b6a3';ctx.setLineDash([6,8]);ctx.stroke();ctx.setLineDash([]);
+        circle(x,y,14,'#8db9a8');circle(x-3,y-3,4,'#ffffff');
+      }else if(e.kind==='vortex'){
+        circle(x,y,125,'#9787b00d');circle(x,y,70,'#a28aad19');
+        circle(x,y,50,'#a78ab02b');
+        ctx.save();ctx.translate(x,y);ctx.rotate(g.time*.85);
+        for(let a=0;a<Math.PI*2;a+=Math.PI*.66){
+          ctx.beginPath();
+          for(let t=0;t<6.4;t+=.13){
+            const r=8+t*9,xx=Math.cos(a+t*.9)*r,yy=Math.sin(a+t*.9)*r;
+            if(t===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+          }
+          ctx.strokeStyle='#9984b4';ctx.lineWidth=4.2;ctx.lineCap='round';ctx.stroke();
+        }
+        ctx.restore();
+        ctx.beginPath();ctx.arc(x,y,125,0,Math.PI*2);ctx.strokeStyle='#a28db23b';ctx.lineWidth=1;ctx.setLineDash([5,11]);ctx.stroke();ctx.setLineDash([]);
+      }
+      ctx.restore();
+    }
+  }
+  function drawBackground(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+    const mid=W*.5;
+    ctx.fillStyle='#7fb5a109';ctx.fillRect(0,0,mid,H);
+    ctx.fillStyle='#efad9309';ctx.fillRect(mid,0,mid,H);
+    line(mid,94,mid,H-154,'#c9c5bb',1.2);
+    ctx.setLineDash([3,12]);line(mid,94,mid,H-154,'#aca99f',1);ctx.setLineDash([]);
+    // Scrolling time markers make the direction of time legible.
+    const markerSpacing=scrollSpeed()*14;
+    const shift=(g.time*scrollSpeed())%markerSpacing;
+    for(let i=-2;i<Math.ceil(H/markerSpacing)+2;i++){
+      const y=H-154+i*markerSpacing-shift;
+      if(y<80||y>H-150)continue;
+      ctx.globalAlpha=.46;line(20,y,W-20,y,'#c9c3b7',.8);ctx.globalAlpha=1;
+      ctx.fillStyle='#9ba198';ctx.font='10px sans-serif';ctx.fillText('↑',W-24,y-7);
+    }
+    const top=topBand(),bot=bottomBand();
+    ctx.fillStyle='#82aa9a09';ctx.fillRect(8,top,W-16,bot-top);
+    ctx.strokeStyle='#9db1a444';ctx.lineWidth=1;ctx.setLineDash([5,9]);
+    ctx.strokeRect(8,top,W-16,bot-top);ctx.setLineDash([]);
+    ctx.globalAlpha=.40;ctx.font='11px sans-serif';ctx.fillStyle='#829489';
+    ctx.fillText('ЗОНА НА ДВИЖЕНИЕ',18,top+18);ctx.globalAlpha=1;
+    const shade=ctx.createLinearGradient(0,H-185,0,H);
+    shade.addColorStop(0,'#f5f1e800');shade.addColorStop(1,'#e7e1d9cc');
+    ctx.fillStyle=shade;ctx.fillRect(0,H-190,W,190);
+  }
+  function drawBall(x,y,r,color){
+    const gr=ctx.createRadialGradient(x,y,1,x,y,r*2.2);
+    gr.addColorStop(0,color+'5a');gr.addColorStop(1,color+'00');
+    circle(x,y,r*2.2,gr);circle(x,y,r,color);circle(x-r*.25,y-r*.30,r*.19,'#ffffffbc');
+  }
+  function draw(){
+    drawBackground();
+    if(g&&g.mode==='split'){
+      const ready=g.meets<3&&g.time>=[90,181,229][g.meets]&&g.realTime-g.lastMeetTime>=7;
+      if(ready){
+        ctx.save();ctx.textAlign='center';
+        ctx.fillStyle='#528f88';ctx.font='700 14px sans-serif';
+        ctx.fillText(g.meetArmed?'♡ СРЕЩА +30':'♡ РАЗДЕЛИ СЕ И СЕ СРЕЩНИ',W*.5,topBand()+28);
+        if(g.meetHold>0){
+          ctx.beginPath();ctx.arc(W*.5,g.balls[0].y,rad()*2.4,-Math.PI/2,-Math.PI/2+Math.PI*2*(g.meetHold/.42));
+          ctx.strokeStyle='#5faf92';ctx.lineWidth=5;ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+    if(g.mode==='split'||g.mode==='done')drawEvents();
+    const r=rad();
+    if(g.mode==='joined'){
+      const p=g.balls[0];drawBall(p.x-7,p.y,r,'#67a8a3');drawBall(p.x+7,p.y,r,'#ef9882');
+    }else{
+      for(let n=0;n<2;n++){
+        const b=g.balls[n];drawBall(b.x,b.y,r,colors[n]);
+        if(b.flash>0){
+          ctx.beginPath();ctx.arc(b.x,b.y,r+6,0,Math.PI*2);ctx.lineWidth=3;
+          ctx.strokeStyle='#c8809c';ctx.globalAlpha=clamp(b.flash/.32,0,1);
+          ctx.stroke();ctx.globalAlpha=1;
+        }
+      }
+    }
+    for(const f of g.floaters){
+      ctx.save();ctx.globalAlpha=clamp(f.life,0,1);ctx.fillStyle=f.color;
+      ctx.font='700 13px sans-serif';ctx.fillText(f.msg,f.x+10,f.y);ctx.restore();
+    }
+    if(g.paused){
+      ctx.fillStyle='#f5f1e8bb';ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#4b6660';ctx.font='700 28px sans-serif';ctx.textAlign='center';ctx.fillText('Пауза',W/2,H*.48);ctx.textAlign='left';
+    }
+  }
+  function frame(ms){
+    if(!g)return;
+    const dt=then?Math.min(.05,(ms-then)/1000):0;
+    then=ms;frameN++;
+    update(dt);draw();
+    requestAnimationFrame(frame);
+  }
+  $('splitButton').addEventListener('click',split);
+  $('resetButton').addEventListener('click',reset);
+  $('gainButton').addEventListener('click',function(){
+    gainIndex=(gainIndex+1)%gainOptions.length;
+    this.textContent='Палец ×'+gainOptions[gainIndex].toFixed(2).replace('.',',');
+  });
+  $('tempoButton').addEventListener('click',function(){
+    tempoIndex=(tempoIndex+1)%tempos.length;
+    this.textContent='Темпо ×'+String(tempos[tempoIndex]).replace('.',',');
+  });
+  $('pauseButton').addEventListener('click',function(){
+    if(g.mode==='done')return;
+    g.paused=!g.paused;
+    this.textContent=g.paused?'Продължи':'Пауза';
+    if(g.paused)show('Пауза');
+  });
+  $('again').addEventListener('click',reset);
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden&&g&&g.mode==='split'){g.paused=true;$('pauseButton').textContent='Продължи';}
+  });
+  window.addEventListener('resize',resize,{passive:true});
+  setupPad(0);setupPad(1);
+  // Test hook is read-only except for manually advancing time in automated smoke tests.
+  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],gain:gainOptions[gainIndex],gold:g.gold,score:g.score,synced:g.synced,jobsDone:g.jobsDone,jobsMissed:g.jobsMissed,workPairs:Object.keys(g.workPairs).map(key=>({key,...g.workPairs[key]})),meets:g.meets,survived:g.survived??null,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<3&&g.time>=[90,181,229][g.meets]&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
+  resize();reset();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
