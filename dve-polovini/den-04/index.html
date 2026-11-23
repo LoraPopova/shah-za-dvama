@@ -124,7 +124,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   function reset(){
     tempoIndex=1;
     $('tempoButton').textContent='Темпо ×5';
-    g={mode:'joined',time:0,realTime:0,energy:[100,100],picked:[0,0],gold:0,score:0,synced:0,meets:0,meetHold:0,lastMeetTime:-999,syncPairs:{},hintUntil:0,balls:[
+    g={mode:'joined',time:0,realTime:0,energy:[100,100],picked:[0,0],gold:0,score:0,synced:0,meets:0,meetHold:0,meetArmed:false,lastMeetTime:-999,syncPairs:{},hintUntil:0,balls:[
       {x:W*.5,y:H*.35,flash:0},{x:W*.5,y:H*.35,flash:0}
     ],events:initialEvents.map(e=>Object.assign({used:false},e)),
       floaters:[],paused:false};
@@ -240,18 +240,20 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     const fatigue=g.time<70?1.0:g.time<175?1.7:1.25;
     for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-fatigue*dt);
     // Meeting unlocks after challenges. Touch anywhere at the seam for 0.4s.
-    const unlocks=[60,137,197];
+    const unlocks=[89,160,205];
     const ready=g.meets<unlocks.length&&g.time>=unlocks[g.meets]&&g.realTime-g.lastMeetTime>=7;
     const a=g.balls[0],b=g.balls[1];
     const touching=Math.hypot(a.x-b.x,a.y-b.y)<rad()*2+10;
-    if(ready&&touching){
+    // Staying together does not generate automatic future recharges.
+    if(ready&&!touching)g.meetArmed=true;
+    if(ready&&touching&&g.meetArmed){
       g.meetHold=Math.min(.42,g.meetHold+dt);
       if(g.meetHold>=.42){
         for(let n=0;n<2;n++){
           g.energy[n]=Math.min(100,g.energy[n]+30);
           miniMessage(g.balls[n].x,g.balls[n].y-30,'♡ +30','#519f91');
         }
-        g.meets++;g.meetHold=0;g.lastMeetTime=g.realTime;
+        g.meets++;g.meetHold=0;g.meetArmed=false;g.lastMeetTime=g.realTime;
         show('СРЕЩА! Двете светлини възстановиха по 30 енергия');
         g.hintUntil=g.realTime+2.8;
       }
@@ -322,7 +324,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
     }
     const stage=g.time<39?'Сутрин':g.time<88?'Препятствия':g.time<126?'Течението':g.time<184?'Напрегнат следобед':'Вечер';
     if(frameN%24===0&&g.realTime>=g.hintUntil)
-      show(stage+' · '+(g.meets<3&&g.time>=[60,137,197][g.meets]?'♡ Срещнете се за +30 · ':'')+'✦ '+g.score+' точки');
+      show(stage+' · '+(g.meets<3&&g.time>=[89,160,205][g.meets]?'♡ Срещнете се за +30 · ':'')+'✦ '+g.score+' точки');
     if(frameN%5===0)refresh();
   }
   function line(x,y,x2,y2,color,width){
@@ -459,11 +461,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   function draw(){
     drawBackground();
     if(g&&g.mode==='split'){
-      const ready=g.meets<3&&g.time>=[60,137,197][g.meets]&&g.realTime-g.lastMeetTime>=7;
+      const ready=g.meets<3&&g.time>=[89,160,205][g.meets]&&g.realTime-g.lastMeetTime>=7;
       if(ready){
         ctx.save();ctx.textAlign='center';
         ctx.fillStyle='#528f88';ctx.font='700 14px sans-serif';
-        ctx.fillText('♡ СРЕЩА +30',W*.5,topBand()+28);
+        ctx.fillText(g.meetArmed?'♡ СРЕЩА +30':'♡ РАЗДЕЛИ СЕ И СЕ СРЕЩНИ',W*.5,topBand()+28);
         if(g.meetHold>0){
           ctx.beginPath();ctx.arc(W*.5,g.balls[0].y,rad()*2.4,-Math.PI/2,-Math.PI/2+Math.PI*2*(g.meetHold/.42));
           ctx.strokeStyle='#5faf92';ctx.lineWidth=5;ctx.stroke();
@@ -524,7 +526,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
   window.addEventListener('resize',resize,{passive:true});
   setupPad(0);setupPad(1);
   // Test hook is read-only except for manually advancing time in automated smoke tests.
-  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],gain:gainOptions[gainIndex],gold:g.gold,score:g.score,synced:g.synced,meets:g.meets,meetHold:g.meetHold,ready:g.meets<3&&g.time>=[60,137,197][g.meets]&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
+  window.__twoHalvesQA={state:()=>({mode:g.mode,time:g.time,energy:g.energy.slice(),picked:g.picked.slice(),balls:g.balls.map(b=>({x:b.x,y:b.y})),paused:g.paused,tempo:tempos[tempoIndex],gain:gainOptions[gainIndex],gold:g.gold,score:g.score,synced:g.synced,meets:g.meets,meetHold:g.meetHold,meetArmed:g.meetArmed,ready:g.meets<3&&g.time>=[89,160,205][g.meets]&&g.realTime-g.lastMeetTime>=7,realTime:g.realTime,events:g.events.map(e=>({kind:e.kind,c:e.c,pair:e.pair,t:e.t,x:e.x,used:e.used}))}),split,advance:(dt)=>update(dt),eventY:(n)=>eventY(g.events[n]),reset};
   resize();reset();requestAnimationFrame(frame);
 })();
 </script>
