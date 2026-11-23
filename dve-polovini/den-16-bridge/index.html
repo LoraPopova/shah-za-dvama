@@ -45,7 +45,7 @@ header{left:12px;right:12px}h1{font-size:16px}
 #bridgeFill{height:100%;width:0%;background:linear-gradient(90deg,#70b6a6,#e8ae7c);transition:width .09s linear}
 #hint{top:calc(174px + env(safe-area-inset-top,0px));font-size:13px}
 #menu{top:calc(110px + env(safe-area-inset-top,0px))}
-@media(max-height:580px){#bridgeMeter{top:140px}#hint{top:153px}}
+@media(max-height:580px){#bridgeMeter{top:138px}#hint{display:none}}
 </style>
 </head>
 <body>
@@ -149,7 +149,7 @@ function refresh(){
  $('bar').style.width=Math.min(100,100*g.time/TOTAL)+'%';
  if(g.mode==='ready')$('status').textContent='Двата палеца стартират общата задача.';
  else if(g.mode==='playing')$('status').textContent=g.paused?'Пауза':
-  (g.done?'Построихте път!':'Скрол ×'+g.pace.toFixed(1)+' · помощта прави път');
+  (g.done?'Построихте път!':g.holding?'Синя държи лоста · Корал преминава':'Синя: лост · Корал: мост · ×'+g.pace.toFixed(1));
 }
 function resize(){
  const oldW=W,oldH=H;
