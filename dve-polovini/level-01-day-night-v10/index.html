@@ -429,7 +429,10 @@ function nightVector(a,b){
 function flushNightInput(){
  const a=nightInput[0],b=nightInput[1],sum=Math.hypot(a.x,a.y)+Math.hypot(b.x,b.y);
  nightInput=[{x:0,y:0},{x:0,y:0}];
- if(sum<.01||!g||g.mode!=='playing'||g.paused||!g.joined)return;
+ if(sum<.01||!g||g.mode!=='playing'||g.paused||!g.joined){
+  if(g&&g.cleanActive){g.cleanStyle='idle';g.cleanSync=0;}
+  return;
+ }
  const v=nightVector(a,b),orb=g.one,r=rad(),before={x:orb.x,y:orb.y};
  const slow=energySpeed(g.shared);v.dx*=slow;v.dy*=slow;
  const steps=Math.max(1,Math.min(900,Math.ceil(Math.max(Math.abs(v.dx),Math.abs(v.dy))/Math.max(2,r*.34))));
