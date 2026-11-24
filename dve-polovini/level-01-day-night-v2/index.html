@@ -50,11 +50,11 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b,x,y)=>Math.hypot(a-x,b-
 const TWO=Math.PI*2,GAIN=2.5,PACE=5,DAY_END=735,DUSK_END=825,END=1350;
 // Exact five independent non-mirrored holes from Day 18 v2.
 const DAY_ROWS=Object.freeze([
- {id:'first',at:125,gaps:[.68,.38],width:.20},
- {id:'second',at:160,gaps:[.28,.67],width:.20},
- {id:'third',at:195,gaps:[.57,.25],width:.19},
- {id:'fourth',at:230,gaps:[.37,.53],width:.20},
- {id:'fifth',at:265,gaps:[.72,.74],width:.19}
+ {id:'first',at:83,gaps:[.68,.38],width:.20},
+ {id:'second',at:118,gaps:[.28,.67],width:.20},
+ {id:'third',at:153,gaps:[.57,.25],width:.19},
+ {id:'fourth',at:188,gaps:[.37,.53],width:.20},
+ {id:'fifth',at:223,gaps:[.72,.74],width:.19}
 ]);
 const NIGHT_ROWS=Object.freeze([
  {id:'moon1',at:920,center:.31,width:.43},
@@ -73,9 +73,9 @@ const WIND_BANDS=Object.freeze([
 ]);
 const COINS=Object.freeze([
  [22,.26,0,1],[22,.74,1,1],[53,.33,0,1],[53,.67,1,1],
- [86,.29,0,1],[86,.78,1,1],[117,.34,0,1],[117,.70,1,1],
- [181,.32,0,1],[181,.78,1,1],[218,.39,0,1],[218,.63,1,1],
- [286,.28,0,3],[286,.73,1,3],[305,.37,0,1],[305,.64,1,1],
+ [76,.29,0,1],[76,.78,1,1],[101,.34,0,1],[101,.70,1,1],
+ [136,.32,0,1],[136,.78,1,1],[170,.39,0,1],[170,.63,1,1],
+ [242,.28,0,3],[242,.73,1,3],[284,.37,0,1],[284,.64,1,1],
  [392,.22,0,1],[392,.80,1,1],[478,.30,0,3],[478,.70,1,3],
  [578,.28,0,1],[578,.75,1,1],[608,.37,0,1],[608,.64,1,1],
  [690,.29,0,1],[690,.73,1,1],[712,.40,0,1],[712,.60,1,1]
@@ -89,7 +89,7 @@ const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
 let W=1,H=1,dpr=1,g=null,prevFrame=0;
 const rad=()=>clamp(Math.min(W,H)*.019,11,19);
 const top=()=>clamp(H*.13,110,192);
-const bottom=()=>H-Math.max(22,H*.035);
+const bottom=()=>H-Math.max(12,H*.025);
 const height=()=>bottom()-top();
 const heroY=()=>top()+height()*.29;
 const speed=()=>clamp(height()*.012,6.6,10);
@@ -622,6 +622,9 @@ function frame(ts){
 }
 window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*PACE}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,FIREFLIES}};
 window.addEventListener('resize',resize,{passive:true});
+// iPad Safari must treat a two-thumb game as gestures, never text selection.
+document.addEventListener('selectstart',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
 resize();requestAnimationFrame(frame);
 })();
 </script></body></html>
