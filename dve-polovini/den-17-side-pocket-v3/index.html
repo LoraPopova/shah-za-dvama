@@ -127,7 +127,7 @@ function itemPos(item,time=g.time){
 }
 function reset(){
  g={mode:'ready',paused:false,time:0,realTime:0,pace:PACE,
-  balls:[{x:W*.46,y:upper()+playH()*.24},{x:W*.72,y:upper()+playH()*.24}],
+  balls:[{x:W*.46,y:upper()+playH()*.24},{x:W*.56,y:upper()+playH()*.24}],
   energy:[100,100],score:0,taken:[],hits:0,lastHit:[-99,-99],
   pocket:Object.fromEntries(POCKETS.map(p=>[p.id,{armed:false,entered:false,taken:0,escaped:false}])),
   finished:false,crushed:false};
