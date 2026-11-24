@@ -138,6 +138,7 @@ function state(){
  score:g.score,coins:[...g.coins],fireflies:[...g.fireflies],keyOpen:g.keyOpen,keyArmed:g.keyArmed,keyDone:g.keyDone,
  keyCross:g.keyCross,joinTime:g.joinTime,healEnergy:g.healEnergy,healDistance:g.healDistance,
  nightCleared:[...g.nightCleared],nightApproached:[...g.nightApproached],duskTouched:[...g.duskTouched],
+ lastMergedGesture:g.lastMergedGesture,lastCoralNearGate:g.lastCoralNearGate,
  hits:g.hits,fail:g.fail,completed:g.completed,finished:g.finished,gestureCount:[...g.gestureCount]};
 }
 function reset(){
@@ -147,6 +148,7 @@ function reset(){
   keyArmed:false,keyOpen:0,keyDone:false,keyCross:false,keyApproached:false,
   duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,healEnergy:0,healDistance:0,
   nightApproached:[false,false,false],nightCleared:[false,false,false],
+  lastMergedGesture:-99,lastCoralNearGate:-99,
   gestureCount:[0,0],finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
  pads.forEach(p=>p.id=null);
  $('pause').textContent='Пауза';$('result').style.display='none';
@@ -199,7 +201,7 @@ function maybeJoin(n){
  g.one={x:(g.balls[0].x+g.balls[1].x)*.5,y:(g.balls[0].y+g.balls[1].y)*.5};
  g.shared=clamp((g.energy[0]+g.energy[1])*.5+12,0,100);
  g.energy=[g.shared,g.shared];
- g.joinedInput=[-99,-99];g.tip='♡ Една светлина. Движете двата палеца заедно.';
+ g.joinedInput=[-99,-99];g.lastMergedGesture=-99;g.tip='♡ Една светлина. Движете двата палеца заедно.';
 }
 function healStroke(n,distance){
  if(!g.joined||g.healEnergy>=28||g.t>408)return;
@@ -236,6 +238,7 @@ function move(n,dx,dy){
   // Both thumbs steer ONE orb. Same-direction gestures add; opposite gestures
   // cancel, so two matching movements preserve the exact x2.50 thumb gain.
   // No joystick offset, inertia or hidden acceleration.
+  g.lastMergedGesture=g.real;
   const b=g.one,r=rad(),ddx=dx*.5,ddy=dy*.5;
   const steps=Math.max(1,Math.min(900,Math.ceil(Math.max(Math.abs(ddx),Math.abs(ddy))/Math.max(2,r*.34))));
   for(let i=0;i<steps;i++){
@@ -254,6 +257,7 @@ function move(n,dx,dy){
    const oy=b.y;b.y=clampY(b.y+dy/steps);
    if(stage(g.t)==='day'&&isSolid(n,b.x,b.y)){b.y=oy;hit(n,5,'day-wall');}
    if(n===0)g.keyArmed=stage(g.t)==='day'&&blueKey();
+   if(n===1){const k=keyGeom();if(stage(g.t)==='day'&&Math.abs(b.y-k.y)<rad()*4&&Math.abs(b.x-k.gateX)<k.gapHalf-rad()*.3)g.lastCoralNearGate=g.real;}
    pick(n,b.x,b.y);
    maybeJoin(n);
    if(g.joined)break;
@@ -320,7 +324,7 @@ function update(dt){
   const current=stage(g.t);
   if(!g.joined){
    // Equal daily fatigue, differences only from player choices and hazards.
-   if(prev<DAY_END)for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-.30*per);
+   if(prev<DAY_END)for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-.52*per);
    if(g.energy.every(v=>v<=0)){finish(false,'Денят ви изтощи');break;}
   }
   if(current==='day'){
@@ -329,9 +333,10 @@ function update(dt){
    const old=g.keyOpen;
    g.keyOpen=clamp(g.keyOpen+(g.keyArmed?per/.16:-per/.22),0,1);
    // Real crossing: Coral actively approached the open gap before it passed.
-   if(Math.abs(key.y-b.y)<r*3.8&&Math.abs(b.x-key.gateX)<key.gapHalf-r*.4&&g.gestureCount[1]>0)
+   if(Math.abs(key.y-b.y)<r*3.8&&Math.abs(b.x-key.gateX)<key.gapHalf-r*.4&&g.real-g.lastCoralNearGate<1.5)
     g.keyApproached=true;
    if(!g.keyDone&&g.keyArmed&&g.keyOpen>=.97&&g.keyApproached
+    &&g.real-g.lastCoralNearGate<1.5
     &&worldY(268,prev)>b.y+r*.55&&key.y<=b.y+r*.55
     &&Math.abs(b.x-key.gateX)<key.gapHalf-r*.55){
     g.keyDone=true;g.score+=8;
@@ -356,9 +361,9 @@ function update(dt){
   }else if(current==='night'&&g.joined){
    for(let j=0;j<NIGHT_ROWS.length;j++){
     const row=NIGHT_ROWS[j],before=worldY(row.at,prev),after=worldY(row.at),gap=nightGap(row),b=g.one,r=rad();
-    if(Math.abs(before-b.y)<r*4&&b.x>=gap.lo+r*.45&&b.x<=gap.hi-r*.45&&g.gestureCount.some(v=>v>0))
+    if(Math.abs(before-b.y)<r*4&&b.x>=gap.lo+r*.45&&b.x<=gap.hi-r*.45&&g.real-g.lastMergedGesture<.8)
      g.nightApproached[j]=true;
-    if(!g.nightCleared[j]&&g.nightApproached[j]&&after<b.y-r-wall()*.5)
+    if(!g.nightCleared[j]&&g.nightApproached[j]&&g.real-g.lastMergedGesture<1.3&&after<b.y-r-wall()*.5)
      g.nightCleared[j]=true;
    }
    pushOut(2,prev);
@@ -386,7 +391,7 @@ function updateHud(){
  phase==='day'?(g.t<83?'Събирайте светлинките по двата маршрута.':g.t<151?'Дупките са на различни места.':g.t<229?'Вятърът ви притиска към средата.': 'Синя държи ключа; Корал минава през вратата.'):
  phase==='dusk'?(g.joined?'♡ В светлата зона движете двата палеца заедно.':'♡ Съберете двете светлини в центъра!'):
  'Едно топче. Двата палеца го водят заедно през широките отвори.';
- $('message').textContent=g.tip&&g.real<2?' '+g.tip:msg;
+ $('message').textContent=(g.joined&&phase==='dusk')?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+g.healEnergy:msg;
 }
 function line(x,y,xx,yy,color,width=2){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
