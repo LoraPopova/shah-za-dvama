@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 19 — Чистене при движещ се свят v1</title>
+<style>
+:root{--teal:#67a8a3;--coral:#ef9882;--ink:#3d4b49;--paper:#f5f1e8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+#scene{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(18px + env(safe-area-inset-top,0px));left:20px;right:20px;pointer-events:none;z-index:5}
+#eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#7c9188}
+h1{font-size:21px;margin:4px 0 4px;font-weight:750;letter-spacing:-.4px}
+#instr{font-size:13px;color:#6d7a73;margin:0;max-width:70vw}
+#readout{position:fixed;right:20px;top:calc(23px + env(safe-area-inset-top,0px));font-size:13px;font-weight:750;display:flex;gap:13px;z-index:5;pointer-events:none}
+#readout span{white-space:nowrap}
+#leftScore{color:#548d87}#rightScore{color:#d88776}
+#toolbar{position:fixed;top:calc(95px + env(safe-area-inset-top,0px));left:20px;z-index:8}
+#restart{background:#fffffff0;border:1px solid #deddd4;color:#52645e;border-radius:100px;font:inherit;font-size:12px;font-weight:800;padding:10px 15px;box-shadow:0 3px 12px #47544815;touch-action:manipulation}
+.pad{position:fixed;bottom:calc(clamp(72px,13vh,160px) + env(safe-area-inset-bottom,0px));width:128px;height:128px;border:2px solid;display:flex;align-items:center;justify-content:center;border-radius:50%;z-index:9;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:inset 0 0 0 9px #ffffff55,0 3px 18px #51595110}
+.pad.left{left:calc(25% - 64px);background:#72aca51d;border-color:#89b6b0}
+.pad.right{left:calc(75% - 64px);background:#ef9d861d;border-color:#ecb4a5}
+.knob{width:42px;height:42px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #5c57542f}
+.pad.left .knob{background:#78aaa5}.pad.right .knob{background:#ef9e86}
+.pad-label{position:absolute;bottom:12px;font-size:10px;letter-spacing:.6px;color:#87968e;pointer-events:none}
+#result{position:fixed;top:calc(125px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);color:#559b83;text-align:center;font-weight:800;font-size:18px;z-index:6;pointer-events:none;opacity:0;transition:opacity .4s}
+#result.show{opacity:1}
+#result small{display:block;font-size:12px;color:#718c80;font-weight:600;margin-top:5px}
+@media(max-width:720px){
+ header{left:12px;top:calc(9px + env(safe-area-inset-top,0px))}
+ h1{font-size:17px}#instr{font-size:11px;max-width:80vw}
+ #readout{top:calc(81px + env(safe-area-inset-top,0px));right:12px;font-size:11px;gap:8px}
+ #toolbar{top:calc(108px + env(safe-area-inset-top,0px));left:12px}
+ .pad{width:105px;height:105px;bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+ .pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+ .pad-label{font-size:9px}.knob{width:35px;height:35px}
+ #result{top:calc(148px + env(safe-area-inset-top,0px));font-size:15px}
+}
+@media(max-height:600px){.pad{bottom:calc(22px + env(safe-area-inset-bottom,0px))}}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<header>
+<div id="eyebrow">T W O  H A L V E S · ДЕН 19 · SK-05</div>
+<h1>Почисти, преди да отмине</h1>
+<p id="instr">Движи двата палеца върху тъмното. Светът не спира — ×5.</p>
+</header>
+<div id="readout"><span id="leftScore">Синя 0%</span><span id="rightScore">Корал 0%</span><span id="clock">×5 · 0%</span></div>
+<div id="toolbar"><button id="restart" type="button">Отначало</button> <button id="pause" type="button">Пауза</button></div>
+<div id="result">ЧИСТО! ✓<small>✦ +10 доход · ♡ +8 енергия и за двамата</small></div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><div class="pad-label">ЛЯВ ПАЛЕЦ</div></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><div class="pad-label">ДЕСЕН ПАЛЕЦ</div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const canvas=$('scene'),ctx=canvas.getContext('2d');
+const paper='#f5f1e8',gain=2.5,pace=5,threshold=.95,maxDarkShare=.035,colors=['#67a8a3','#ef9882'];
+const DURATION=135, WORLD_SCALE=.0034, MAX_WORLD_STEP=.02;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let W=1,H=1,dpr=1,geometry=null,balls=[],completed=false,awards=0,time=0,mode='ready',paused=false,finished=false,energy=[100,100],score=0,prevFrame=0;
+const stainCanvas=document.createElement('canvas');
+const stainCtx=stainCanvas.getContext('2d',{willReadFrequently:true});
+let maskScale=1,samples=[],lastProgress=[0,0],lastDarkShare=[1,1],realElapsed=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0'),knob:$('knob0')},{id:null,x:0,y:0,el:$('pad1'),knob:$('knob1')}];
+const radius=()=>clamp(Math.min(W,H)*.019,11,19);
+const top=()=>clamp(H*.14,110,165);
+const bottom=()=>Math.max(top()+140,Math.min(H*.70,H-155));
+const playH=()=>bottom()-top();
+// Offscreen alpha never changes coordinates when the world scrolls.
+// Only the visible WORLD projection moves. Scrub uses inverse projection.
+// Scene starts near the lower zone and rises steadily at time += dt*5.
+const scrollPxPerVirtual=()=>Math.max(.65,playH()*WORLD_SCALE);
+const worldShift=()=>playH()*.17-time*scrollPxPerVirtual();
+// A single organic silhouette and its erased alpha are drawn to ONE offscreen
+// canvas. This same actual alpha buffer is the source of visible dirt AND score.
+function stainPath(c,a){
+ const steps=160;
+ c.beginPath();
+ for(let i=0;i<=steps;i++){
+  const angle=i/steps*Math.PI*2,nx=Math.cos(angle),ny=Math.sin(angle);
+  const irregular=1+.082*Math.sin(nx*7.1+1)+.053*Math.sin(nx*15.4-.7);
+  const irregularY=.87+.10*Math.sin(nx*5.7+1.1)+.08*Math.cos(nx*10.9-.2);
+  const x=a.cx+a.rx*nx*irregular,y=a.cy+a.ry*ny*irregularY;
+  if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+ }
+ c.closePath();
+}
+function makeGeometry(){
+ const usable=Math.max(160,bottom()-top());
+ const cy=(top()+bottom())/2+.01*H;
+ return {cx:W*.5,cy,rx:Math.min(W*.365,W*.5-radius()*2.6),ry:Math.min(usable*.45,140)};
+}
+function initializeStain(){
+ maskScale=Math.min(1,560/W,440/H);
+ stainCanvas.width=Math.max(1,Math.round(W*maskScale));
+ stainCanvas.height=Math.max(1,Math.round(H*maskScale));
+ stainCtx.setTransform(maskScale,0,0,maskScale,0,0);
+ stainCtx.clearRect(0,0,W,H);
+ stainPath(stainCtx,geometry);
+ stainCtx.fillStyle='#68616bd2';
+ stainCtx.fill();
+ const alpha=stainCtx.getImageData(0,0,stainCanvas.width,stainCanvas.height).data;
+ samples=[];
+ for(let j=0;j<18;j++)for(let i=0;i<50;i++){
+  const x=geometry.cx+geometry.rx*((i+.5)/50*2-1);
+  const y=geometry.cy+geometry.ry*((j+.5)/18*2-1);
+  const sx=clamp(Math.floor(x*maskScale),0,stainCanvas.width-1);
+  const sy=clamp(Math.floor(y*maskScale),0,stainCanvas.height-1);
+  const initialAlpha=alpha[(sy*stainCanvas.width+sx)*4+3];
+  if(initialAlpha<160)continue;
+  samples.push({x,y,sx,sy,side:x<W*.5?0:1,initialAlpha,value:0});
+ }
+ lastProgress=[0,0];lastDarkShare=[1,1];
+}
+function updateCoverage(){
+ const alpha=stainCtx.getImageData(0,0,stainCanvas.width,stainCanvas.height).data;
+ const totals=[0,0],counts=[0,0],dark=[0,0];
+ for(const c of samples){
+  const current=alpha[(c.sy*stainCanvas.width+c.sx)*4+3];
+  c.value=clamp(1-current/c.initialAlpha,0,1);
+  totals[c.side]+=c.value;counts[c.side]++;
+  // Dark residue counts as a real remaining patch even if average looks high.
+  if(current>c.initialAlpha*.40)dark[c.side]++;
+ }
+ lastProgress=[totals[0]/Math.max(1,counts[0]),totals[1]/Math.max(1,counts[1])];
+ lastDarkShare=[dark[0]/Math.max(1,counts[0]),dark[1]/Math.max(1,counts[1])];
+ return lastProgress;
+}
+const percent=n=>lastProgress[n];
+function state(){
+ return {done:completed,awards,progress:lastProgress.slice(),darkShare:lastDarkShare.slice(),balls:balls.map(v=>({...v})), 
+  samples:samples.map(v=>({...v})),gain,pace,time,mode,paused,finished,energy:energy.slice(),score,worldShift:worldShift(),duration:DURATION,threshold,
+  maskSize:[stainCanvas.width,stainCanvas.height],
+  pads:pads.map(p=>({active:p.id!==null})),
+  geometry:{...geometry},top:top(),bottom:bottom()};
+}
+function reset(){
+ geometry=makeGeometry();initializeStain();
+ completed=false;awards=0;time=0;realElapsed=0;mode='ready';paused=false;finished=false;energy=[100,100];score=0;prevFrame=0;
+ balls=[{x:W*.25,y:bottom()-30},{x:W*.75,y:bottom()-30}];
+ for(const p of pads){p.id=null;p.knob.style.transform='translate(0px,0px)';}
+ $('leftScore').textContent='Синя 0%';$('rightScore').textContent='Корал 0%';
+ $('result').innerHTML='ЧИСТО! ✓<small>✦ +10 доход · ♡ +8 енергия и за двамата</small>';
+ $('result').classList.remove('show');$('instr').textContent='Двата палеца стартират. Изчисти петното, докато светът се движи ×5.';
+ $('pause').textContent='Пауза';$('clock').textContent='×5 · 0%';
+ draw();
+}
+function resize(){
+ W=Math.max(320,window.innerWidth||800);H=Math.max(400,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ reset();
+}
+function pointSegmentDistance(px,py,x1,y1,x2,y2){
+ const dx=x2-x1,dy=y2-y1,ss=dx*dx+dy*dy;
+ const t=ss?clamp(((px-x1)*dx+(py-y1)*dy)/ss,0,1):0;
+ return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+function scrub(n,x0,y0,x1,y1){
+ if(completed||mode!=='playing'||paused)return;
+ // Convert the screen segment to original mask/world coordinates.
+ // A stationary thumb never scrubs as the stain scrolls beneath it.
+ const shift=worldShift();y0-=shift;y1-=shift;
+ const len=Math.hypot(x1-x0,y1-y0);
+ if(len<1.25)return;
+ // Round, soft layered eraser, not translucent PAPER painted on top.
+ // A real swipe erases the stain alpha; only the touched side can be erased.
+ const brush=clamp(Math.min(W,H)*.063,38,54);
+ stainCtx.save();
+ stainCtx.beginPath();
+ stainCtx.rect(n===0?0:W*.5,0,W*.5,H);
+ stainCtx.clip();
+ stainCtx.globalCompositeOperation='destination-out';
+ // First stroke softens the boundary; the core fully erases in one sweep.
+ for(const pass of [{w:2.45,a:.16},{w:1.65,a:.50},{w:1.06,a:1}]){
+  stainCtx.beginPath();stainCtx.lineCap='round';stainCtx.lineJoin='round';
+  stainCtx.lineWidth=brush*pass.w;
+  stainCtx.strokeStyle='rgba(0,0,0,'+pass.a+')';
+  stainCtx.moveTo(x0,y0);stainCtx.lineTo(x1,y1);stainCtx.stroke();
+ }
+ stainCtx.restore();
+ const [p0,p1]=updateCoverage();
+ $('leftScore').textContent='Синя '+Math.round(p0*100)+'%';
+ $('rightScore').textContent='Корал '+Math.round(p1*100)+'%';
+ if(p0>.87&&p1>.87){
+   $('instr').textContent='Остават само сивите участъци — изтрий ги и от двете страни.';
+ }
+ // The job ends only once almost all actual dirt is gone on BOTH sides
+ // and no noticeable dark islands remain. No early 70% auto-finish.
+ if(p0>=threshold&&p1>=threshold&&
+    lastDarkShare[0]<=maxDarkShare&&lastDarkShare[1]<=maxDarkShare){
+  completed=true;awards=1;score+=10;
+  energy=energy.map(v=>Math.min(100,v+8));
+  // Keep world time running after success; award only once.
+  // At the collective completion event no gray areas are left behind.
+  stainCtx.save();stainCtx.setTransform(1,0,0,1,0,0);
+  stainCtx.clearRect(0,0,stainCanvas.width,stainCanvas.height);stainCtx.restore();
+  for(const c of samples)c.value=1;
+  lastProgress=[1,1];lastDarkShare=[0,0];
+  $('leftScore').textContent='Синя 100%';
+  $('rightScore').textContent='Корал 100%';
+  $('result').classList.add('show');
+  $('instr').textContent='Справихте се заедно! Светът продължава да се движи.';
+ }
+}
+function pointerDown(n,e){
+ if(pads[n].id!==null)return;
+ e.preventDefault();
+ const p=pads[n];p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+ try{p.el.setPointerCapture(e.pointerId)}catch(_){}
+ if(mode==='ready'&&pads.every(v=>v.id!==null))mode='playing';
+}
+function pointerMove(n,e){
+ const p=pads[n];if(p.id!==e.pointerId)return;
+ e.preventDefault();
+ if(mode!=='playing'||paused)return;
+ const dx=(e.clientX-p.x)*gain,dy=(e.clientY-p.y)*gain;
+ p.x=e.clientX;p.y=e.clientY;
+ const b=balls[n],x0=b.x,y0=b.y;
+ const r=radius(),lo=n===0?r:W*.5+r,hi=n===0?W*.5-r:W-r;
+ b.x=clamp(b.x+dx,lo,hi);
+ b.y=clamp(b.y+dy,top()+r,bottom()-r);
+ if(!completed)scrub(n,x0,y0,b.x,b.y);
+ p.knob.style.transform='translate('+clamp(dx,-9,9)+'px,'+clamp(dy,-9,9)+'px)';
+ draw();
+}
+function pointerUp(n,e){
+ const p=pads[n];if(p.id!==e.pointerId)return;
+ p.id=null;p.knob.style.transform='translate(0px,0px)';
+ try{p.el.releasePointerCapture(e.pointerId)}catch(_){}
+}
+for(let n=0;n<2;n++){
+ const el=pads[n].el;
+ el.addEventListener('pointerdown',e=>pointerDown(n,e));
+ el.addEventListener('pointermove',e=>pointerMove(n,e));
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(type,e=>pointerUp(n,e));
+}
+$('restart').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(mode!=='playing')return;
+ paused=!paused;$('pause').textContent=paused?'Продължи':'Пауза';
+});
+function update(dt){
+ if(mode!=='playing'||paused)return;
+ const limited=Math.min(Math.max(0,dt),30);
+ const steps=Math.max(1,Math.ceil(limited/MAX_WORLD_STEP)),per=limited/steps;
+ for(let i=0;i<steps&&mode==='playing';i++){
+  realElapsed+=per;time=Math.min(DURATION,time+per*pace);
+  if(time>=DURATION){
+   mode='done';finished=true;
+   if(!completed){
+    $('result').innerHTML='ВРЕМЕТО ИЗТЕЧЕ<small>Петното остана · опитай отново</small>';
+    $('result').classList.add('show');
+    $('instr').textContent='Не успяхте да почистите навреме. Опитайте друг маршрут.';
+   }else $('instr').textContent='Петното е чисто. Двете светлини продължават.';
+  }
+ }
+ $('clock').textContent='×5 · '+Math.round(100*time/DURATION)+'%';
+}
+function frame(t){
+ if(!prevFrame)prevFrame=t;
+ const dt=Math.min(.05,Math.max(0,(t-prevFrame)/1000));prevFrame=t;
+ if(mode==='playing')update(dt);
+ draw();requestAnimationFrame(frame);
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle=paper;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#7fb5a10b';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#efad930b';ctx.fillRect(W*.5,0,W*.5,H);
+ ctx.save();ctx.setLineDash([4,11]);ctx.strokeStyle='#c7c6be';ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(W*.5,top()-16);ctx.lineTo(W*.5,bottom()+22);ctx.stroke();ctx.restore();
+ ctx.save();ctx.strokeStyle='#aabcae46';ctx.setLineDash([5,8]);
+ ctx.strokeRect(12,top(),W-24,bottom()-top());ctx.restore();
+ // Render exactly the alpha map that drives the percentage.
+ ctx.drawImage(stainCanvas,0,worldShift(),W,H);
+ // Small visual hint that one shared task needs both participants.
+ ctx.font='700 12px sans-serif';ctx.textAlign='center';ctx.fillStyle='#8b8883';
+ ctx.fillText(completed?'✓ ЧИСТО':'ПОЧИСТИ И ДВЕТЕ ПОЛОВИНИ',W*.5,geometry.cy+worldShift()-geometry.ry-20);
+ for(let n=0;n<2;n++){
+  const b=balls[n],r=radius(),color=colors[n],grad=ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,r*2.4);
+  grad.addColorStop(0,color+'5b');grad.addColorStop(1,color+'00');
+  ctx.fillStyle=grad;ctx.beginPath();ctx.arc(b.x,b.y,r*2.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(b.x,b.y,r,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fffafaad';ctx.beginPath();ctx.arc(b.x-r*.24,b.y-r*.27,r*.20,0,Math.PI*2);ctx.fill();
+ }
+}
+// The actual alpha mask remains authoritative; QA can advance the world clock.
+window.__twoHalvesQA={state,reset,resize,draw,advance:update,worldShift};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
