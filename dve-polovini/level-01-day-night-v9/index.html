@@ -891,7 +891,7 @@ function update(dt){
  const secs=Math.min(25,Math.max(0,dt)),num=Math.max(1,Math.ceil(secs/.02)),per=secs/num;
  for(let i=0;i<num&&g.mode==='playing';i++){
   const prev=g.t,phaseBefore=stage(g.t);
-  g.real+=per;g.t=g.cleanActive&&!g.cleanDone?g.t+per*clockRate():Math.min(END,g.t+per*clockRate());
+  g.real+=per;g.t=g.cleanActive?g.t+per*clockRate():Math.min(END,g.t+per*clockRate());
   const current=stage(g.t);
   if(!g.joined){
    // Equal daily fatigue, differences only from player choices and hazards.
