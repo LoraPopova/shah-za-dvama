@@ -125,8 +125,8 @@ const TRAIL_GROUPS=Object.freeze([
  [476,483,490,.24,.21,.26,.76,.79,.74],
  [566,574,582,.34,.28,.22,.67,.73,.79],
  [627,634,641,.25,.33,.41,.75,.68,.60],
- [678,686,694,.35,.37,.40,.66,.64,.60],
- [700,707,714,.40,.41,.42,.60,.59,.58]
+ [700,706,712,.35,.37,.40,.66,.64,.60],
+ [716,722,728,.40,.41,.42,.60,.59,.58]
 ]);
 const TRAIL_COINS=TRAIL_GROUPS.flatMap((q,j)=>[0,1,2].flatMap(i=>[
  Object.freeze({id:'trail'+j+'b'+i,at:q[i],x:q[i+3],side:0,value:1,small:true}),
@@ -227,7 +227,7 @@ const pocketLootPos=(it,t=g.t)=>{
          y:a.cy+a.half*it.yf};
 };
 const keyGeom=(time=g.t)=>{
- const y=worldY(650,time),r=rad(),seam=W*.5;
+ const y=worldY(682,time),r=rad(),seam=W*.5;
  const panelWidth=clamp(W*.095,r*2.6,86);
  // Larger room means a fair physical entrance->spark->exit at 2x cadence.
  // Size remains tunable by Level Designer; portal never becomes tiny.
@@ -311,7 +311,7 @@ function state(){
  wind:g.wind.slice(),windForce:windForce(),worldPixelsPerSecond:speed()*clockRate(),joinTime:g.joinTime,healEnergy:g.healEnergy,healDistance:g.healDistance,healCharge:g.healCharge,healStrokes:g.healStrokes.slice(),
  nightCleared:[...g.nightCleared],nightApproached:[...g.nightApproached],syncValue:g.syncValue,syncBoost:g.syncBoost,duskTouched:[...g.duskTouched],
  lastMergedGesture:g.lastMergedGesture,lastCoralNearGate:g.lastCoralNearGate,
- hits:g.hits,fail:g.fail,completed:g.completed,finished:g.finished,gestureCount:[...g.gestureCount],
+ hits:g.hits,hitLog:g.hitLog.map(v=>({...v})),fail:g.fail,completed:g.completed,finished:g.finished,gestureCount:[...g.gestureCount],
   input:pads.map((p,n)=>({side:n,active:p.id!==null,id:p.id})),touchMode};
 }
 function reset(){
