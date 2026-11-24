@@ -178,10 +178,16 @@ let inputMoves=[0,0],inputApplied=[0,0],recovered=[0,0];
 const CLOUD=Object.freeze({id:'crossing-cloud',at:487,entry:7,rate:19,cap:32});
 const HAZARDS=Object.freeze([CLOUD]);
 function cloudGeom(t=g.t){
- const y=worldY(CLOUD.at,t),rx=clamp(W*.275,84,230);
- const ry=clamp(height()*.16,58,160);
- const travel=clamp((bottom()+ry-y)/(height()+2*ry),0,1);
- const e=travel*travel*(3-2*travel); // smooth traversal, no jerk
+ const rx=clamp(W*.275,84,230),ry=clamp(height()*.16,58,160);
+ // The cloud keeps its world-relative vertical drift but floats through
+ // the actual play band while it crosses BOTH halves of the screen.
+ // At quarter-sweep it threatens Blue; at three-quarters, Coral.
+ const travel=clamp((t-(CLOUD.at-24))/48,0,1);
+ const e=travel*travel*(3-2*travel);
+ const worldHeight=worldY(CLOUD.at,t);
+ const hover=heroY()+height()*.06;
+ const blend=Math.sin(Math.PI*travel);
+ const y=worldHeight*(1-blend)+hover*blend;
  const x=-rx*.32+(W+rx*.64)*e;
  return {x,y,rx,ry,travel};
 }
