@@ -322,7 +322,7 @@ function draw(){
  ctx.fillStyle=g.held?'#b6ded245':'#c9e2dc42';
  ctx.fillRect(z.right,cy-z.doorHalf,z.panelWidth,2*z.doorHalf);
  for(const [a,b,c,d,t] of roomSegments(undefined,false)){
-  const turquoise=a>=z.right-.1;
+  const turquoise=a>=z.right-.1&&c>=z.gate-.1;
   line(a,b,c,d,turquoise?'#77aaa7':'#916c68',t+1.8);
  }
  // Internal vertical seam beside attached turquoise module, but clear doorway.
