@@ -76,7 +76,15 @@ const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
 const playH=()=>lower()-upper();
 const lane=n=>n===0?[radius(),W*.5-radius()]:[W*.5+radius(),W-radius()];
 const wall=()=>clamp(Math.min(W,H)*.011,6,10);
-const roomY=(time=g.time)=>upper()+playH()*(.94+(EVENT_AT-time)*.018);
+// Keep the whole apparatus initially in the playable region, including
+// very short landscape viewports. Then let it travel UP with world time ×5.
+// Motion is never paused at the cooperative plate or while Coral is inside.
+const roomY=(time=g.time)=>{
+ const z=room(),r=radius(),bottomY=lower()-z.half-r-6;
+ const topY=upper()+z.half+r+6;
+ const speed=Math.max(.20,(bottomY-topY)/58);
+ return bottomY-time*speed;
+};
 const room=()=>({left:W*.614,right:W*.872,half:clamp(playH()*.21,43,95),
   doorHalf:clamp(radius()*2.4,27,47)});
 const plate=()=>({x:W*.307,y:roomY(),r:clamp(radius()*2.15,24,38)});
