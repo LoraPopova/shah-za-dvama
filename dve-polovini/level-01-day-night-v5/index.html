@@ -52,20 +52,28 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b,x,y)=>Math.hypot(a-x,b-
 const TWO=Math.PI*2,GAIN=2.5,PACE=5,DAY_END=735,DUSK_END=825,END=1350;
 // Exact five independent non-mirrored holes from Day 18 v2.
 const DAY_ROWS=Object.freeze([
- {id:'first',at:83,gaps:[.68,.38],width:.20},
- {id:'second',at:118,gaps:[.28,.67],width:.20},
- {id:'third',at:153,gaps:[.57,.25],width:.19},
- {id:'fourth',at:188,gaps:[.37,.53],width:.20},
- {id:'fifth',at:223,gaps:[.72,.74],width:.19}
+ {id:'first',at:65,gaps:[.68,.38],width:.20},
+ {id:'second',at:98,gaps:[.28,.67],width:.20},
+ {id:'third',at:131,gaps:[.57,.25],width:.19},
+ {id:'fourth',at:164,gaps:[.37,.53],width:.20},
+ {id:'fifth',at:197,gaps:[.72,.74],width:.19},
+ {id:'sixth',at:230,gaps:[.30,.46],width:.21},
+ {id:'seventh',at:263,gaps:[.62,.27],width:.20},
+ {id:'eighth',at:296,gaps:[.43,.70],width:.21},
+ {id:'afterwind',at:604,gaps:[.53,.34],width:.22}
 ]);
 const NIGHT_ROWS=Object.freeze([
- {id:'moon1',at:920,center:.26,width:.38},
- {id:'moon2',at:978,center:.74,width:.38},
- {id:'moon3',at:1036,center:.50,width:.50},
- {id:'moon4',at:1094,center:.26,width:.38},
- {id:'moon5',at:1152,center:.74,width:.38},
- {id:'moon6',at:1210,center:.35,width:.40},
- {id:'moon7',at:1268,center:.65,width:.40}
+ {id:'moon1',at:893,center:.26,width:.38},
+ {id:'moon2',at:933,center:.74,width:.38},
+ {id:'moon3',at:973,center:.50,width:.50},
+ {id:'moon4',at:1013,center:.27,width:.39},
+ {id:'moon5',at:1053,center:.72,width:.40},
+ {id:'moon6',at:1093,center:.39,width:.46},
+ {id:'moon7',at:1133,center:.65,width:.42},
+ {id:'moon8',at:1173,center:.25,width:.40},
+ {id:'moon9',at:1213,center:.71,width:.39},
+ {id:'moon10',at:1253,center:.42,width:.46},
+ {id:'moon11',at:1293,center:.59,width:.46}
 ]);
 // Day 13 Wind v2: exact 1.00, 1.24, 1.37 and centre/outside spikes.
 const WIND_BANDS=Object.freeze([
@@ -536,7 +544,7 @@ function update(dt){
   }
   if(!g.joined&&g.t>=DUSK_END){finish(false,'Не успяхте да се срещнете');break;}
   if(g.t>=END){
-   const won=g.joined&&g.nightCleared.filter(Boolean).length>=5&&g.shared>=20;
+   const won=g.joined&&g.nightCleared.filter(Boolean).length>=8&&g.shared>=20;
    finish(won,won?'Денят и нощта — заедно ♡':'Опитайте още една нощ');
   }
  }
@@ -549,9 +557,9 @@ function updateHud(){
  $('energy1').textContent=g.joined?'Две ръце':'Корал ♡'+Math.round(g.energy[1]);
  $('income').textContent='✦'+g.score;
  let label=phase==='day'?
- (g.t<100?'Сутрин · по две пътеки':g.t<290?'Работа · пет независими пролуки':
+ (g.t<100?'Сутрин · по две пътеки':g.t<290?'Работа · девет различни прохода':
   g.t<580?'Следобед · три силни вятъра':'Към дома · ключ и обща камера'):
- phase==='dusk'?'Привечер · срещнете се':'Нощ · седем спокойни прохода';
+ phase==='dusk'?'Привечер · срещнете се':'Нощ · единадесет общи прохода';
  if(g.joined&&phase==='dusk')label='Прегръдка · възстановяване';
  $('stage').textContent=g.paused?'Пауза':label+' · ×'+clockRate();
  $('hud').style.color=phase==='night'?'#f5e9db':'#4d5f60';
@@ -573,7 +581,7 @@ function updateHud(){
  'Силен вятър, много точки — следвайте цветните редици.') :
  'Синя влиза в ключа ВЛЯВО, Корал в камерата ВДЯСНО.'):
  phase==='dusk'?(g.joined?'♡ Лекувайте се с ДВАТА палеца в светлата зона.':'♡ Срещнете двете светлини в центъра!'):
- 'Една светлина · два палеца · седем широки, различни прохода.';
+ 'Една светлина · два палеца · единадесет широки, различни прохода.';
  $('message').textContent=(g.joined&&g.t<900&&g.healCharge<28)?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
 }
 function line(x,y,xx,yy,color,width=2){
