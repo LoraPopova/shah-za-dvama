@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 20 — Ключ в полето на Синя v4</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+#bridgeMeter{position:fixed;left:16px;right:16px;top:calc(157px + env(safe-area-inset-top,0px));height:5px;background:#d7dfd8aa;border-radius:5px;pointer-events:none;z-index:5;overflow:hidden}
+#bridgeFill{height:100%;width:0%;background:linear-gradient(90deg,#73af92,#b8d5a4);transition:width .035s linear}
+#hint{top:calc(174px + env(safe-area-inset-top,0px));font-size:13px}
+#menu{top:calc(110px + env(safe-area-inset-top,0px))}
+@media(max-height:580px){#bridgeMeter{display:none}#hint{display:none}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №1</div><h1>Ден 20 · Ключът е при Синя v4</h1><div id="status">Един общ обект: ключ в лявото поле на Синя, камера с искра вдясно.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">ВХОД 0%</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="skip" disabled>Пропусни</button></div>
+<div id="bridgeMeter"><div id="bridgeFill"></div></div>
+<div id="hint">Синя влиза в тюркоазения ключ вляво → отваря. Излиза → затваря.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const COLOR=['#67a8a3','#ef9882'],GAIN=2.5,PACE=5,DURATION=85;
+const OPEN_SECONDS=.16,CLOSE_SECONDS=.22,MAX_WORLD_STEP=.02;
+let W=1,H=1,dpr=1,g=null,previousFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const radius=()=>clamp(Math.min(W,H)*.019,11,19);
+const wall=()=>clamp(Math.min(W,H)*.010,5,9);
+const upper=()=>Math.max(110,H*.16);
+const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
+const playH=()=>lower()-upper();
+const lane=n=>n===0?[radius(),W*.5-radius()]:[W*.5+radius(),W-radius()];
+const R=Math;
+function layout(){
+ const r=radius(),half=clamp(playH()*.22,36,102),seam=W*.5;
+ // SK-01 v4: a compact, joined shape across the centre divider.
+ // The ENTIRE turquoise key module is LEFT of seam: it belongs to Blue.
+ // The brown reward chamber is RIGHT of seam: it belongs to Coral.
+ const panelWidth=clamp(W*.095,r*2.6,86);
+ const keyLeft=seam-panelWidth,keyRight=seam;
+ const left=seam,right=clamp(W*.81,left+r*7,W-r*4.6),gate=right;
+ const doorHalf=clamp(half*.51,r*1.85,half-r*.58);
+ const keyHalf=Math.min(half*.68,Math.max(r*1.72,half*.59));
+ const blueX=(keyLeft+keyRight)*.5;
+ const blueRange=Math.min(panelWidth*.49,r*1.9);
+ const blueHalf=Math.max(r*1.72,Math.min(keyHalf*.80,42));
+ return {seam,left,right,gate,keyLeft,keyRight,panelWidth,keyHalf,
+  half,doorHalf,blueX,blueRange,blueHalf};
+}
+const roomY=(time=g.time)=>{
+ const z=layout(),r=radius();
+ const start=lower()-z.half-r-7,end=upper()+z.half+r+7;
+ return start-time*Math.max(.20,(start-end)/58);
+};
+const plate=()=>{const z=layout();return{x:z.blueX,y:roomY(),r:z.blueHalf,attached:true}};
+const reward=()=>{const z=layout();return{x:z.left+(z.right-z.left)*.46,y:roomY()}};
+function segSq(x,y,ax,ay,bx,by){
+ const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy,k=l?clamp(((x-ax)*dx+(y-ay)*dy)/l,0,1):0;
+ return (x-ax-dx*k)**2+(y-ay-dy*k)**2;
+}
+function roomSegments(time=g.time,closed=g.open<.97){
+ const z=layout(),cy=roomY(time),t=wall();
+ const out=[
+  // The large brown chamber is physically in CORAL's right field.
+  [z.left,cy-z.half,z.right,cy-z.half,t],
+  [z.left,cy+z.half,z.right,cy+z.half,t],
+  [z.left,cy-z.half,z.left,cy+z.half,t],
+  [z.right,cy-z.half,z.right,cy-z.doorHalf,t],
+  [z.right,cy+z.doorHalf,z.right,cy+z.half,t],
+  // The turquoise KEY is attached on the LEFT, fully in BLUE's field.
+  [z.keyLeft,cy-z.keyHalf,z.keyRight,cy-z.keyHalf,t],
+  [z.keyLeft,cy+z.keyHalf,z.keyRight,cy+z.keyHalf,t],
+  [z.keyLeft,cy-z.keyHalf,z.keyLeft,cy+z.keyHalf,t]
+ ];
+ if(closed)out.push([z.gate,cy-z.doorHalf,z.gate,cy+z.doorHalf,t]);
+ return out;
+}
+function solid(x,y,time=g.time){
+ const rr=radius()+wall()*.5-.2;
+ return roomSegments(time).some(([a,b,c,d])=>segSq(x,y,a,b,c,d)<rr*rr);
+}
+// The key hit zone exists ONLY in Blue's LEFT HALF. Coral's location
+// is never consulted to decide door power.
+function inBlueContact(){
+ const z=layout(),b=g.balls[0],cy=roomY();
+ return b.x>=z.keyLeft+radius()*.2
+   &&b.x<=z.keyRight-radius()*.45
+   &&Math.abs(b.y-cy)<z.blueHalf;
+}
+const plateTouched=()=>g.plateArmed&&inBlueContact();
+function checkCoral(active){
+ if(!active||g.mode!=='playing'||g.done||g.missed)return;
+ const z=layout(),b=g.balls[1],r=radius(),cy=roomY();
+ const aligned=Math.abs(b.y-cy)<z.doorHalf-r*.8;
+ // The entry gate is on the RIGHT wall of Coral's brown chamber.
+ if(!g.entryArmed&&aligned&&b.x>=z.gate+r*.72)g.entryArmed=true;
+ if(g.entryArmed&&!g.entered&&aligned&&g.open>=.97&&b.x<=z.gate-r*.76){
+  g.entered=true;g.inside=true;
+  $('hint').textContent='Корал е вътре. Само Синя на тюркоазения ключ отваря вратата.';
+ }
+ if(g.entered&&!g.collected){
+  const p=reward();
+  if(Math.hypot(b.x-p.x,b.y-p.y)<r+9){
+   g.collected=true;g.pickCount++;
+   $('hint').textContent='Искрата е взета! Синя пак отваря ключа, Корал излиза отдясно.';
+  }
+ }
+ if(g.inside&&g.collected&&aligned&&b.x>=z.gate+r*.78){
+  g.inside=false;g.exited=true;finishMission();
+ }
+}
+function finishMission(){
+ if(g.done||g.missed||!g.entered||!g.collected||!g.exited)return;
+ g.done=true;g.rewardCount++;g.score+=8;g.energy=g.energy.map(x=>Math.min(100,x+8));
+ $('hint').textContent='Искрата е върната! ✦8 — Синя помогна, Корал излезе.';
+}
+function state(){
+ const z=layout();
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,gain:GAIN,
+  balls:g.balls.map(b=>({...b})),energy:g.energy.slice(),score:g.score,
+  room:{...z,y:roomY(),segments:roomSegments()},plate:{...plate(),touched:plateTouched()},
+  reward:{...reward(),taken:g.collected},held:g.held,armed:g.plateArmed,
+  open:g.open,openCycles:g.openCycles,closeCycles:g.closeCycles,
+  entryArmed:g.entryArmed,entered:g.entered,inside:g.inside,collected:g.collected,
+  pickCount:g.pickCount,exited:g.exited,done:g.done,rewardCount:g.rewardCount,
+  missed:g.missed,finished:g.finished,hits:g.hits,contactPushes:g.contactPushes,crushed:g.crushed};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,pace:PACE,
+  balls:[{x:W*.32,y:upper()+playH()*.25},{x:W*.94,y:upper()+playH()*.25}],
+  energy:[100,100],score:0,held:false,plateArmed:false,open:0,
+  openCycles:0,closeCycles:0,entryArmed:false,entered:false,inside:false,
+  collected:false,pickCount:0,exited:false,done:false,rewardCount:0,
+  missed:false,finished:false,crushed:false,hits:0,lastHit:[-99,-99],contactPushes:0};
+ pads.forEach(p=>p.id=null);
+ $('finish').style.display='none';$('pause').textContent='Пауза';
+ $('hint').textContent='Ключът е в ЛЯВОТО поле на Синя. Корал влиза в камерата отдясно.';
+ refresh();draw();
+}
+function resize(){
+ const oldW=W,oldH=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&oldW>1&&oldH>1){
+  for(let n=0;n<2;n++){const b=g.balls[n],limits=lane(n);
+   b.x=clamp(b.x*W/oldW,limits[0],limits[1]);b.y=clamp(b.y*H/oldH,upper()+radius(),lower()-radius());}
+  g.plateArmed=false;draw();refresh();
+ }else reset();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);
+ $('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent=(g.held?'ОТВАРЯ':'ЗАТВАРЯ')+' '+Math.round(g.open*100)+'%';
+ $('bridgeFill').style.width=(g.open*100)+'%';
+ $('bar').style.width=Math.min(100,g.time/DURATION*100)+'%';
+ $('skip').disabled=g.mode!=='playing'||g.paused||g.done||g.missed||g.inside||g.time<10;
+ if(g.mode==='ready')$('status').textContent='Двата палеца за старт · постоянен скрол ×5';
+ else if(g.paused)$('status').textContent='Пауза';
+ else if(g.mode==='done')$('status').textContent='Край на участъка';
+ else if(g.done)$('status').textContent='✦8 · искрата е върната';
+ else if(g.held)$('status').textContent='Синя е в тюркоазения ключ · вратата се отваря';
+ else if(g.inside)$('status').textContent='Корал е вътре — Синя отваря за изход';
+ else $('status').textContent='Синя: ключът ВЛЯВО · Корал: камерата ВДЯСНО';
+}
+function hit(n){
+ if(g.realTime-g.lastHit[n]<.8)return;
+ g.lastHit[n]=g.realTime;g.hits++;g.energy[n]=Math.max(0,g.energy[n]-5);
+}
+function move(n,dx,dy){
+ if(g.mode!=='playing'||g.paused||Math.hypot(dx,dy)<.4)return;
+ const b=g.balls[n],limits=lane(n),r=radius();
+ const steps=Math.max(1,Math.min(1500,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,r*.32))));
+ for(let i=0;i<steps;i++){
+  const ox=b.x;b.x=clamp(ox+dx/steps,limits[0],limits[1]);
+  if(n===1&&solid(b.x,b.y)){b.x=ox;hit(n);}
+  const oy=b.y;b.y=clamp(oy+dy/steps,upper()+r,lower()-r);
+  if(n===1&&solid(b.x,b.y)){b.y=oy;hit(n);}
+  if(n===0)g.plateArmed=inBlueContact(); // real Blue movement only
+  else checkCoral(true);
+ }
+ refresh();draw();
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();
+  p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(x=>x.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',e=>{
+  if(e.pointerId!==p.id)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx*GAIN,dy*GAIN);
+ });
+ for(const kind of ['pointerup','pointercancel','lostpointercapture'])
+  el.addEventListener(kind,e=>{
+   if(e.pointerId!==p.id)return;p.id=null;
+   try{el.releasePointerCapture(e.pointerId)}catch(_){}
+  });
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;g.paused=!g.paused;
+ $('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
+});
+$('skip').addEventListener('click',()=>{
+ if(g.mode!=='playing'||g.paused||g.done||g.missed||g.inside||g.time<10)return;
+ g.missed=true;$('hint').textContent='Камерата е пропусната. Светът продължава.';refresh();
+});
+function finish(){
+ if(g.finished)return;g.finished=true;g.mode='done';
+ $('outcome').textContent=g.done?'ВЗЕХТЕ ОРАНЖЕВАТА ИСКРА!':g.crushed?'КАМЕРАТА ОТМИНА':'Край на участъка';
+ $('result').textContent='Камера '+(g.done?'успех':g.missed?'пропусната':'неуспех')+
+  ' · ✦'+g.score+' · искра '+(g.collected?'взета':'пропусната')+
+  ' · изход '+(g.exited?'да':'не')+' · енергия '+g.energy.map(v=>Math.round(v)).join(' / ');
+ $('finish').style.display='flex';
+}
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ const total=Math.min(Math.max(0,dt),30),steps=Math.max(1,Math.ceil(total/MAX_WORLD_STEP)),part=total/steps;
+ for(let i=0;i<steps&&g.mode==='playing';i++){
+  const wasTime=g.time,oldY=roomY(wasTime);
+  g.realTime+=part;g.time=Math.min(DURATION,g.time+part*PACE);g.pace=PACE;
+  if(!inBlueContact())g.plateArmed=false;
+  // Command is ONLY Blue's physical contact. Coral never latches the door.
+  g.held=plateTouched();
+  const previousOpen=g.open>=.97;
+  if(g.held)g.open=Math.min(1,g.open+part/OPEN_SECONDS);
+  else g.open=Math.max(0,g.open-part/CLOSE_SECONDS);
+  const nowOpen=g.open>=.97;
+  if(!previousOpen&&nowOpen)g.openCycles++;
+  if(previousOpen&&!nowOpen)g.closeCycles++;
+  // Door collision keeps Coral on the SAME side if the gate closes over it.
+  const z=layout(),b=g.balls[1],rr=radius()+wall()*.5+.35;
+  if(!nowOpen&&Math.abs(b.x-z.gate)<rr&&Math.abs(b.y-roomY())<z.doorHalf+rr){
+   const sign=b.x>=z.gate?1:-1;
+   b.x=clamp(z.gate+sign*(rr+.35),lane(1)[0],lane(1)[1]);
+   g.contactPushes++;
+  }
+  // World scroll NEVER stops at apparatus. Correct small per-step wall overlaps.
+  const shift=roomY()-oldY;
+  if(solid(b.x,b.y)){
+   let retries=0;
+   while(solid(b.x,b.y)&&retries++<20){
+    const next=clamp(b.y+shift,upper()+radius(),lower()-radius());
+    if(Math.abs(next-b.y)<1e-6)break;
+    b.y=next;
+   }
+   if(solid(b.x,b.y)){
+    hit(1);
+    if(b.y<=upper()+radius()+.15){g.crushed=true;finish();}
+   }
+  }
+  if(g.time>=DURATION)finish();
+ }
+ refresh();
+}
+function line(ax,ay,bx,by,c,w=2){
+ ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+}
+function disc(x,y,r,c){
+ ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#90bca90d';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#f3a58b0f';ctx.fillRect(W*.5,0,W*.5,H);
+ const z=layout(),cy=roomY(),rr=radius(),top=upper(),bottom=lower();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#b9c8bf';
+ ctx.strokeRect(12,top,W-24,bottom-top);ctx.restore();
+ line(W*.5,top-13,W*.5,bottom+10,'#cfc6b9',1.5);
+ ctx.save();ctx.beginPath();ctx.rect(0,top,W,bottom-top);ctx.clip();
+ // SK-01 corrected: one compact apparatus with KEY LEFT (Blue)
+ // and large brown orange-reward chamber RIGHT (Coral).
+ // Both shapes touch at screen centre; no remote button or long cable.
+ ctx.fillStyle=g.inside?'#dbd0b351':'#f2e2c54f';
+ ctx.fillRect(z.left,cy-z.half,z.right-z.left,2*z.half);
+ ctx.fillStyle=g.held?'#a8d8c852':'#c9e2dc42';
+ ctx.fillRect(z.keyLeft,cy-z.keyHalf,z.panelWidth,2*z.keyHalf);
+ for(const [a,b,c,d,t] of roomSegments(undefined,false)){
+  const turquoise=a<=z.seam+.1&&c<=z.seam+.1;
+  line(a,b,c,d,turquoise?'#77aaa7':'#916c68',t+1.8);
+ }
+ // Highlight the joined seam without making the shapes separate.
+ line(z.seam,cy-z.keyHalf,z.seam,cy+z.keyHalf,'#acafa1',1.3);
+ const r=reward();
+ if(!g.collected){
+  disc(r.x,r.y,rr*.95,'#efb3663e');
+  disc(r.x,r.y,rr*.58,'#e8a65c');
+  disc(r.x-rr*.12,r.y-rr*.14,rr*.12,'#fff4d1');
+ }else if(g.inside)disc(g.balls[1].x+rr*.75,g.balls[1].y-rr*.70,rr*.27,'#e8a65c');
+ // Key glyph is inside the turquoise module, unequivocally LEFT of centre.
+ const keyX=z.blueX,markY=cy;
+ ctx.strokeStyle=g.open>=.97?'#4e9686':'#739e9a';ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(keyX,markY-rr*.40,rr*.36,0,Math.PI*2);ctx.stroke();
+ line(keyX,markY-rr*.04,keyX,markY+rr*.72,'#739e9a',2);
+ line(keyX,markY+rr*.47,keyX+rr*.22,markY+rr*.47,'#739e9a',2);
+ // Coral's gate is on the far RIGHT side of the brown chamber.
+ if(g.open<.97){
+  line(z.gate,cy-z.doorHalf,z.gate,cy+z.doorHalf,'#6e9893',wall()+1);
+  if(g.open>0)disc(z.gate,cy,rr*.24,'#6db6a7');
+ }else{
+  disc(z.gate,cy-z.doorHalf,rr*.24,'#76b4a2');
+  disc(z.gate,cy+z.doorHalf,rr*.24,'#76b4a2');
+ }
+ // Show exactly the left-side keyed contact, not a phantom trigger.
+ if(g.held||inBlueContact()){
+  ctx.fillStyle='#78c3b54b';
+  ctx.fillRect(z.keyLeft,cy-z.keyHalf,z.panelWidth,2*z.keyHalf);
+  line(z.keyLeft,cy-z.keyHalf,z.keyLeft,cy+z.keyHalf,'#4b9b92',4);
+ }
+ ctx.restore();
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],halo=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,rr*2.6);
+  halo.addColorStop(0,COLOR[n]+'70');halo.addColorStop(1,COLOR[n]+'00');
+  disc(b.x,b.y,rr*2.6,halo);disc(b.x,b.y,rr,COLOR[n]);
+  disc(b.x-rr*.22,b.y-rr*.25,rr*.17,'#ffffffba');
+ }
+ if(g.mode==='ready'){
+  ctx.fillStyle='#69877a';ctx.font='bold 14px sans-serif';ctx.textAlign='center';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+30);
+ }
+}
+function frame(ts){
+ if(!previousFrame)previousFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-previousFrame)/1000));
+ previousFrame=ts;if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,solid,roomSegments,plateTouched,inBlueContact,checkCoral,roomY,layout,resize};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
