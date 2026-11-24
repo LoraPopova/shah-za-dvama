@@ -135,7 +135,10 @@ const nightGap=row=>{
 const keyGeom=(time=g.t)=>{
  const y=worldY(650,time),r=rad(),seam=W*.5;
  const panelWidth=clamp(W*.095,r*2.6,86);
- const roomHalf=clamp(height()*.086,r*3.2,88);
+ // Larger room means a fair physical entrance->spark->exit at 2x cadence.
+ // Size remains tunable by Level Designer; portal never becomes tiny.
+ const roomHalf=clamp(Math.min(200,Math.max(height()*.18,W*.165)),
+  r*4.5,Math.min(height()*.40,(W*.81-seam)*.62));
  const doorHalf=clamp(roomHalf*.54,r*1.95,roomHalf-r*.65);
  const keyLeft=seam-panelWidth,roomRight=W*.81;
  return {y,keyLeft,keyRight:seam,keyX:(keyLeft+seam)*.5,
@@ -219,6 +222,7 @@ function reset(){
   lastMergedGesture:-99,lastCoralNearGate:-99,
   gestureCount:[0,0],lastHud:-1,finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
  pads.forEach((p,n)=>{p.id=null;p.el.style.boxShadow='inset 0 0 0 8px #ffffff33';$('pad'+n+'status').textContent=n===0?'ЛЯВ ПАЛЕЦ':'ДЕСЕН ПАЛЕЦ';});
+ runtime.start=0;runtime.t0=0;runtime.frames=0;
  $('pause').textContent='Пауза';$('tempo').textContent='Темпо ×'+tempo;
  $('result').style.display='none';
  updateHud();draw();
@@ -289,15 +293,16 @@ function maybeJoin(n){
  g.joinedInput=[-99,-99];g.lastMergedGesture=-99;g.tip='♡ Една светлина. Движете двата палеца заедно.';
 }
 function healStroke(n,distance){
- if(!g.joined||g.healCharge>=28||g.t>902)return;
+ if(!g.joined||g.healCharge>=28||g.t>956)return;
  g.joinedInput[n]=g.real;
  if(Math.abs(g.joinedInput[0]-g.joinedInput[1])>.9)return;
- const bx=W*.5,by=worldY(832),range=clamp(height()*.22,54,88);
+ const bx=W*.5,by=worldY(832),range=clamp(height()*.35,95,160);
  if(dist(g.one.x,g.one.y,bx,by)>range)return;
  const amount=Math.min(Math.max(0,distance),12);
  if(amount<.2)return;
  g.healDistance+=amount;
- const target=Math.min(28,Math.floor(g.healDistance/4));
+ // 2x faster event tempo offers half the time: restore same energy per encounter.
+ const target=Math.min(28,Math.floor(g.healDistance/2));
  const bonus=target-g.healCharge;
  if(bonus>0){
   g.healCharge=target;
@@ -436,7 +441,7 @@ $('reset').addEventListener('click',reset);$('again').addEventListener('click',r
 $('tempo').addEventListener('click',()=>{
  tempo=tempo===2?1:2;
  $('tempo').textContent='Темпо ×'+tempo;
- runtime.start=0;runtime.actualPx=null;runtime.fps=null;
+ runtime.start=prevFrame||0;runtime.t0=g?.t||0;runtime.frames=0;runtime.actualPx=null;runtime.fps=null;
  updateHud();
 });
 $('pause').addEventListener('click',()=>{
@@ -545,7 +550,7 @@ function updateHud(){
  'Синя влиза в ключа ВЛЯВО, Корал в камерата ВДЯСНО.'):
  phase==='dusk'?(g.joined?'♡ Лекувайте се с ДВАТА палеца в светлата зона.':'♡ Срещнете двете светлини в центъра!'):
  'Една светлина · два палеца · седем широки, различни прохода.';
- $('message').textContent=(g.joined&&g.t<902&&g.healCharge<28)?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
+ $('message').textContent=(g.joined&&g.t<956&&g.healCharge<28)?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
 }
 function line(x,y,xx,yy,color,width=2){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
@@ -658,8 +663,8 @@ function draw(){
    disc(x,y,item.value===3?8:6,col);disc(x-2,y-2,1.7,'#ffffffe8');
   }
  }
- if(phase==='dusk'||(g.joined&&g.t<902)){
-  const yy=worldY(832),shine=clamp(height()*.22,54,88);
+ if(phase==='dusk'||(g.joined&&g.t<956)){
+  const yy=worldY(832),shine=clamp(height()*.35,95,160);
   const glow=ctx.createRadialGradient(W*.5,yy,2,W*.5,yy,shine*1.35);
   glow.addColorStop(0,'#fee9b98a');glow.addColorStop(1,'#f7c5a600');
   disc(W*.5,yy,shine*1.35,glow);
