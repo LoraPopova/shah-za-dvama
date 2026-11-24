@@ -236,7 +236,7 @@ function update(dt){
     const b=g.balls[n],rr=rad(),gap=opening(row,n);
     if(!g.cleared[ri][n]){
       if(prevY>b.y+rr*.6)g.approached[ri][n]=true;
-      if(g.approached[ri][n]&&nextY<b.y-rr*.6){
+      if(g.approached[ri][n]&&nextY<b.y-(rr+thickness()*.5+2)){
        if(g.moved[n]&&b.x>gap.left+rr*.5&&b.x<gap.right-rr*.5){
         g.cleared[ri][n]=true;
        }
