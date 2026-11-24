@@ -50,7 +50,7 @@ h1{font-size:21px;margin:4px 0 4px;font-weight:750;letter-spacing:-.4px}
 </header>
 <div id="readout"><span id="leftScore">Синя 0%</span><span id="rightScore">Корал 0%</span><span id="clock">×5 · 0%</span></div>
 <div id="toolbar"><button id="restart" type="button">Отначало</button> <button id="pause" type="button">Пауза</button></div>
-<div id="result">ЧИСТО! ✓<small>✦ +10 доход · ♡ +8 енергия и за двамата</small></div>
+<div id="result">ЧИСТО! ✓<small>✦ +10 доход · ♡ до +8 при липсваща енергия</small></div>
 <div class="pad left" id="pad0"><div class="knob" id="knob0"></div><div class="pad-label">ЛЯВ ПАЛЕЦ</div></div>
 <div class="pad right" id="pad1"><div class="knob" id="knob1"></div><div class="pad-label">ДЕСЕН ПАЛЕЦ</div></div>
 <script>
@@ -144,7 +144,7 @@ function reset(){
  balls=[{x:W*.25,y:bottom()-30},{x:W*.75,y:bottom()-30}];
  for(const p of pads){p.id=null;p.knob.style.transform='translate(0px,0px)';}
  $('leftScore').textContent='Синя 0%';$('rightScore').textContent='Корал 0%';
- $('result').innerHTML='ЧИСТО! ✓<small>✦ +10 доход · ♡ +8 енергия и за двамата</small>';
+ $('result').innerHTML='ЧИСТО! ✓<small>✦ +10 доход · ♡ до +8 при липсваща енергия</small>';
  $('result').classList.remove('show');$('instr').textContent='Двата палеца стартират. Изчисти петното, докато светът се движи ×5.';
  $('pause').textContent='Пауза';$('clock').textContent='×5 · 0%';
  draw();
@@ -219,9 +219,11 @@ function pointerDown(n,e){
 function pointerMove(n,e){
  const p=pads[n];if(p.id!==e.pointerId)return;
  e.preventDefault();
- if(mode!=='playing'||paused)return;
+ // Always track the real thumb even in ready/pause. Resuming cannot
+ // produce a giant stale delta from movement while gameplay was frozen.
  const dx=(e.clientX-p.x)*gain,dy=(e.clientY-p.y)*gain;
  p.x=e.clientX;p.y=e.clientY;
+ if(mode!=='playing'||paused)return;
  const b=balls[n],x0=b.x,y0=b.y;
  const r=radius(),lo=n===0?r:W*.5+r,hi=n===0?W*.5-r:W-r;
  b.x=clamp(b.x+dx,lo,hi);
