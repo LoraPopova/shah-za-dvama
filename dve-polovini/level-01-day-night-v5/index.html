@@ -148,9 +148,11 @@ const keyGeom=(time=g.t)=>{
  const panelWidth=clamp(W*.095,r*2.6,86);
  // Larger room means a fair physical entrance->spark->exit at 2x cadence.
  // Size remains tunable by Level Designer; portal never becomes tiny.
- const roomHalf=clamp(Math.min(200,Math.max(height()*.18,W*.165)),
-  r*4.5,Math.min(height()*.40,(W*.81-seam)*.62));
- const doorHalf=clamp(roomHalf*.54,r*1.95,roomHalf-r*.65);
+ // Level Designer can vary height. At faster event cadence a taller
+ // integrated chamber gives Coral physical room to enter and return.
+ const roomHalf=clamp(Math.min(300,Math.max(height()*.25,W*.24)),
+  r*4.5,Math.min(height()*.42,(W*.81-seam)*.85));
+ const doorHalf=clamp(roomHalf*.60,r*1.95,roomHalf-r*.65);
  const keyLeft=seam-panelWidth,roomRight=W*.81;
  return {y,keyLeft,keyRight:seam,keyX:(keyLeft+seam)*.5,
   keyR:Math.min(panelWidth*.43,roomHalf*.6),gateX:roomRight,
@@ -276,7 +278,7 @@ function pick(n,px,py){
 function blueKey(){
  const k=keyGeom(),b=g.balls[0],r=rad();
  return b.x>=k.keyLeft+r*.16&&b.x<=k.keyRight-r*.45
-  &&Math.abs(b.y-k.y)<k.roomHalf*.68;
+  &&Math.abs(b.y-k.y)<k.roomHalf*.80;
 }
 function coralChamberMove(){
  if(g.joined||g.keyDone||stage(g.t)!=='day')return;
