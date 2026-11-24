@@ -21,6 +21,7 @@ h1{margin:3px 0;font-size:21px;font-weight:840;line-height:1.2}
 #barfill{height:100%;width:0;background:linear-gradient(90deg,#72b8ae 0%,#efb0a1 56%,#8994d4 100%)}
 #menu{position:fixed;top:calc(113px + env(safe-area-inset-top,0px));left:14px;z-index:6;display:flex;gap:8px}
 button{font-family:inherit;color:#4c6563;font-size:12px;font-weight:750;padding:9px 14px;border-radius:25px;border:1px solid #ccd7d0;background:#ffffffe0;box-shadow:0 5px 18px #253b3917;touch-action:manipulation}
+#cleanStats{display:none;position:fixed;top:calc(195px + env(safe-area-inset-top,0px));left:15%;right:15%;font-size:15px;font-weight:820;color:#fff0d6;text-align:center;z-index:6;pointer-events:none;text-shadow:0 2px 8px #121726}
 #message{position:fixed;top:calc(165px + env(safe-area-inset-top,0px));left:15%;right:15%;font-size:13px;font-weight:750;text-align:center;color:#65817f;pointer-events:none;text-shadow:0 2px 8px #f7f0e6df;z-index:4;min-height:30px}
  .touchzone{position:fixed;bottom:0;height:53%;width:50%;z-index:5;touch-action:none;overscroll-behavior:contain;background:transparent}.touchzone#touchleft{left:0}.touchzone#touchright{right:0}
 .pad{position:fixed;bottom:calc(clamp(75px,12vh,145px) + env(safe-area-inset-bottom,0px));width:125px;height:125px;border:2px solid;border-radius:50%;z-index:7;display:flex;justify-content:center;align-items:center;user-select:none;touch-action:none;box-shadow:inset 0 0 0 8px #ffffff33}
@@ -45,7 +46,7 @@ button{font-family:inherit;color:#4c6563;font-size:12px;font-weight:750;padding:
 <span id="income">✦0</span></div></header>
 <div id="bartrack"><div id="barfill"></div></div>
 <div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="tempo">Темпо ×2.4</button></div>
-<div id="message">Препятствията пристигат по-често. Два палеца управляват светлините.</div>
+<div id="message">Препятствията пристигат по-често. Два палеца управляват светлините.</div><div id="cleanStats"></div>
 <div id="touchleft" class="touchzone"></div><div id="touchright" class="touchzone"></div>
 <div class="pad left" id="pad0"><div class="disc"></div><span id="pad0status">ЛЯВ ПАЛЕЦ</span></div>
 <div class="pad right" id="pad1"><div class="disc"></div><span id="pad1status">ДЕСЕН ПАЛЕЦ</span></div>
@@ -208,6 +209,143 @@ function updateHazards(per){
   }
  }
 }
+// SK-05 source preserved from den-12-cleaning-spot-v4:
+// original organic shape, real alpha-map, soft triple-pass eraser,
+// 95% actual coverage AND <=3.5% dark residue on EACH side.
+const cleaning=(()=>{
+ const threshold=.95,maxDarkShare=.035;
+ const stainCanvas=document.createElement('canvas');
+ const stainCtx=stainCanvas.getContext('2d',{willReadFrequently:true});
+ let geometry=null,maskScale=1,samples=[],lastProgress=[0,0],lastDarkShare=[1,1];
+ let completed=false;
+function stainPath(c,a){
+ const steps=160;
+ c.beginPath();
+ for(let i=0;i<=steps;i++){
+  const angle=i/steps*Math.PI*2,nx=Math.cos(angle),ny=Math.sin(angle);
+  const irregular=1+.082*Math.sin(nx*7.1+1)+.053*Math.sin(nx*15.4-.7);
+  const irregularY=.87+.10*Math.sin(nx*5.7+1.1)+.08*Math.cos(nx*10.9-.2);
+  const x=a.cx+a.rx*nx*irregular,y=a.cy+a.ry*ny*irregularY;
+  if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+ }
+ c.closePath();
+}
+function makeGeometry(){
+ const usable=Math.max(160,bottom()-top());
+ const cy=(top()+bottom())/2+.01*H;
+ return {cx:W*.5,cy,rx:Math.min(W*.365,W*.5-rad()*2.6),ry:Math.min(usable*.45,140)};
+}
+function initializeStain(){
+ maskScale=Math.min(1,560/W,440/H);
+ stainCanvas.width=Math.max(1,Math.round(W*maskScale));
+ stainCanvas.height=Math.max(1,Math.round(H*maskScale));
+ stainCtx.setTransform(maskScale,0,0,maskScale,0,0);
+ stainCtx.clearRect(0,0,W,H);
+ stainPath(stainCtx,geometry);
+ stainCtx.fillStyle='#68616bd2';
+ stainCtx.fill();
+ const alpha=stainCtx.getImageData(0,0,stainCanvas.width,stainCanvas.height).data;
+ samples=[];
+ for(let j=0;j<18;j++)for(let i=0;i<50;i++){
+  const x=geometry.cx+geometry.rx*((i+.5)/50*2-1);
+  const y=geometry.cy+geometry.ry*((j+.5)/18*2-1);
+  const sx=clamp(Math.floor(x*maskScale),0,stainCanvas.width-1);
+  const sy=clamp(Math.floor(y*maskScale),0,stainCanvas.height-1);
+  const initialAlpha=alpha[(sy*stainCanvas.width+sx)*4+3];
+  if(initialAlpha<160)continue;
+  samples.push({x,y,sx,sy,side:x<W*.5?0:1,initialAlpha,value:0});
+ }
+ lastProgress=[0,0];lastDarkShare=[1,1];
+}
+function updateCoverage(){
+ const alpha=stainCtx.getImageData(0,0,stainCanvas.width,stainCanvas.height).data;
+ const totals=[0,0],counts=[0,0],dark=[0,0];
+ for(const c of samples){
+  const current=alpha[(c.sy*stainCanvas.width+c.sx)*4+3];
+  c.value=clamp(1-current/c.initialAlpha,0,1);
+  totals[c.side]+=c.value;counts[c.side]++;
+  // Dark residue counts as a real remaining patch even if average looks high.
+  if(current>c.initialAlpha*.40)dark[c.side]++;
+ }
+ lastProgress=[totals[0]/Math.max(1,counts[0]),totals[1]/Math.max(1,counts[1])];
+ lastDarkShare=[dark[0]/Math.max(1,counts[0]),dark[1]/Math.max(1,counts[1])];
+ return lastProgress;
+}
+
+ function begin(){
+  geometry=makeGeometry();completed=false;initializeStain();
+  return {progress:lastProgress.slice(),darkShare:lastDarkShare.slice()};
+ }
+ function scrub(n,x0,y0,x1,y1){
+  if(completed)return {done:true,progress:lastProgress.slice(),darkShare:lastDarkShare.slice()};
+ const len=Math.hypot(x1-x0,y1-y0);
+ if(len<1.25)return;
+ // Round, soft layered eraser, not translucent PAPER painted on top.
+ // A real swipe erases the stain alpha; only the touched side can be erased.
+ const brush=clamp(Math.min(W,H)*.063,38,54);
+ stainCtx.save();
+ stainCtx.beginPath();
+ stainCtx.rect(n===0?0:W*.5,0,W*.5,H);
+ stainCtx.clip();
+ stainCtx.globalCompositeOperation='destination-out';
+ // First stroke softens the boundary; the core fully erases in one sweep.
+ for(const pass of [{w:2.45,a:.16},{w:1.65,a:.50},{w:1.06,a:1}]){
+  stainCtx.beginPath();stainCtx.lineCap='round';stainCtx.lineJoin='round';
+  stainCtx.lineWidth=brush*pass.w;
+  stainCtx.strokeStyle='rgba(0,0,0,'+pass.a+')';
+  stainCtx.moveTo(x0,y0);stainCtx.lineTo(x1,y1);stainCtx.stroke();
+ }
+ stainCtx.restore();
+
+  const [p0,p1]=updateCoverage();
+  if(p0>=threshold&&p1>=threshold&&
+    lastDarkShare[0]<=maxDarkShare&&lastDarkShare[1]<=maxDarkShare){
+    completed=true;
+    stainCtx.save();stainCtx.setTransform(1,0,0,1,0,0);
+    stainCtx.clearRect(0,0,stainCanvas.width,stainCanvas.height);stainCtx.restore();
+    for(const c of samples)c.value=1;
+    lastProgress=[1,1];lastDarkShare=[0,0];
+  }
+  return {done:completed,progress:lastProgress.slice(),darkShare:lastDarkShare.slice()};
+ }
+ return {
+  begin,scrub,draw:()=>ctx.drawImage(stainCanvas,0,0,W,H),
+  state:()=>({done:completed,progress:lastProgress.slice(),darkShare:lastDarkShare.slice(),
+   geometry:geometry?{...geometry}:null,samples:samples.length,
+   maskSize:[stainCanvas.width,stainCanvas.height]}),
+  brushGeometry:()=>geometry?{...geometry}:null
+ };
+})();
+const CLEAN_START=1320;
+function beginNightCleaning(){
+ if(g.cleanActive||!g.joined||g.mode!=='playing')return;
+ cleaning.begin();
+ g.cleanActive=true;
+ g.cleanBalls=[
+  {x:W*.25,y:bottom()-rad()*2.5},
+  {x:W*.75,y:bottom()-rad()*2.5}
+ ];
+ g.cleanProgress=[0,0];g.cleanDark=[1,1];
+ nightInput=[{x:0,y:0},{x:0,y:0}];
+ g.tip='Драскай върху тъмното с двата палеца · SK-05';
+ $('cleanStats').style.display='block';
+}
+function cleanByThumb(n,dx,dy){
+ if(!g.cleanActive||g.cleanDone)return;
+ const p=g.cleanBalls[n],x0=p.x,y0=p.y,r=rad();
+ p.x=clamp(p.x+dx,n===0?r:W*.5+r,n===0?W*.5-r:W-r);
+ p.y=clampY(p.y+dy);
+ const result=cleaning.scrub(n,x0,y0,p.x,p.y);
+ g.cleanProgress=result.progress;g.cleanDark=result.darkShare;
+ inputApplied[n]+=Math.hypot(p.x-x0,p.y-y0);
+ if(result.done){
+  g.cleanDone=true;g.cleanRewards++;
+  g.score+=10;g.shared=Math.min(100,g.shared+8);
+  g.energy=[g.shared,g.shared];
+  g.tip='ЧИСТО! ♡ +8 обща енергия · ✦ +10';
+  $('cleanStats').textContent='ЧИСТО! 100% / 100%';
+ }
+}
 const RESCUE=Object.freeze({
  grayAt:65,fullyGrayAt:15,slowAt:40,minFactor:.80,
  contactRadius:3.20,holdSeconds:.24,cooldownSeconds:5.0,
@@ -274,6 +412,7 @@ function flushNightInput(){
  const a=nightInput[0],b=nightInput[1],sum=Math.hypot(a.x,a.y)+Math.hypot(b.x,b.y);
  nightInput=[{x:0,y:0},{x:0,y:0}];
  if(sum<.01||!g||g.mode!=='playing'||g.paused||!g.joined)return;
+ if(g.cleanActive)return;
  const v=nightVector(a,b),orb=g.one,r=rad(),before={x:orb.x,y:orb.y};
  const slow=energySpeed(g.shared);v.dx*=slow;v.dy*=slow;
  const steps=Math.max(1,Math.min(900,Math.ceil(Math.max(Math.abs(v.dx),Math.abs(v.dy))/Math.max(2,r*.34))));
@@ -426,6 +565,8 @@ function state(){
  nightCleared:[...g.nightCleared],nightApproached:[...g.nightApproached],
  rescueCount:g.rescueCount,rescueHold:g.rescueHold,rescueArmed:g.rescueArmed,rescueLog:g.rescueLog.map(x=>({...x})),rescueNear:dayRescueContact(),rescueFeedback:g.rescueFeedback,
  hazardSpends:{...g.hazardSpends},hazardSeen:g.hazardSeen.slice(),hazardDamage:g.hazardDamage.slice(),hazardLog:g.hazardLog.map(e=>({...e})),hazardFx:g.hazardFx.slice(),
+ cleanActive:g.cleanActive,cleanDone:g.cleanDone,cleanProgress:g.cleanProgress.slice(),
+ cleanDark:g.cleanDark.slice(),cleanRewards:g.cleanRewards,cleanBalls:g.cleanBalls.map(b=>({...b})),
  speedFactors:g.joined?[energySpeed(g.shared)]:g.energy.map(energySpeed),grayFactors:g.joined?[energyGray(g.shared)]:g.energy.map(energyGray),syncValue:g.syncValue,syncBoost:g.syncBoost,duskTouched:[...g.duskTouched],
  lastMergedGesture:g.lastMergedGesture,lastCoralNearGate:g.lastCoralNearGate,
  hits:g.hits,hitLog:g.hitLog.map(v=>({...v})),fail:g.fail,completed:g.completed,finished:g.finished,gestureCount:[...g.gestureCount],
@@ -439,11 +580,13 @@ function reset(){
   chamberApproach:false,chamberEntered:false,chamberCollected:false,wind:[0,0],
   duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,joinReal:-99,healEnergy:0,healCharge:0,healDistance:0,healStrokes:[0,0],syncValue:0,syncBoost:1,syncReal:-99,
   rescueCount:0,rescueLast:-99,rescueHold:0,rescueArmed:true,rescueFxUntil:-99,rescueLog:[],rescueFeedback:'',
+  cleanActive:false,cleanDone:false,cleanBalls:[],cleanProgress:[0,0],cleanDark:[1,1],cleanRewards:0,
   hazardSpends:{},hazardSeen:[],hazardDamage:[0,0],hazardLog:[],hazardFx:[-99,-99],
   nightApproached:Array(NIGHT_ROWS.length).fill(false),nightCleared:Array(NIGHT_ROWS.length).fill(false),
   lastMergedGesture:-99,lastCoralNearGate:-99,
   gestureCount:[0,0],lastHud:-1,finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
  inputMoves=[0,0];inputApplied=[0,0];recovered=[0,0];nightInput=[{x:0,y:0},{x:0,y:0}];
+ $('cleanStats').style.display='none';$('cleanStats').textContent='';
  pads.forEach((p,n)=>{p.id=null;p.el.style.boxShadow='inset 0 0 0 8px #ffffff33';$('pad'+n+'status').textContent=n===0?'ЛЯВ ПАЛЕЦ':'ДЕСЕН ПАЛЕЦ';});
  runtime.start=0;runtime.t0=0;runtime.frames=0;
  $('pause').textContent='Пауза';$('tempo').textContent='Темпо ×'+tempo;
@@ -566,7 +709,11 @@ function pickupNight(n){
 function move(n,dx,dy){
  if(g.mode!=='playing'||g.paused||Math.hypot(dx,dy)<.4)return;
  g.gestureCount[n]++;
- if(g.joined){
+ if(g.cleanActive){
+  // Original SK-05 separate real cleaning strokes, with no timer or
+  // stroke-counter shortcut; each thumb erases its own half.
+  cleanByThumb(n,dx,dy);
+ }else if(g.joined){
   // Queue the two vectors for a single common decision each frame.
   // One finger slow; matching fingers faster; opposing fingers cancel.
   g.lastMergedGesture=g.real;
@@ -738,7 +885,7 @@ function update(dt){
  const secs=Math.min(25,Math.max(0,dt)),num=Math.max(1,Math.ceil(secs/.02)),per=secs/num;
  for(let i=0;i<num&&g.mode==='playing';i++){
   const prev=g.t,phaseBefore=stage(g.t);
-  g.real+=per;g.t=Math.min(END,g.t+per*clockRate());
+  g.real+=per;g.t=g.cleanActive&&!g.cleanDone?g.t+per*clockRate():Math.min(END,g.t+per*clockRate());
   const current=stage(g.t);
   if(!g.joined){
    // Equal daily fatigue, differences only from player choices and hazards.
@@ -774,11 +921,14 @@ function update(dt){
     if(!g.nightCleared[j]&&g.nightApproached[j]&&after<b.y-r-wall()*.5)
      g.nightCleared[j]=true;
    }
-   pushOut(2,prev);
+   if(!g.cleanActive)pushOut(2,prev);
+   if(!g.cleanActive&&g.t>=CLEAN_START)beginNightCleaning();
   }
   if(!g.joined&&g.t>=DUSK_END){finish(false,'Не успяхте да се срещнете');break;}
   if(g.t>=END){
-   const won=g.joined&&g.nightCleared.filter(Boolean).length>=11&&g.shared>=20;
+   // Original SK-05 has NO TIME LIMIT. Night keeps scrolling until clean.
+   if(g.cleanActive&&!g.cleanDone)continue;
+   const won=g.joined&&g.cleanDone&&g.nightCleared.filter(Boolean).length>=11&&g.shared>=20;
    finish(won,won?'Денят и нощта — заедно ♡':'Опитайте още една нощ');
   }
  }
@@ -786,7 +936,7 @@ function update(dt){
 function updateHud(){
  if(!g)return;
  const phase=stage(g.t);
- $('barfill').style.width=(g.t/END*100)+'%';
+ $('barfill').style.width=(Math.min(END,g.t)/END*100)+'%';
  $('energy0').textContent=g.joined?'♡ '+Math.round(g.shared):'Синя ♡'+Math.round(g.energy[0]);
  $('energy1').textContent=g.joined?'Две ръце':'Корал ♡'+Math.round(g.energy[1]);
  $('energyfill0').style.width=clamp(g.joined?g.shared:g.energy[0],0,100)+'%';
@@ -797,6 +947,7 @@ function updateHud(){
   g.t<580?'Следобед · три силни вятъра':'Към дома · ключ и обща камера'):
  phase==='dusk'?'Привечер · срещнете се':'Нощ · шестнадесет различни прохода';
  if(g.joined&&phase==='dusk')label='Прегръдка · възстановяване';
+ if(g.cleanActive)label=g.cleanDone?'Чисто!':'Нощ · общо петно SK-05';
  $('stage').textContent=g.paused?'Пауза':label+' · ×'+clockRate();
  $('hud').style.color=phase==='night'?'#f5e9db':'#4d5f60';
  $('hud').style.textShadow=phase==='night'?'0 2px 7px #131b36':'0 1px 3px #f7f0e688';
@@ -809,7 +960,13 @@ function updateHud(){
  ' · Корал '+(pads[1].id!==null?'✓':'○')+' вход '+inputMoves[1]+' / '+Math.round(inputApplied[1])+'px'+
  (recovered.some(Boolean)?' · възстановени '+recovered.join('/'):'');
  $('touchdiag').style.color=phase==='night'?'#e0e3ef':'#5f7977';
- $('syncstatus').textContent=g.joined?
+ if(g.cleanActive){
+  $('cleanStats').textContent=g.cleanDone?'ЧИСТО! 100% / 100%':
+   'Синя '+Math.round(g.cleanProgress[0]*100)+'% · Корал '+Math.round(g.cleanProgress[1]*100)+'%';
+ }
+ $('syncstatus').textContent=g.cleanActive?
+  (g.cleanDone?'✦ +10 · ♡ +8 общо':'Драскай върху тъмното · изчисти ≥95% от всяка половина'):
+  g.joined?
   (g.real-g.syncReal<.3?'Синхрон '+Math.round(g.syncValue*100)+'% · ускорение ×'+g.syncBoost.toFixed(2):
     'Един палец — бавно · два заедно — ускорение'):
   (phase==='day'&&g.real<g.rescueFxUntil?'♡ Подкрепа! '+g.rescueFeedback+' енергия · продължете':
@@ -1010,8 +1167,23 @@ function draw(){
    disc(x,y,it.small?1.5:2.4,'#ffffff');
   }
  }
+ if(g.cleanActive){
+  cleaning.draw();
+  const p=cleaning.brushGeometry();
+  ctx.font='bold 12px sans-serif';ctx.fillStyle='#f2e8f0';
+  ctx.textAlign='center';
+  ctx.fillText(g.cleanDone?'✓ ЧИСТО':'ПОЧИСТИ И ДВЕТЕ ПОЛОВИНИ',W*.5,p.cy-p.ry-17);
+ }
  ctx.restore();
- if(g.joined){
+ if(g.cleanActive){
+  for(let n=0;n<2;n++){
+   const pos=g.cleanBalls[n],color=n===0?'#67a8a3':'#ef9882';
+   const halo=ctx.createRadialGradient(pos.x,pos.y,1,pos.x,pos.y,r*2.4);
+   halo.addColorStop(0,color+'66');halo.addColorStop(1,color+'00');
+   disc(pos.x,pos.y,r*2.4,halo);disc(pos.x,pos.y,r,color);
+   disc(pos.x-r*.24,pos.y-r*.27,r*.2,'#fffafaad');
+  }
+ }else if(g.joined){
   const one=g.one;
   if(g.syncValue>.15&&g.real-g.syncReal<.25){
    const radius=r*(2.1+.6*g.syncValue);
@@ -1091,7 +1263,7 @@ document.addEventListener('visibilitychange',()=>{
  nightInput=[{x:0,y:0},{x:0,y:0}];
 });
 
-window.__twoHalvesQA={state,advance:update,reset,resize,move,nightVector,flushNightInput,HAZARDS,CLOUD,cloudGeom,cloudContains,updateHazards,RESCUE,energyGray,energySpeed,energyTint,dayRescueContact,applyDayRescue,updateDayRescue,pocketGeom,pocketLootPos,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,TRAIL_COINS,DAY_ITEMS,POCKETS,POCKET_OPTIONS,POCKET_LOOT,FIREFLIES}};
+window.__twoHalvesQA={state,advance:update,reset,resize,move,nightVector,flushNightInput,cleaning,beginNightCleaning,cleanByThumb,CLEAN_START,HAZARDS,CLOUD,cloudGeom,cloudContains,updateHazards,RESCUE,energyGray,energySpeed,energyTint,dayRescueContact,applyDayRescue,updateDayRescue,pocketGeom,pocketLootPos,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,TRAIL_COINS,DAY_ITEMS,POCKETS,POCKET_OPTIONS,POCKET_LOOT,FIREFLIES}};
 window.addEventListener('resize',resize,{passive:true});
 // iPad Safari must treat a two-thumb game as gestures, never text selection.
 document.addEventListener('selectstart',e=>e.preventDefault());
