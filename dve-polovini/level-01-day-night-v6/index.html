@@ -216,6 +216,16 @@ const nightGap=row=>{
  hi:clamp(W*row.center+half,rad()*3,W-rad()*1.3),center:row.center*W};
 };
 // SK-01 v4 silhouette: attached turquoise key left, brown chamber right.
+const pocketGeom=(p,t=g.t)=>{
+ const cy=worldY(p.at,t),half=clamp(height()*.26,84,190);
+ const x0=p.side===0?0:W*(1-p.width),x1=p.side===0?W*p.width:W;
+ return {cy,half,x0,x1,back:p.side===0?x0+2:x1-2,width:x1-x0};
+};
+const pocketLootPos=(it,t=g.t)=>{
+ const p=POCKETS.find(p=>p.id===it.pocket),a=pocketGeom(p,t);
+ return {x:p.side===0?a.x0+a.width*it.xf:a.x1-a.width*it.xf,
+         y:a.cy+a.half*it.yf};
+};
 const keyGeom=(time=g.t)=>{
  const y=worldY(650,time),r=rad(),seam=W*.5;
  const panelWidth=clamp(W*.095,r*2.6,86);
@@ -261,6 +271,13 @@ function barriers(t=g.t,kind=stage(t)){
     const x0=n*W*.5+3,x1=(n+1)*W*.5-3,z=rowGap(row,n);
     segments.push([x0,y,z.lo,y,th,row.id,n],[z.hi,y,x1,y,th,row.id,n]);
    }
+  }
+  for(const p of POCKETS){
+   const a=pocketGeom(p,t);
+   if(a.cy+a.half<top()-rad()*3||a.cy-a.half>bottom()+rad()*3)continue;
+   segments.push([a.x0,a.cy-a.half,a.x1,a.cy-a.half,th,p.id,p.side],
+    [a.x0,a.cy+a.half,a.x1,a.cy+a.half,th,p.id,p.side],
+    [a.back,a.cy-a.half,a.back,a.cy+a.half,th,p.id,p.side]);
   }
   const k=keyGeom(t),y=k.y;
   if(y>=top()-k.roomHalf-rad()*2&&y<=bottom()+k.roomHalf+rad()*2){
@@ -339,12 +356,24 @@ function hit(n,amount,reason){
 }
 function pick(n,px,py){
  if(stage(g.t)!=='day'||g.joined)return;
- for(const coin of COINS){
+ for(const coin of DAY_ITEMS){
   if(coin.side!==n||g.coins.includes(coin.id))continue;
   const x=coin.x*W,y=worldY(coin.at);
   if(dist(px,py,x,y)<rad()+12){
    g.coins.push(coin.id);g.score+=coin.value;
    g.tip=coin.value===3?'Златна искра! Всяко решение има цена.':'Събран доход · ✦'+g.score;
+  }
+ }
+}
+// Optional reward: actually enter/leave the large attached U pocket.
+function pocketPick(n,x,y){
+ if(stage(g.t)!=='day')return;
+ for(const it of POCKET_LOOT){
+  if(it.side!==n||g.coins.includes(it.id))continue;
+  const pos=pocketLootPos(it);
+  if(dist(x,y,pos.x,pos.y)<rad()+12){
+   g.coins.push(it.id);g.score+=it.value;
+   g.tip=it.value===3?'U-джоб · открита златна искра ✦3':'U-джоб · събрана светлина';
   }
  }
 }
@@ -406,9 +435,9 @@ function pickupNight(n){
  for(const item of FIREFLIES){
   if(g.fireflies.includes(item.id))continue;
   if(dist(g.one.x,g.one.y,item.x*W,worldY(item.at))<rad()+14){
-   g.fireflies.push(item.id);g.shared=Math.min(100,g.shared+4);
+   g.fireflies.push(item.id);g.shared=Math.min(100,g.shared+(item.value||4));
    g.energy=[g.shared,g.shared];
-   g.tip='Нощна светлинка · +4 обща енергия';
+   g.tip='Нощно съзвездие · +'+(item.value||4)+' обща енергия';
   }
  }
 }
@@ -432,6 +461,7 @@ function move(n,dx,dy){
    if(n===0)g.keyArmed=stage(g.t)==='day'&&blueKey();
    if(n===1)coralChamberMove();
    pick(n,b.x,b.y);
+   pocketPick(n,b.x,b.y);
    maybeJoin(n);
    if(g.joined)break;
   }
@@ -637,7 +667,7 @@ function updateHud(){
  let label=phase==='day'?
  (g.t<100?'Сутрин · по две пътеки':g.t<290?'Работа · девет различни прохода':
   g.t<580?'Следобед · три силни вятъра':'Към дома · ключ и обща камера'):
- phase==='dusk'?'Привечер · срещнете се':'Нощ · единадесет общи прохода';
+ phase==='dusk'?'Привечер · срещнете се':'Нощ · шестнадесет различни прохода';
  if(g.joined&&phase==='dusk')label='Прегръдка · възстановяване';
  $('stage').textContent=g.paused?'Пауза':label+' · ×'+clockRate();
  $('hud').style.color=phase==='night'?'#f5e9db':'#4d5f60';
@@ -658,13 +688,13 @@ function updateHud(){
  $('syncstatus').style.color=phase==='night'?'#fff0cf':'#5f817b';
  const msg=g.mode==='ready'?'Двата палеца стартират играта.':
  phase==='day'?(g.t<100?'Събирайте светлинките по двата маршрута.':
- g.t<290?'Пет пролуки — следвайте реда на точките.':
+ g.t<290?'Следвайте светлинните пътеки; открийте U-джоба.':
  g.t<580?(g.wind[0]>0?'→ СИЛЕН ВЯТЪР НАВЪТРЕ ← · бодли в центъра':
  g.wind[0]<0?'← СИЛЕН ВЯТЪР НАВЪН → · бодли по външните краища':
  'Силен вятър, много точки — следвайте цветните редици.') :
  'Синя влиза в ключа ВЛЯВО, Корал в камерата ВДЯСНО.'):
  phase==='dusk'?(g.joined?'♡ Лекувайте се с ДВАТА палеца в светлата зона.':'♡ Срещнете двете светлини в центъра!'):
- 'Една светлина · два палеца · единадесет широки, различни прохода.';
+ 'Една светлина · два палеца в една посока ускоряват общото топче.';
  $('message').textContent=(g.joined&&g.t<900&&g.healCharge<28)?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
 }
 function line(x,y,xx,yy,color,width=2){
@@ -706,6 +736,15 @@ function draw(){
  }
  ctx.save();ctx.beginPath();ctx.rect(0,a,W,b-a);ctx.clip();
  if(phase==='day'){
+  for(const p of POCKETS){
+   const a=pocketGeom(p);
+   if(a.cy+a.half<top()||a.cy-a.half>bottom())continue;
+   ctx.fillStyle=p.side===0?'#7db4ae29':'#e6a7972e';
+   ctx.fillRect(a.x0,a.cy-a.half,a.width,a.half*2);
+   ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+   ctx.fillStyle=p.side===0?'#619f9b':'#d08f80';
+   ctx.fillText('U · СЪБЕРИ И ИЗЛЕЗ',(a.x0+a.x1)/2,a.cy-a.half-13);
+  }
   for(const [sx,sy,ex,ey,t,id] of barriers(g.t,'day')){
    const brown=id==='chamber'||id==='chamber-door';
    line(sx,sy,ex,ey,brown?'#9d7b72':'#947c76',t+2);
@@ -769,13 +808,20 @@ function draw(){
     }
    }
   }
-  for(const item of COINS){
+  for(const item of POCKET_LOOT){
+   if(g.coins.includes(item.id))continue;
+   const p=pocketLootPos(item);
+   if(p.y<a-20||p.y>b+20)continue;
+   disc(p.x,p.y,item.value===3?16:11,'#efc66f43');
+   disc(p.x,p.y,item.value===3?9:6,item.value===3?'#eac064':'#f1d6a4');
+  }
+  for(const item of DAY_ITEMS){
    if(g.coins.includes(item.id))continue;
    const x=item.x*W,y=worldY(item.at);
    if(y<a-18||y>b+18)continue;
    const col=item.value===3?'#f6c96d':item.side===0?'#7ebeb6':'#eeb19b';
-   disc(x,y,item.value===3?13:9,col+'44');
-   disc(x,y,item.value===3?8:6,col);disc(x-2,y-2,1.7,'#ffffffe8');
+   disc(x,y,item.value===3?13:item.small?7:9,col+'44');
+   disc(x,y,item.value===3?8:item.small?4.5:6,col);disc(x-2,y-2,1.7,'#ffffffe8');
   }
  }
  if(phase==='dusk'||(g.joined&&g.t<900)){
@@ -801,7 +847,9 @@ function draw(){
    if(g.fireflies.includes(it.id))continue;
    const x=it.x*W,y=worldY(it.at);
    if(y<a-20||y>b+20)continue;
-   disc(x,y,16,'#f7e6a642');disc(x,y,7,'#fff0bd');disc(x,y,2.4,'#ffffff');
+   disc(x,y,it.small?9:16,'#f7e6a642');
+   disc(x,y,it.small?4.2:7,'#fff0bd');
+   disc(x,y,it.small?1.5:2.4,'#ffffff');
   }
  }
  ctx.restore();
@@ -862,7 +910,7 @@ document.addEventListener('visibilitychange',()=>{
  prevFrame=0;runtime.start=0;
 });
 
-window.__twoHalvesQA={state,advance:update,reset,resize,move,nightVector,flushNightInput,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,TRAIL_COINS,DAY_ITEMS,POCKETS,POCKET_LOOT,FIREFLIES}};
+window.__twoHalvesQA={state,advance:update,reset,resize,move,nightVector,flushNightInput,pocketGeom,pocketLootPos,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,TRAIL_COINS,DAY_ITEMS,POCKETS,POCKET_LOOT,FIREFLIES}};
 window.addEventListener('resize',resize,{passive:true});
 // iPad Safari must treat a two-thumb game as gestures, never text selection.
 document.addEventListener('selectstart',e=>e.preventDefault());
