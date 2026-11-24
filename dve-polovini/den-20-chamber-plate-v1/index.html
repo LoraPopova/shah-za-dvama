@@ -114,7 +114,7 @@ function plateTouched(){
  const b=g.balls[0],p=plate();
  // Blue must move there deliberately; world scroll touching stationary Blue
  // must never arm a joint task.
- return g.blueMoved&&Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12;
+ return g.plateArmed&&Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12;
 }
 function checkCoral(active){
  if(!active||g.mode!=='playing'||g.missed||g.done)return;
@@ -146,7 +146,7 @@ function state(){
  return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,gain:GAIN,
   balls:g.balls.map(b=>({...b})),energy:g.energy.slice(),score:g.score,
   room:{...z,y:roomY(),segments:roomSegments()},plate:{...plate(),touched:plateTouched()},
-  reward:{...reward(),taken:g.collected},hold:g.hold,open:g.open,blueMoved:g.blueMoved,
+  reward:{...reward(),taken:g.collected},hold:g.hold,open:g.open,blueMoved:g.blueMoved,plateArmed:g.plateArmed,
   held:g.held,entryArmed:g.entryArmed,entered:g.entered,inside:g.inside,collected:g.collected,
   pickCount:g.pickCount,exited:g.exited,done:g.done,rewardCount:g.rewardCount,
   missed:g.missed,finished:g.finished,hits:g.hits,crushed:g.crushed};
@@ -154,7 +154,7 @@ function state(){
 function reset(){
  g={mode:'ready',paused:false,time:0,realTime:0,pace:PACE,
   balls:[{x:W*.17,y:upper()+playH()*.25},{x:W*.54,y:upper()+playH()*.25}],
-  energy:[100,100],score:0,blueMoved:false,hold:0,held:false,open:0,
+  energy:[100,100],score:0,blueMoved:false,plateArmed:false,hold:0,held:false,open:0,
   entryArmed:false,entered:false,inside:false,collected:false,pickCount:0,
   exited:false,done:false,rewardCount:0,missed:false,finished:false,
   hits:0,lastHit:[-99,-99],crushed:false};
@@ -196,7 +196,7 @@ function hit(n){
  g.lastHit[n]=g.realTime;g.hits++;g.energy[n]=Math.max(0,g.energy[n]-5);
 }
 function move(n,dx,dy){
- if(g.mode!=='playing'||g.paused)return;
+ if(g.mode!=='playing'||g.paused||Math.hypot(dx,dy)<.4)return;
  if(n===0&&Math.hypot(dx,dy)>2)g.blueMoved=true;
  const b=g.balls[n],[lo,hi]=lane(n),r=radius();
  const steps=Math.max(1,Math.min(1200,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,r*.32))));
@@ -205,6 +205,10 @@ function move(n,dx,dy){
   if(n===1&&solid(b.x,b.y)){b.x=x;hit(n);}
   const y=b.y;b.y=clamp(y+dy/steps,upper()+r,lower()-r);
   if(n===1&&solid(b.x,b.y)){b.y=y;hit(n);}
+  if(n===0){
+   const p=plate();
+   if(Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12)g.plateArmed=true;
+  }
   if(n===1)checkCoral(true);
  }
  refresh();draw();
@@ -255,6 +259,7 @@ function update(dt){
   g.time=Math.min(DURATION,g.time+part*PACE);g.realTime+=part;g.pace=PACE;
   if(!g.done&&!g.missed){
    const touch=plateTouched();
+   if(!touch)g.plateArmed=false;
    g.hold=touch?Math.min(HOLD_SECONDS,g.hold+part):0;
    g.held=touch&&g.hold>=HOLD_SECONDS;
   }else{g.held=false;g.hold=0;}
