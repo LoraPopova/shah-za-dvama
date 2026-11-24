@@ -51,29 +51,34 @@ const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext(
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b,x,y)=>Math.hypot(a-x,b-y);
 const TWO=Math.PI*2,GAIN=2.5,PACE=5,DAY_END=735,DUSK_END=825,END=1350;
 // Exact five independent non-mirrored holes from Day 18 v2.
+// Compact gate groups alternate with two U pockets and three wind bands.
 const DAY_ROWS=Object.freeze([
  {id:'first',at:65,gaps:[.68,.38],width:.20},
- {id:'second',at:98,gaps:[.28,.67],width:.20},
- {id:'third',at:131,gaps:[.57,.25],width:.19},
- {id:'fourth',at:164,gaps:[.37,.53],width:.20},
- {id:'fifth',at:197,gaps:[.72,.74],width:.19},
- {id:'sixth',at:230,gaps:[.30,.46],width:.21},
+ {id:'second',at:88,gaps:[.28,.67],width:.20},
+ {id:'third',at:111,gaps:[.57,.25],width:.19},
+ {id:'fourth',at:134,gaps:[.37,.53],width:.20},
+ {id:'fifth',at:217,gaps:[.72,.74],width:.19},
+ {id:'sixth',at:240,gaps:[.30,.46],width:.21},
  {id:'seventh',at:263,gaps:[.62,.27],width:.20},
- {id:'eighth',at:296,gaps:[.43,.70],width:.21},
- {id:'afterwind',at:604,gaps:[.53,.34],width:.22}
+ {id:'eighth',at:286,gaps:[.43,.70],width:.21}
 ]);
 const NIGHT_ROWS=Object.freeze([
- {id:'moon1',at:893,center:.26,width:.38},
- {id:'moon2',at:933,center:.74,width:.38},
- {id:'moon3',at:973,center:.50,width:.50},
- {id:'moon4',at:1013,center:.27,width:.39},
- {id:'moon5',at:1053,center:.72,width:.40},
- {id:'moon6',at:1093,center:.39,width:.46},
- {id:'moon7',at:1133,center:.65,width:.42},
- {id:'moon8',at:1173,center:.25,width:.40},
- {id:'moon9',at:1213,center:.71,width:.39},
- {id:'moon10',at:1253,center:.42,width:.46},
- {id:'moon11',at:1293,center:.59,width:.46}
+ {id:'moon1',at:895,center:.27,width:.38},
+ {id:'moon2',at:918,center:.72,width:.38},
+ {id:'moon3',at:941,center:.48,width:.48},
+ {id:'moon4',at:964,center:.68,width:.42},
+ {id:'moon5',at:1007,center:.30,width:.40},
+ {id:'moon6',at:1030,center:.68,width:.40},
+ {id:'moon7',at:1053,center:.42,width:.44},
+ {id:'moon8',at:1076,center:.73,width:.40},
+ {id:'moon9',at:1119,center:.29,width:.40},
+ {id:'moon10',at:1142,center:.66,width:.42},
+ {id:'moon11',at:1165,center:.43,width:.48},
+ {id:'moon12',at:1188,center:.70,width:.40},
+ {id:'moon13',at:1231,center:.28,width:.39},
+ {id:'moon14',at:1254,center:.70,width:.40},
+ {id:'moon15',at:1277,center:.46,width:.49},
+ {id:'moon16',at:1300,center:.64,width:.43}
 ]);
 // Day 13 Wind v2: exact 1.00, 1.24, 1.37 and centre/outside spikes.
 const WIND_BANDS=Object.freeze([
@@ -105,10 +110,47 @@ const COINS=Object.freeze([
  [680,.29,0,1],[680,.71,1,1],[690,.32,0,1],[690,.68,1,1],
  [702,.36,0,1],[702,.64,1,1],[712,.40,0,1],[712,.60,1,1]
 ].map((q,i)=>Object.freeze({id:'c'+i,at:q[0],x:q[1],side:q[2],value:q[3]})));
+const TRAIL_GROUPS=Object.freeze([
+ [34,43,52,.23,.28,.33,.76,.72,.69],
+ [70,76,82,.30,.23,.17,.72,.76,.82],
+ [93,99,105,.15,.20,.27,.83,.75,.65],
+ [116,122,128,.29,.23,.19,.62,.70,.76],
+ [147,154,161,.20,.26,.34,.72,.75,.78],
+ [194,201,208,.33,.36,.37,.66,.70,.77],
+ [222,228,234,.35,.26,.18,.86,.80,.73],
+ [245,251,257,.16,.23,.30,.73,.68,.63],
+ [267,273,279,.29,.25,.22,.65,.77,.83],
+ [292,299,306,.24,.28,.31,.80,.76,.73],
+ [387,394,401,.28,.32,.35,.72,.68,.65],
+ [476,483,490,.24,.21,.26,.76,.79,.74],
+ [566,574,582,.34,.28,.22,.67,.73,.79],
+ [627,634,641,.25,.33,.41,.75,.68,.60],
+ [678,686,694,.35,.37,.40,.66,.64,.60],
+ [700,707,714,.40,.41,.42,.60,.59,.58]
+]);
+const TRAIL_COINS=TRAIL_GROUPS.flatMap((q,j)=>[0,1,2].flatMap(i=>[
+ Object.freeze({id:'trail'+j+'b'+i,at:q[i],x:q[i+3],side:0,value:1,small:true}),
+ Object.freeze({id:'trail'+j+'c'+i,at:q[i],x:q[i+6],side:1,value:1,small:true})
+]));
+const DAY_ITEMS=Object.freeze([...COINS,...TRAIL_COINS]);
+const POCKETS=Object.freeze([
+ {id:'u-left',at:174,side:0,width:.39},
+ {id:'u-right',at:605,side:1,width:.39}
+]);
+const POCKET_LOOT=Object.freeze(POCKETS.flatMap(p=>[
+ {id:p.id+'a',pocket:p.id,side:p.side,xf:.82,yf:-.43,value:1},
+ {id:p.id+'b',pocket:p.id,side:p.side,xf:.58,yf:.12,value:1},
+ {id:p.id+'c',pocket:p.id,side:p.side,xf:.27,yf:.38,value:3}
+]));
 const FIREFLIES=Object.freeze([
- {id:'f0',at:878,x:.50},{id:'f1',at:945,x:.33},{id:'f2',at:1008,x:.68},
- {id:'f3',at:1066,x:.49},{id:'f4',at:1120,x:.29},{id:'f5',at:1175,x:.69},
- {id:'f6',at:1238,x:.42},{id:'f7',at:1301,x:.61}
+ {id:'f0',at:878,x:.50,value:4},{id:'f1',at:945,x:.33,value:4},
+ {id:'f2',at:1008,x:.68,value:4},{id:'f3',at:1066,x:.49,value:4},
+ {id:'f4',at:1120,x:.29,value:4},{id:'f5',at:1175,x:.69,value:4},
+ {id:'f6',at:1238,x:.42,value:4},{id:'f7',at:1301,x:.61,value:4},
+ ...NIGHT_ROWS.flatMap((row,j)=>[6,12,18].map((offset,i)=>Object.freeze({
+  id:'nf'+j+'_'+i,at:row.at+offset,
+  x:clamp(row.center+(i-1)*.055,.13,.87),value:1,small:true
+ })))
 ]);
 const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
 let W=1,H=1,dpr=1,g=null,prevFrame=0;
@@ -580,7 +622,7 @@ function update(dt){
   }
   if(!g.joined&&g.t>=DUSK_END){finish(false,'Не успяхте да се срещнете');break;}
   if(g.t>=END){
-   const won=g.joined&&g.nightCleared.filter(Boolean).length>=8&&g.shared>=20;
+   const won=g.joined&&g.nightCleared.filter(Boolean).length>=11&&g.shared>=20;
    finish(won,won?'Денят и нощта — заедно ♡':'Опитайте още една нощ');
   }
  }
@@ -820,7 +862,7 @@ document.addEventListener('visibilitychange',()=>{
  prevFrame=0;runtime.start=0;
 });
 
-window.__twoHalvesQA={state,advance:update,reset,resize,move,nightVector,flushNightInput,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,FIREFLIES}};
+window.__twoHalvesQA={state,advance:update,reset,resize,move,nightVector,flushNightInput,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,TRAIL_COINS,DAY_ITEMS,POCKETS,POCKET_LOOT,FIREFLIES}};
 window.addEventListener('resize',resize,{passive:true});
 // iPad Safari must treat a two-thumb game as gestures, never text selection.
 document.addEventListener('selectstart',e=>e.preventDefault());
