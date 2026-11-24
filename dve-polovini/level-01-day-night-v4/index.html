@@ -204,7 +204,7 @@ function state(){
  return {mode:g.mode,t:g.t,real:g.real,phase:stage(g.t),pace:PACE,gain:GAIN,paused:g.paused,joined:g.joined,
  balls:g.balls.map(x=>({...x})),one:{...g.one},energy:[...g.energy],shared:g.shared,
  score:g.score,coins:[...g.coins],fireflies:[...g.fireflies],keyOpen:g.keyOpen,keyArmed:g.keyArmed,keyDone:g.keyDone,
- keyCross:g.keyCross,chamberEntered:g.chamberEntered,chamberCollected:g.chamberCollected,
+ keyCross:g.keyCross,chamberEntered:g.chamberEntered,chamberCollected:g.chamberCollected,joinReal:g.joinReal,
  wind:g.wind.slice(),windForce:windForce(),worldPixelsPerSecond:speed()*clockRate(),joinTime:g.joinTime,healEnergy:g.healEnergy,healDistance:g.healDistance,healCharge:g.healCharge,healStrokes:g.healStrokes.slice(),
  nightCleared:[...g.nightCleared],nightApproached:[...g.nightApproached],duskTouched:[...g.duskTouched],
  lastMergedGesture:g.lastMergedGesture,lastCoralNearGate:g.lastCoralNearGate,
@@ -217,7 +217,7 @@ function reset(){
   energy:[100,100],shared:0,score:0,coins:[],fireflies:[],hits:0,lastHit:[-99,-99],hitLog:[],
   keyArmed:false,keyOpen:0,keyDone:false,keyCross:false,keyApproached:false,
   chamberApproach:false,chamberEntered:false,chamberCollected:false,wind:[0,0],
-  duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,healEnergy:0,healCharge:0,healDistance:0,healStrokes:[0,0],
+  duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,joinReal:-99,healEnergy:0,healCharge:0,healDistance:0,healStrokes:[0,0],
   nightApproached:Array(NIGHT_ROWS.length).fill(false),nightCleared:Array(NIGHT_ROWS.length).fill(false),
   lastMergedGesture:-99,lastCoralNearGate:-99,
   gestureCount:[0,0],lastHud:-1,finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
@@ -286,7 +286,7 @@ function maybeJoin(n){
  if(Math.hypot(b.x-W*.5,b.y-heroY())<rad()*3.8)g.duskTouched[n]=true;
  if(!g.duskTouched.every(Boolean))return;
  if(dist(g.balls[0].x,g.balls[0].y,g.balls[1].x,g.balls[1].y)>threshold)return;
- g.joined=true;g.joinTime=g.t;
+ g.joined=true;g.joinTime=g.t;g.joinReal=g.real;
  g.one={x:(g.balls[0].x+g.balls[1].x)*.5,y:(g.balls[0].y+g.balls[1].y)*.5};
  g.shared=clamp((g.energy[0]+g.energy[1])*.5+12,0,100);
  g.energy=[g.shared,g.shared];
@@ -296,7 +296,8 @@ function maybeJoin(n){
 // unplayable. The reunion itself creates a brief cooperative healing aura.
 // The WORLD keeps scrolling; recovery requires genuine movement of BOTH thumbs.
 function healStroke(n,distance){
- if(!g.joined||g.healCharge>=28||g.t>900)return;
+ // Ignore residual pointer movement from the exact instant of merging.
+ if(!g.joined||g.healCharge>=28||g.t>900||g.real-g.joinReal<.16)return;
  const amount=Math.min(Math.max(0,distance),12);
  if(amount<.2)return;
  g.joinedInput[n]=g.real;
