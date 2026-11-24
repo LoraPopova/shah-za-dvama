@@ -620,7 +620,7 @@ function frame(ts){
  if(g){update(dt);draw();if(g.real-g.lastHud>.12||(g.mode==='done'&&g.lastHud!==g.real)){g.lastHud=g.real;updateHud();}}
  requestAnimationFrame(frame);
 }
-window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,COINS,FIREFLIES}};
+window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*PACE}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,FIREFLIES}};
 window.addEventListener('resize',resize,{passive:true});
 resize();requestAnimationFrame(frame);
 })();
