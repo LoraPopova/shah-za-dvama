@@ -12,6 +12,10 @@ h1{margin:3px 0;font-size:21px;font-weight:840;line-height:1.2}
 #stage{font-size:12px;font-weight:750;opacity:.9}#metrics,#touchdiag,#syncstatus{font-size:10px;font-weight:700;opacity:.86;margin-top:3px;font-variant-numeric:tabular-nums}
 #stats{display:flex;gap:12px;font-size:12px;font-weight:800;text-align:right;align-items:flex-start;padding-top:3px}
 #stats span{white-space:nowrap}
+#stats .energy-stat{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+#stats .energy-meter{display:block;width:54px;height:6px;background:#9ea6a268;border-radius:8px;overflow:hidden}
+#stats .energy-fill{display:block;width:100%;height:100%;background:#70b9ac;transition:width .12s linear}
+#stats #energyfill1{background:#e59480}
 #energy0{color:#538f8b}#energy1{color:#ce786c}#income{color:#bb974f}
 #bartrack{position:fixed;top:calc(99px + env(safe-area-inset-top,0px));left:0;right:0;height:4px;background:#9eb5af48;z-index:4}
 #barfill{height:100%;width:0;background:linear-gradient(90deg,#72b8ae 0%,#efb0a1 56%,#8994d4 100%)}
@@ -36,7 +40,9 @@ button{font-family:inherit;color:#4c6563;font-size:12px;font-weight:750;padding:
 <body>
 <canvas id="scene"></canvas>
 <header id="hud"><div><div id="label">T W O  H A L V E S · LEVEL 01 · v8</div><h1>Един ден. Една нощ.</h1><div id="stage">Двата палеца започват деня.</div><div id="metrics">Измерване на кадрите…</div><div id="touchdiag">Синя — · Корал —</div><div id="syncstatus">Нощ: два палеца в една посока = повече скорост</div></div>
-<div id="stats"><span id="energy0">Синя ♡100</span><span id="energy1">Корал ♡100</span><span id="income">✦0</span></div></header>
+<div id="stats"><span class="energy-stat"><span id="energy0">Синя ♡100</span><span class="energy-meter"><span class="energy-fill" id="energyfill0"></span></span></span>
+<span class="energy-stat"><span id="energy1">Корал ♡100</span><span class="energy-meter"><span class="energy-fill" id="energyfill1"></span></span></span>
+<span id="income">✦0</span></div></header>
 <div id="bartrack"><div id="barfill"></div></div>
 <div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="tempo">Темпо ×2.4</button></div>
 <div id="message">Препятствията пристигат по-често. Два палеца управляват светлините.</div>
@@ -785,6 +791,8 @@ function updateHud(){
  $('barfill').style.width=(g.t/END*100)+'%';
  $('energy0').textContent=g.joined?'♡ '+Math.round(g.shared):'Синя ♡'+Math.round(g.energy[0]);
  $('energy1').textContent=g.joined?'Две ръце':'Корал ♡'+Math.round(g.energy[1]);
+ $('energyfill0').style.width=clamp(g.joined?g.shared:g.energy[0],0,100)+'%';
+ $('energyfill1').style.width=clamp(g.joined?g.shared:g.energy[1],0,100)+'%';
  $('income').textContent='✦'+g.score;
  let label=phase==='day'?
  (g.t<100?'Сутрин · по две пътеки':g.t<290?'Работа · девет различни прохода':
