@@ -136,7 +136,7 @@ function state(){
  return {mode:g.mode,t:g.t,real:g.real,phase:stage(g.t),pace:PACE,gain:GAIN,paused:g.paused,joined:g.joined,
  balls:g.balls.map(x=>({...x})),one:{...g.one},energy:[...g.energy],shared:g.shared,
  score:g.score,coins:[...g.coins],fireflies:[...g.fireflies],keyOpen:g.keyOpen,keyArmed:g.keyArmed,keyDone:g.keyDone,
- keyCross:g.keyCross,joinTime:g.joinTime,healEnergy:g.healEnergy,healDistance:g.healDistance,
+ keyCross:g.keyCross,joinTime:g.joinTime,healEnergy:g.healEnergy,healDistance:g.healDistance,healCharge:g.healCharge,
  nightCleared:[...g.nightCleared],nightApproached:[...g.nightApproached],duskTouched:[...g.duskTouched],
  lastMergedGesture:g.lastMergedGesture,lastCoralNearGate:g.lastCoralNearGate,
  hits:g.hits,fail:g.fail,completed:g.completed,finished:g.finished,gestureCount:[...g.gestureCount]};
@@ -146,7 +146,7 @@ function reset(){
   {x:W*.25,y:heroY()},{x:W*.75,y:heroY()}],one:{x:W*.5,y:heroY()},
   energy:[100,100],shared:0,score:0,coins:[],fireflies:[],hits:0,lastHit:[-99,-99],hitLog:[],
   keyArmed:false,keyOpen:0,keyDone:false,keyCross:false,keyApproached:false,
-  duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,healEnergy:0,healDistance:0,
+  duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,healEnergy:0,healCharge:0,healDistance:0,
   nightApproached:[false,false,false],nightCleared:[false,false,false],
   lastMergedGesture:-99,lastCoralNearGate:-99,
   gestureCount:[0,0],finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
@@ -204,19 +204,20 @@ function maybeJoin(n){
  g.joinedInput=[-99,-99];g.lastMergedGesture=-99;g.tip='♡ Една светлина. Движете двата палеца заедно.';
 }
 function healStroke(n,distance){
- if(!g.joined||g.healEnergy>=28||g.t>408)return;
+ if(!g.joined||g.healCharge>=28||g.t>408)return;
  g.joinedInput[n]=g.real;
  if(Math.abs(g.joinedInput[0]-g.joinedInput[1])>.9)return;
  const bx=W*.5,by=worldY(364),range=clamp(height()*.22,54,88);
  if(dist(g.one.x,g.one.y,bx,by)>range)return;
  const amount=Math.min(Math.max(0,distance),12);
  if(amount<.2)return;
- const before=g.healDistance;
  g.healDistance+=amount;
- const bonus=Math.min(28,Math.floor(g.healDistance/4))-g.healEnergy;
+ const target=Math.min(28,Math.floor(g.healDistance/4));
+ const bonus=target-g.healCharge;
  if(bonus>0){
-  const actual=Math.min(bonus,100-g.shared);
-  g.shared+=actual;g.healEnergy+=bonus;g.energy=[g.shared,g.shared];
+  g.healCharge=target;
+  const actual=Math.max(0,Math.min(bonus,100-g.shared));
+  g.shared+=actual;g.healEnergy+=actual;g.energy=[g.shared,g.shared];
   g.tip='♡ Възстановявате силите си заедно';
  }
 }
@@ -391,7 +392,7 @@ function updateHud(){
  phase==='day'?(g.t<83?'Събирайте светлинките по двата маршрута.':g.t<151?'Дупките са на различни места.':g.t<229?'Вятърът ви притиска към средата.': 'Синя държи ключа; Корал минава през вратата.'):
  phase==='dusk'?(g.joined?'♡ В светлата зона движете двата палеца заедно.':'♡ Съберете двете светлини в центъра!'):
  'Едно топче. Двата палеца го водят заедно през широките отвори.';
- $('message').textContent=(g.joined&&phase==='dusk')?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+g.healEnergy:msg;
+ $('message').textContent=(g.joined&&phase==='dusk')?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
 }
 function line(x,y,xx,yy,color,width=2){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
