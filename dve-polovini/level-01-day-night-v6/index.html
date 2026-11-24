@@ -362,8 +362,11 @@ function resize(){
  }else reset();
 }
 function hit(n,amount,reason){
- if(g.real-g.lastHit[n]<.82)return;
- g.lastHit[n]=g.real;g.hits++;
+ // The joined orb is index 2 for collision geometry, but it SHARES
+ // cooldown slot 0. Otherwise lastHit[2] is undefined and double-penalties occur.
+ const slot=g.joined?0:n;
+ if(g.real-g.lastHit[slot]<.82)return;
+ g.lastHit[slot]=g.real;g.hits++;
  if(g.joined){
   g.shared=Math.max(0,g.shared-amount);
   g.energy=[g.shared,g.shared];
