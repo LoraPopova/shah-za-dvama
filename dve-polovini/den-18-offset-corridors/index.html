@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 18 — Разминаващи се коридори</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №3</div><h1>Ден 18 · Разминаващи се коридори</h1><div id="status">Два отделни маршрута · различни пролуки · общ ритъм.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">×5</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button></div>
+<div id="hint">Първият ред: навътре. Вторият: навън. Преминавай през истинските отвори.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const COLORS=['#67a8a3','#ef9882'],GAIN=2.5,PACE=5,DURATION=148,COIN_R=8;
+const MAX_WORLD_STEP=.02,SCROLL_RATE=.018;
+let W=1,H=1,dpr=1,g=null,prevFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+// SK-03: two straight parallel bands with independent offset openings.
+// The FIRST row calls both lights toward the centre; the SECOND toward the edges.
+// Each opening is independently passable; no V turns or world-stop puzzle.
+const ROWS=Object.freeze([
+ Object.freeze({id:'inward',at:25,gaps:[.73,.27],width:.17,label:'НАВЪТРЕ'}),
+ Object.freeze({id:'outward',at:68,gaps:[.27,.73],width:.17,label:'НАВЪН'})
+]);
+const rad=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16);
+const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
+const playH=()=>lower()-upper();
+const halfW=()=>W*.5;
+const lane=n=>n===0?[rad(),halfW()-rad()]:[halfW()+rad(),W-rad()];
+const thickness=()=>clamp(Math.min(W,H)*.012,7,11);
+const rowY=(row,time=g.time)=>upper()+playH()*(.93+(row.at-time)*SCROLL_RATE);
+function opening(row,n){
+ const l=halfW()*n,r=l+halfW();
+ const center=l+halfW()*row.gaps[n];
+ const span=clamp(halfW()*row.width*.5,rad()*2.65,halfW()*.21);
+ const gl=clamp(center-span,l+rad()+6,r-rad()-6),gr=clamp(center+span,l+rad()+6,r-rad()-6);
+ return {left:gl,right:gr,center:(gl+gr)*.5,half:(gr-gl)*.5};
+}
+function segments(row,n,time=g.time){
+ const yy=rowY(row,time),k=opening(row,n),l=n*halfW(),r=l+halfW(),w=thickness();
+ return [[l+3,yy,k.left,yy,w],[k.right,yy,r-3,yy,w]];
+}
+function segDistSq(x,y,x0,y0,x1,y1){
+ const dx=x1-x0,dy=y1-y0,len=dx*dx+dy*dy;
+ const u=len?clamp(((x-x0)*dx+(y-y0)*dy)/len,0,1):0;
+ return (x-(x0+dx*u))**2+(y-(y0+dy*u))**2;
+}
+function collision(n,x,y,time=g.time){
+ const hitRadius=rad()+thickness()*.5-.25;
+ for(const row of ROWS)
+  for(const [a,b,c,d] of segments(row,n,time))
+   if(segDistSq(x,y,a,b,c,d)<hitRadius*hitRadius)return row.id;
+ return null;
+}
+const ITEMS=ROWS.flatMap((row,index)=>[0,1].flatMap(n=>{
+ const side=opening(row,n).center;
+ const out=[
+  {id:row.id+'-'+n+'-a',row:row.id,n,xf:n===0?row.gaps[0]*.5:(1+row.gaps[1])*.5,yOffset:-.105,value:1},
+  {id:row.id+'-'+n+'-b',row:row.id,n,xf:n===0?row.gaps[0]*.5:(1+row.gaps[1])*.5,yOffset:-.195,value:1}
+ ];
+ if(index===1)out.push({id:row.id+'-'+n+'-gold',row:row.id,n,xf:n===0?row.gaps[0]*.5:(1+row.gaps[1])*.5,yOffset:-.265,value:3});
+ return out;
+}));
+function itemPos(item,time=g.time){
+ const row=ROWS.find(r=>r.id===item.row),c=opening(row,item.n);
+ // Route coins sit in the true opening corridor; no arbitrary traces.
+ return {x:c.center,y:rowY(row,time)+item.yOffset*playH()};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,pace:PACE,
+  balls:[{x:W*.23,y:upper()+playH()*.24},{x:W*.77,y:upper()+playH()*.24}],
+  energy:[100,100],score:0,taken:[],hits:0,lastHit:[-99,-99],moved:[false,false],
+  approached:ROWS.map(()=>[false,false]),cleared:ROWS.map(()=>[false,false]),
+  crushed:false,finished:false};
+ pads.forEach(p=>p.id=null);$('finish').style.display='none';$('pause').textContent='Пауза';
+ $('hint').textContent='Първо двата палеца навътре · после навън към следващите отвори.';
+ refresh();draw();
+}
+function state(){
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,gain:GAIN,
+  balls:g.balls.map(b=>({...b})),energy:g.energy.slice(),score:g.score,taken:[...g.taken],
+  rows:ROWS.map(row=>({id:row.id,y:rowY(row),at:row.at,
+   sides:[0,1].map(n=>({gap:opening(row,n),segments:segments(row,n)}))})),
+  items:ITEMS.map(item=>({...item,...itemPos(item),taken:g.taken.includes(item.id)})),
+  cleared:g.cleared.map(a=>a.slice()),moved:g.moved.slice(),hits:g.hits,
+  crushed:g.crushed,finished:g.finished};
+}
+function resize(){
+ const ow=W,oh=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&ow>1&&oh>1){
+  g.balls.forEach((b,n)=>{const l=lane(n);b.x=clamp(b.x*W/ow,l[0],l[1]);b.y=clamp(b.y*H/oh,upper()+rad(),lower()-rad());});
+  draw();refresh();
+ }else reset();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);
+ $('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent='×'+g.pace;
+ $('bar').style.width=Math.min(100,g.time/DURATION*100)+'%';
+ if(g.mode==='ready')$('status').textContent='Два палеца за старт · първо навътре, после навън.';
+ else if(g.mode==='done')$('status').textContent='Край на участъка';
+ else if(g.paused)$('status').textContent='Пауза';
+ else $('status').textContent='Пролуки: '+g.cleared.flat().filter(Boolean).length+'/4 · непрекъснато ×5';
+}
+function hit(n){
+ if(g.realTime-g.lastHit[n]<.8)return;
+ g.lastHit[n]=g.realTime;g.hits++;g.energy[n]=Math.max(0,g.energy[n]-6);
+}
+function collect(n){
+ const b=g.balls[n],rr=rad();
+ for(const item of ITEMS){
+  if(item.n!==n||g.taken.includes(item.id))continue;
+  const pos=itemPos(item);
+  if((pos.x-b.x)**2+(pos.y-b.y)**2>(rr+COIN_R+3)**2)continue;
+  g.taken.push(item.id);g.score+=item.value;
+  if(item.value===3)$('hint').textContent='✦3 златна искра! Дръж двата прохода под око.';
+ }
+}
+function move(n,dx,dy){
+ if(g.mode!=='playing'||g.paused)return;
+ const b=g.balls[n],lim=lane(n),rr=rad();
+ // An enormous synthetic gesture is clipped to the screen span, then swept.
+ dx=clamp(dx,-W*1.5,W*1.5);dy=clamp(dy,-H*1.5,H*1.5);
+ const steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,rr*.30)));
+ if(Math.hypot(dx,dy)>1)g.moved[n]=true;
+ for(let i=0;i<steps;i++){
+  const ox=b.x;b.x=clamp(ox+dx/steps,lim[0],lim[1]);
+  if(collision(n,b.x,b.y)){b.x=ox;hit(n);}
+  const oy=b.y;b.y=clamp(oy+dy/steps,upper()+rr,lower()-rr);
+  if(collision(n,b.x,b.y)){b.y=oy;hit(n);}
+  collect(n);
+ }
+ refresh();draw();
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(v=>v.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',e=>{
+  if(e.pointerId!==p.id)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx*GAIN,dy*GAIN);
+ });
+ for(const kind of ['pointerup','pointercancel','lostpointercapture'])
+  el.addEventListener(kind,e=>{if(e.pointerId!==p.id)return;p.id=null;try{el.releasePointerCapture(e.pointerId)}catch(_){}});
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;g.paused=!g.paused;
+ $('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
+});
+function finish(){
+ if(g.finished)return;g.finished=true;g.mode='done';
+ $('outcome').textContent=g.crushed?'ПРЕГРАДАТА ТЕ НАСТИГНА':'КРАЙ НА КОРИДОРИТЕ';
+ $('result').textContent='Преминати пролуки '+g.cleared.flat().filter(Boolean).length+'/4 · Събрани ✦'+g.score+' от възможни 12 · Енергия '+g.energy.map(v=>Math.round(v)).join(' / ')+'.';
+ $('finish').style.display='flex';
+}
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ const count=Math.max(1,Math.ceil(Math.min(Math.max(dt,0),30)/MAX_WORLD_STEP));
+ const step=Math.min(Math.max(dt,0),30)/count;
+ for(let i=0;i<count&&g.mode==='playing';i++){
+  const oldTime=g.time;g.realTime+=step;
+  g.time=Math.min(DURATION,g.time+step*PACE);g.pace=PACE;
+  for(let ri=0;ri<ROWS.length;ri++){
+   const row=ROWS[ri],prevY=rowY(row,oldTime),nextY=rowY(row);
+   for(let n=0;n<2;n++){
+    const b=g.balls[n],rr=rad(),gap=opening(row,n);
+    if(!g.cleared[ri][n]){
+      if(prevY>b.y+rr*.6)g.approached[ri][n]=true;
+      if(g.approached[ri][n]&&nextY<b.y-rr*.6){
+       if(g.moved[n]&&b.x>gap.left+rr*.5&&b.x<gap.right-rr*.5){
+        g.cleared[ri][n]=true;
+       }
+       g.approached[ri][n]=false;
+      }
+    }
+   }
+  }
+  // Each scrolling solid bar pushes the orb by exactly its tiny delta.
+  // The world never stops or passes a ball through a visible solid wall.
+  for(let n=0;n<2;n++){
+   const ball=g.balls[n],colliding=collision(n,ball.x,ball.y);
+   if(!colliding)continue;
+   const row=ROWS.find(r=>r.id===colliding),drift=rowY(row)-rowY(row,oldTime);
+   let tries=0;
+   while(collision(n,ball.x,ball.y)&&tries++<22){
+    const next=clamp(ball.y+drift,upper()+rad(),lower()-rad());
+    if(Math.abs(next-ball.y)<.00001)break;
+    ball.y=next;
+   }
+   if(collision(n,ball.x,ball.y)){
+    hit(n);
+    if(ball.y<=upper()+rad()+.1){g.crushed=true;finish();}
+   }
+  }
+  // Scrolling across a stationary orb can neither collect coins nor count as active movement.
+  if(g.time>=DURATION)finish();
+ }
+ refresh();
+}
+function line(x,y,xx,yy,color,width=2){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();}
+function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#90bca90d';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#f3a58b0f';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bottom=lower(),rr=rad();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#b9c8bf';ctx.strokeRect(12,top,W-24,bottom-top);ctx.restore();
+ line(W*.5,top-14,W*.5,bottom+12,'#afa6a4',3);
+ for(let y=top+(g.time*3)%70-70;y<bottom;y+=70)if(y>=top)line(15,y,W-15,y,'#9caea31a',1);
+ ctx.save();ctx.beginPath();ctx.rect(0,top,W,bottom-top);ctx.clip();
+ for(const row of ROWS){
+  const cy=rowY(row);
+  for(let n=0;n<2;n++){
+   const gap=opening(row,n),s=segments(row,n);
+   for(const [a,b,c,d,w] of s){
+    line(a,b,c,d,'#986b65',w+3);
+    line(a,b,c,d,'#c28e82',w);
+   }
+   circle(gap.left,cy,3.8,'#78b4a4');circle(gap.right,cy,3.8,'#78b4a4');
+   ctx.fillStyle='#a2d0b52a';ctx.fillRect(gap.left,cy-5,gap.right-gap.left,10);
+   ctx.font='bold 12px sans-serif';ctx.fillStyle='#a37a72';ctx.textAlign='center';
+   ctx.fillText(row.label,gap.center,cy+27);
+  }
+ }
+ for(const item of ITEMS){
+  if(g.taken.includes(item.id))continue;
+  const p=itemPos(item),gold=item.value===3;
+  circle(p.x,p.y,gold?COIN_R+9:COIN_R+5,'#edbc6533');
+  circle(p.x,p.y,gold?COIN_R+3:COIN_R,gold?'#e5ad49':'#e8c76f');
+  circle(p.x-2,p.y-2,2,'#fff7dd');
+ }
+ ctx.restore();
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],grad=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,rr*2.5);
+  grad.addColorStop(0,COLORS[n]+'70');grad.addColorStop(1,COLORS[n]+'00');
+  circle(b.x,b.y,rr*2.5,grad);circle(b.x,b.y,rr,COLORS[n]);circle(b.x-rr*.24,b.y-rr*.25,rr*.17,'#ffffffb5');
+ }
+ if(g.mode==='ready'){
+  ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.fillStyle='#69877a';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+30);
+ }
+}
+function frame(ts){
+ if(!prevFrame)prevFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-prevFrame)/1000));prevFrame=ts;
+ if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,collision,segments,opening,rowY,itemPos,resize,rows:ROWS};
+window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
