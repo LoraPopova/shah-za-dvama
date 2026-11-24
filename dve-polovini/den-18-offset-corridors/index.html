@@ -60,7 +60,7 @@ header{left:12px;right:12px}h1{font-size:16px}
 'use strict';
 const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const COLORS=['#67a8a3','#ef9882'],GAIN=2.5,PACE=5,DURATION=148,COIN_R=8;
+const COLORS=['#67a8a3','#ef9882'],GAIN=2.5,PACE=5,DURATION=115,COIN_R=8;
 const MAX_WORLD_STEP=.02,SCROLL_RATE=.018;
 let W=1,H=1,dpr=1,g=null,prevFrame=0;
 const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
@@ -68,8 +68,8 @@ const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
 // The FIRST row calls both lights toward the centre; the SECOND toward the edges.
 // Each opening is independently passable; no V turns or world-stop puzzle.
 const ROWS=Object.freeze([
- Object.freeze({id:'inward',at:25,gaps:[.73,.27],width:.17,label:'НАВЪТРЕ'}),
- Object.freeze({id:'outward',at:68,gaps:[.27,.73],width:.17,label:'НАВЪН'})
+ Object.freeze({id:'inward',at:1,gaps:[.73,.27],width:.17,label:'НАВЪТРЕ'}),
+ Object.freeze({id:'outward',at:42,gaps:[.27,.73],width:.17,label:'НАВЪН'})
 ]);
 const rad=()=>clamp(Math.min(W,H)*.019,11,19);
 const upper=()=>Math.max(110,H*.16);
@@ -176,6 +176,7 @@ function move(n,dx,dy){
  const b=g.balls[n],lim=lane(n),rr=rad();
  // An enormous synthetic gesture is clipped to the screen span, then swept.
  dx=clamp(dx,-W*1.5,W*1.5);dy=clamp(dy,-H*1.5,H*1.5);
+ if(Math.abs(dx)+Math.abs(dy)<.001)return;
  const steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,rr*.30)));
  if(Math.hypot(dx,dy)>1)g.moved[n]=true;
  for(let i=0;i<steps;i++){
