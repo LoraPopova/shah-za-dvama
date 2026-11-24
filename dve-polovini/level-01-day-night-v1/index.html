@@ -53,9 +53,9 @@ const DAY_ROWS=Object.freeze([
  {id:'second',at:139,gaps:[.34,.69],width:.25}
 ]);
 const NIGHT_ROWS=Object.freeze([
- {id:'moon1',at:430,center:.42,width:.58},
- {id:'moon2',at:474,center:.61,width:.55},
- {id:'moon3',at:516,center:.48,width:.62}
+ {id:'moon1',at:430,center:.28,width:.40},
+ {id:'moon2',at:474,center:.72,width:.40},
+ {id:'moon3',at:516,center:.46,width:.48}
 ]);
 const COINS=Object.freeze([
  [39,.26,0,1],[39,.73,1,1],[59,.34,0,1],[59,.69,1,1],
@@ -362,9 +362,12 @@ function update(dt){
   }else if(current==='night'&&g.joined){
    for(let j=0;j<NIGHT_ROWS.length;j++){
     const row=NIGHT_ROWS[j],before=worldY(row.at,prev),after=worldY(row.at),gap=nightGap(row),b=g.one,r=rad();
-    if(Math.abs(before-b.y)<r*4&&b.x>=gap.lo+r*.45&&b.x<=gap.hi-r*.45&&g.real-g.lastMergedGesture<.8)
+    // No fake "wiggle to count": physically occupy the generous hole.
+    // The first two holes are disjoint, so cooperation requires a real
+    // left-to-right movement instead of idle passage at centre.
+    if(Math.abs(before-b.y)<r*4&&b.x>=gap.lo+r*.55&&b.x<=gap.hi-r*.55)
      g.nightApproached[j]=true;
-    if(!g.nightCleared[j]&&g.nightApproached[j]&&g.real-g.lastMergedGesture<1.3&&after<b.y-r-wall()*.5)
+    if(!g.nightCleared[j]&&g.nightApproached[j]&&after<b.y-r-wall()*.5)
      g.nightCleared[j]=true;
    }
    pushOut(2,prev);
