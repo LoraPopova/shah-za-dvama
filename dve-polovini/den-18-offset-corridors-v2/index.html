@@ -169,6 +169,10 @@ function collect(n){
  const b=g.balls[n],rr=rad();
  for(const item of ITEMS){
   if(item.n!==n||g.taken.includes(item.id))continue;
+  // Reward requires an actual safe passage through THIS row; never lure a
+  // thumb to depart before the wall has passed its light.
+  const rowIndex=ROWS.findIndex(row=>row.id===item.row);
+  if(rowIndex<0||!g.cleared[rowIndex][n])continue;
   const pos=itemPos(item);
   if((pos.x-b.x)**2+(pos.y-b.y)**2>(rr+COIN_R+3)**2)continue;
   g.taken.push(item.id);g.score+=item.value;
