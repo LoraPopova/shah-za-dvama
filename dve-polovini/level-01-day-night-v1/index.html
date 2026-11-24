@@ -34,7 +34,7 @@ button{font-family:inherit;color:#4c6563;font-size:12px;font-weight:750;padding:
 </style></head>
 <body>
 <canvas id="scene"></canvas>
-<header><div><div id="label">T W O  H A L V E S · ИГРАЕМ LEVEL 01</div><h1>Един ден. Една нощ.</h1><div id="stage">Двата палеца започват деня.</div></div>
+<header id="hud"><div><div id="label">T W O  H A L V E S · ИГРАЕМ LEVEL 01</div><h1>Един ден. Една нощ.</h1><div id="stage">Двата палеца започват деня.</div></div>
 <div id="stats"><span id="energy0">Синя ♡100</span><span id="energy1">Корал ♡100</span><span id="income">✦0</span></div></header>
 <div id="bartrack"><div id="barfill"></div></div>
 <div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button></div>
@@ -388,11 +388,18 @@ function updateHud(){
  phase==='dusk'?'Привечер · срещнете се':'Нощ · една обща светлина';
  if(g.joined&&phase==='dusk')label='Прегръдка · възстановяване';
  $('stage').textContent=g.paused?'Пауза':label;
+ $('hud').style.color=phase==='night'?'#f5e9db':'#4d5f60';
+ $('hud').style.textShadow=phase==='night'?'0 2px 7px #131b36':'0 1px 3px #f7f0e688';
+ $('energy0').style.color=phase==='night'?'#a7e2dc':'#538f8b';
+ $('energy1').style.color=phase==='night'?'#eec1b5':'#ce786c';
+ $('income').style.color=phase==='night'?'#f2dca1':'#bb974f';
+ $('message').style.color=phase==='night'?'#f1e6d2':'#65817f';
+ $('message').style.textShadow=phase==='night'?'0 2px 7px #141d39':'0 2px 8px #f7f0e6df';
  const msg=g.mode==='ready'?'Двата палеца стартират играта.':
  phase==='day'?(g.t<83?'Събирайте светлинките по двата маршрута.':g.t<151?'Дупките са на различни места.':g.t<229?'Вятърът ви притиска към средата.': 'Синя държи ключа; Корал минава през вратата.'):
  phase==='dusk'?(g.joined?'♡ В светлата зона движете двата палеца заедно.':'♡ Съберете двете светлини в центъра!'):
  'Едно топче. Двата палеца го водят заедно през широките отвори.';
- $('message').textContent=(g.joined&&phase==='dusk')?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
+ $('message').textContent=(g.joined&&g.t<408&&g.healCharge<28)?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
 }
 function line(x,y,xx,yy,color,width=2){
  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
