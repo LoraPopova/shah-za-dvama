@@ -235,8 +235,9 @@ function applyDayRescue(){
  g.rescueCount++;g.rescueLast=g.real;g.rescueHold=0;g.rescueArmed=false;
  g.rescueFxUntil=g.real+.95;
  g.rescueLog.push({t:g.t,at:g.real,before,after:energy.slice(),transfer});
- g.rescueFeedback='+'+Math.round(energy[low]-before[low])+' / +'+
-  Math.round(Math.max(0,energy[high]-before[high]));
+ const delta=energy.map((value,i)=>Math.round(value-before[i]));
+ g.rescueFeedback='Синя '+(delta[0]>=0?'+':'')+delta[0]+
+  ' · Корал '+(delta[1]>=0?'+':'')+delta[1];
  g.tip='♡ Дневна подкрепа · светлините се подсилиха и продължават';
 }
 function updateDayRescue(dt){
