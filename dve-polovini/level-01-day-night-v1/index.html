@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#f7f0e6">
+<title>TWO HALVES · Ден и нощ · Ниво 01</title>
+<style>
+:root{--paper:#f7f0e6;--ink:#4d5f60;--blue:#66aaa6;--coral:#ed9987}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:16px;right:16px;z-index:3;color:var(--ink);display:flex;justify-content:space-between;gap:10px;pointer-events:none;text-shadow:0 1px 3px #f7f0e688}
+#label{font-size:10px;font-weight:800;letter-spacing:2px;opacity:.7}
+h1{margin:3px 0;font-size:21px;font-weight:840;line-height:1.2}
+#stage{font-size:12px;font-weight:750;opacity:.9}
+#stats{display:flex;gap:12px;font-size:12px;font-weight:800;text-align:right;align-items:flex-start;padding-top:3px}
+#stats span{white-space:nowrap}
+#energy0{color:#538f8b}#energy1{color:#ce786c}#income{color:#bb974f}
+#bartrack{position:fixed;top:calc(99px + env(safe-area-inset-top,0px));left:0;right:0;height:4px;background:#9eb5af48;z-index:4}
+#barfill{height:100%;width:0;background:linear-gradient(90deg,#72b8ae 0%,#efb0a1 56%,#8994d4 100%)}
+#menu{position:fixed;top:calc(113px + env(safe-area-inset-top,0px));left:14px;z-index:6;display:flex;gap:8px}
+button{font-family:inherit;color:#4c6563;font-size:12px;font-weight:750;padding:9px 14px;border-radius:25px;border:1px solid #ccd7d0;background:#ffffffe0;box-shadow:0 5px 18px #253b3917;touch-action:manipulation}
+#message{position:fixed;top:calc(165px + env(safe-area-inset-top,0px));left:15%;right:15%;font-size:13px;font-weight:750;text-align:center;color:#65817f;pointer-events:none;text-shadow:0 2px 8px #f7f0e6df;z-index:4;min-height:30px}
+.pad{position:fixed;bottom:calc(clamp(75px,12vh,145px) + env(safe-area-inset-bottom,0px));width:125px;height:125px;border:2px solid;border-radius:50%;z-index:7;display:flex;justify-content:center;align-items:center;user-select:none;touch-action:none;box-shadow:inset 0 0 0 8px #ffffff33}
+.pad.left{left:calc(25% - 62.5px);border-color:#83bab4;background:#a3d3cb28}
+.pad.right{left:calc(75% - 62.5px);border-color:#efae9d;background:#edb29f2c}
+.pad .disc{width:39px;height:39px;border-radius:50%;background:#83b5ad;box-shadow:0 5px 15px #315c6050;pointer-events:none}
+.pad.right .disc{background:#e39e8e}
+.pad span{position:absolute;bottom:12px;font-size:9px;letter-spacing:.6px;font-weight:800;color:#879d99;pointer-events:none}
+#result{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;background:#11182dcc;padding:20px}
+#result .card{background:#fffaf2;color:#4c5e60;border-radius:23px;padding:27px 24px;text-align:center;max-width:440px;box-shadow:0 18px 60px #0004}
+#result h2{margin:0 0 12px;font-size:24px}#result p{font-size:15px;line-height:1.45}
+#result button{background:#518f84;color:#fff;padding:13px 25px;font-size:15px}
+@media(max-width:690px){header{left:10px;right:10px}h1{font-size:17px}#stats{font-size:10px;gap:6px}#stage{font-size:10px}#menu{left:10px}#message{left:5%;right:5%;font-size:12px}
+.pad{width:104px;height:104px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}}
+@media(max-height:570px){#menu{top:91px}#bartrack{top:79px}#message{display:none}.pad{bottom:35px}}
+</style></head>
+<body>
+<canvas id="scene"></canvas>
+<header><div><div id="label">T W O  H A L V E S · ИГРАЕМ LEVEL 01</div><h1>Един ден. Една нощ.</h1><div id="stage">Двата палеца започват деня.</div></div>
+<div id="stats"><span id="energy0">Синя ♡100</span><span id="energy1">Корал ♡100</span><span id="income">✦0</span></div></header>
+<div id="bartrack"><div id="barfill"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button></div>
+<div id="message">През деня — две пътеки. Вечерта — една обща светлина.</div>
+<div class="pad left" id="pad0"><div class="disc"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="disc"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="result"><div class="card"><h2 id="outcome"></h2><p id="summary"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),dist=(a,b,x,y)=>Math.hypot(a-x,b-y);
+const TWO=Math.PI*2,GAIN=2.5,PACE=5,DAY_END=320,DUSK_END=371,END=558;
+const DAY_ROWS=Object.freeze([
+ {id:'first',at:99,gaps:[.67,.31],width:.25},
+ {id:'second',at:139,gaps:[.34,.69],width:.25}
+]);
+const NIGHT_ROWS=Object.freeze([
+ {id:'moon1',at:430,center:.42,width:.58},
+ {id:'moon2',at:474,center:.61,width:.55},
+ {id:'moon3',at:516,center:.48,width:.62}
+]);
+const COINS=Object.freeze([
+ [39,.26,0,1],[39,.73,1,1],[59,.34,0,1],[59,.69,1,1],
+ [78,.30,0,1],[78,.81,1,1],
+ [169,.28,0,1],[169,.72,1,1],[195,.35,0,1],[195,.64,1,1],
+ [221,.25,0,3],[221,.78,1,3],
+ [292,.30,0,1],[292,.76,1,1]
+].map((q,i)=>Object.freeze({id:'c'+i,at:q[0],x:q[1],side:q[2],value:q[3]})));
+const FIREFLIES=Object.freeze([{id:'f0',at:398,x:.50},{id:'f1',at:452,x:.42},{id:'f2',at:492,x:.61},{id:'f3',at:535,x:.50}]);
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+let W=1,H=1,dpr=1,g=null,prevFrame=0;
+const rad=()=>clamp(Math.min(W,H)*.019,11,19);
+const top=()=>Math.max(119,H*.17);
+const bottom=()=>Math.max(top()+98,Math.min(H*.70,H-160));
+const height=()=>bottom()-top();
+const heroY=()=>top()+height()*.28;
+const speed=()=>Math.max(2.9,height()*.0095);
+const worldY=(at,t=g.t)=>heroY()+(at-t)*speed();
+const bounds=(n,twilight=false)=>{
+ const r=rad();return twilight?(n===0?[r,W*.5+r*.78]:[W*.5-r*.78,W-r]):n===0?[r,W*.5-r]:[W*.5+r,W-r];
+};
+const clampY=y=>clamp(y,top()+rad(),bottom()-rad());
+const stage=t=>t<DAY_END?'day':t<DUSK_END?'dusk':'night';
+const wall=()=>clamp(Math.min(W,H)*.009,5,10);
+const rowGap=(row,n)=>{
+ const half=W*.5,r=rad(),loc=(n+row.gaps[n])*half;
+ const span=clamp(half*row.width*.5,r*2.65,half*.30);
+ return {center:loc,lo:loc-span,hi:loc+span};
+};
+const nightGap=row=>{
+ const half=clamp(W*row.width*.5,rad()*4,W*.38);
+ return {lo:clamp(W*row.center-half,rad()*1.3,W-rad()*3),
+ hi:clamp(W*row.center+half,rad()*3,W-rad()*1.3),center:row.center*W};
+};
+const keyGeom=(time=g.t)=>{
+ const y=worldY(268,time),r=rad();
+ return {y,keyX:W*.31,keyR:clamp(r*2.35,26,42),gateX:W*.76,
+ gapHalf:clamp(W*.095,r*3.05,W*.17),width:W*.5};
+};
+const segSq=(x,y,ax,ay,bx,by)=>{
+ const dx=bx-ax,dy=by-ay,dd=dx*dx+dy*dy,k=dd?clamp(((x-ax)*dx+(y-ay)*dy)/dd,0,1):0;
+ return (x-ax-k*dx)**2+(y-ay-k*dy)**2;
+};
+function barriers(t=g.t,kind=stage(t)){
+ const segments=[],th=wall();
+ if(kind==='day'){
+  for(const row of DAY_ROWS){
+   const y=worldY(row.at,t);
+   if(y<top()-rad()*3||y>bottom()+rad()*3)continue;
+   for(let n=0;n<2;n++){
+    const start=n*W*.5+3,end=(n+1)*W*.5-3,z=rowGap(row,n);
+    segments.push([start,y,z.lo,y,th,row.id,n],[z.hi,y,end,y,th,row.id,n]);
+   }
+  }
+  const key=keyGeom(t),y=key.y;
+  if(y>=top()-rad()*3&&y<=bottom()+rad()*3){
+   const start=W*.5+3,end=W-3,open=g.keyOpen>=.97;
+   if(open){
+    segments.push([start,y,key.gateX-key.gapHalf,y,th,'key',1],
+     [key.gateX+key.gapHalf,y,end,y,th,'key',1]);
+   }else segments.push([start,y,end,y,th,'key',1]);
+  }
+ }else if(kind==='night'&&g.joined){
+  for(const row of NIGHT_ROWS){
+   const y=worldY(row.at,t);
+   if(y<top()-rad()*3||y>bottom()+rad()*3)continue;
+   const gap=nightGap(row),thick=wall();
+   segments.push([4,y,gap.lo,y,thick,row.id,2],[gap.hi,y,W-4,y,thick,row.id,2]);
+  }
+ }
+ return segments;
+}
+function isSolid(n,x,y,t=g.t){
+ const r=rad()+wall()*.5-.2,kind=stage(t);
+ return barriers(t,kind).some(s=>(kind==='night'||s[6]===n)&&segSq(x,y,s[0],s[1],s[2],s[3])<r*r);
+}
+function state(){
+ return {mode:g.mode,t:g.t,real:g.real,phase:stage(g.t),pace:PACE,gain:GAIN,paused:g.paused,joined:g.joined,
+ balls:g.balls.map(x=>({...x})),one:{...g.one},energy:[...g.energy],shared:g.shared,
+ score:g.score,coins:[...g.coins],fireflies:[...g.fireflies],keyOpen:g.keyOpen,keyArmed:g.keyArmed,keyDone:g.keyDone,
+ keyCross:g.keyCross,joinTime:g.joinTime,healEnergy:g.healEnergy,healDistance:g.healDistance,
+ nightCleared:[...g.nightCleared],nightApproached:[...g.nightApproached],duskTouched:[...g.duskTouched],
+ hits:g.hits,fail:g.fail,completed:g.completed,finished:g.finished,gestureCount:[...g.gestureCount]};
+}
+function reset(){
+ g={mode:'ready',t:0,real:0,paused:false,joined:false,balls:[
+  {x:W*.25,y:heroY()},{x:W*.75,y:heroY()}],one:{x:W*.5,y:heroY()},
+  energy:[100,100],shared:0,score:0,coins:[],fireflies:[],hits:0,lastHit:[-99,-99],hitLog:[],
+  keyArmed:false,keyOpen:0,keyDone:false,keyCross:false,keyApproached:false,
+  duskTouched:[false,false],joinedInput:[-99,-99],joinTime:null,healEnergy:0,healDistance:0,
+  nightApproached:[false,false,false],nightCleared:[false,false,false],
+  gestureCount:[0,0],finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
+ pads.forEach(p=>p.id=null);
+ $('pause').textContent='Пауза';$('result').style.display='none';
+ updateHud();draw();
+}
+function resize(){
+ const ow=W,oh=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&ow>1&&oh>1){
+  for(let n=0;n<2;n++){const b=g.balls[n],bd=bounds(n,g.t>=DAY_END);b.x=clamp(b.x*W/ow,...bd);b.y=clampY(b.y*H/oh);}
+  g.one.x=clamp(g.one.x*W/ow,rad(),W-rad());g.one.y=clampY(g.one.y*H/oh);
+  g.keyArmed=false;g.duskTouched=[false,false];updateHud();draw();
+ }else reset();
+}
+function hit(n,amount,reason){
+ if(g.real-g.lastHit[n]<.82)return;
+ g.lastHit[n]=g.real;g.hits++;
+ if(g.joined){
+  g.shared=Math.max(0,g.shared-amount);
+  g.energy=[g.shared,g.shared];
+ }else g.energy[n]=Math.max(0,g.energy[n]-amount);
+ g.hitLog.push({time:g.t,n,amount,reason});
+ if(g.joined&&g.shared<=0)finish(false,'Общата ви светлина угасна');
+}
+function pick(n,px,py){
+ if(stage(g.t)!=='day'||g.joined)return;
+ for(const coin of COINS){
+  if(coin.side!==n||g.coins.includes(coin.id))continue;
+  const x=coin.x*W,y=worldY(coin.at);
+  if(dist(px,py,x,y)<rad()+12){
+   g.coins.push(coin.id);g.score+=coin.value;
+   g.tip=coin.value===3?'Златна искра! Всяко решение има цена.':'Събран доход · ✦'+g.score;
+  }
+ }
+}
+function blueKey(){
+ const k=keyGeom(),b=g.balls[0];
+ return dist(b.x,b.y,k.keyX,k.y)<k.keyR+rad()*.30;
+}
+function maybeJoin(n){
+ if(g.joined||stage(g.t)!=='dusk')return;
+ const b=g.balls[n],threshold=rad()*2.5;
+ if(Math.hypot(b.x-W*.5,b.y-heroY())<rad()*3.8)g.duskTouched[n]=true;
+ if(!g.duskTouched.every(Boolean))return;
+ if(dist(g.balls[0].x,g.balls[0].y,g.balls[1].x,g.balls[1].y)>threshold)return;
+ g.joined=true;g.joinTime=g.t;
+ g.one={x:(g.balls[0].x+g.balls[1].x)*.5,y:(g.balls[0].y+g.balls[1].y)*.5};
+ g.shared=clamp((g.energy[0]+g.energy[1])*.5+12,0,100);
+ g.energy=[g.shared,g.shared];
+ g.joinedInput=[-99,-99];g.tip='♡ Една светлина. Движете двата палеца заедно.';
+}
+function healStroke(n,distance){
+ if(!g.joined||g.healEnergy>=28||g.t>408)return;
+ g.joinedInput[n]=g.real;
+ if(Math.abs(g.joinedInput[0]-g.joinedInput[1])>.9)return;
+ const bx=W*.5,by=worldY(364),range=clamp(height()*.22,54,88);
+ if(dist(g.one.x,g.one.y,bx,by)>range)return;
+ const amount=Math.min(Math.max(0,distance),12);
+ if(amount<.2)return;
+ const before=g.healDistance;
+ g.healDistance+=amount;
+ const bonus=Math.min(28,Math.floor(g.healDistance/4))-g.healEnergy;
+ if(bonus>0){
+  const actual=Math.min(bonus,100-g.shared);
+  g.shared+=actual;g.healEnergy+=bonus;g.energy=[g.shared,g.shared];
+  g.tip='♡ Възстановявате силите си заедно';
+ }
+}
+function pickupNight(n){
+ if(!g.joined||stage(g.t)==='day')return;
+ for(const item of FIREFLIES){
+  if(g.fireflies.includes(item.id))continue;
+  if(dist(g.one.x,g.one.y,item.x*W,worldY(item.at))<rad()+14){
+   g.fireflies.push(item.id);g.shared=Math.min(100,g.shared+4);
+   g.energy=[g.shared,g.shared];
+   g.tip='Нощна светлинка · +4 обща енергия';
+  }
+ }
+}
+function move(n,dx,dy){
+ if(g.mode!=='playing'||g.paused||Math.hypot(dx,dy)<.4)return;
+ g.gestureCount[n]++;
+ if(g.joined){
+  // Both thumbs steer ONE orb. Same-direction gestures add; opposite gestures
+  // cancel, so two matching movements preserve the exact x2.50 thumb gain.
+  // No joystick offset, inertia or hidden acceleration.
+  const b=g.one,r=rad(),ddx=dx*.5,ddy=dy*.5;
+  const steps=Math.max(1,Math.min(900,Math.ceil(Math.max(Math.abs(ddx),Math.abs(ddy))/Math.max(2,r*.34))));
+  for(let i=0;i<steps;i++){
+   const x=b.x;b.x=clamp(x+ddx/steps,r,W-r);
+   if(isSolid(2,b.x,b.y)){b.x=x;hit(0,3,'night-arch');}
+   const y=b.y;b.y=clampY(y+ddy/steps);
+   if(isSolid(2,b.x,b.y)){b.y=y;hit(0,3,'night-arch');}
+  }
+  healStroke(n,Math.hypot(ddx,ddy));pickupNight(n);
+ }else{
+  const b=g.balls[n],r=rad(),range=bounds(n,stage(g.t)==='dusk');
+  const steps=Math.max(1,Math.min(900,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,r*.34))));
+  for(let i=0;i<steps;i++){
+   const ox=b.x;b.x=clamp(b.x+dx/steps,range[0],range[1]);
+   if(stage(g.t)==='day'&&isSolid(n,b.x,b.y)){b.x=ox;hit(n,5,'day-wall');}
+   const oy=b.y;b.y=clampY(b.y+dy/steps);
+   if(stage(g.t)==='day'&&isSolid(n,b.x,b.y)){b.y=oy;hit(n,5,'day-wall');}
+   if(n===0)g.keyArmed=stage(g.t)==='day'&&blueKey();
+   pick(n,b.x,b.y);
+   maybeJoin(n);
+   if(g.joined)break;
+  }
+ }
+ updateHud();draw();
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',event=>{
+  if(p.id!==null)return;event.preventDefault();
+  p.id=event.pointerId;p.x=event.clientX;p.y=event.clientY;
+  try{el.setPointerCapture(event.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(x=>x.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',event=>{
+  if(event.pointerId!==p.id)return;event.preventDefault();
+  const dx=event.clientX-p.x,dy=event.clientY-p.y;
+  p.x=event.clientX;p.y=event.clientY;
+  move(n,dx*GAIN,dy*GAIN);
+ });
+ for(const name of ['pointerup','pointercancel','lostpointercapture']){
+  el.addEventListener(name,event=>{
+   if(event.pointerId!==p.id)return;p.id=null;
+   try{el.releasePointerCapture(event.pointerId)}catch(_){}
+  });
+ }
+}
+$('reset').addEventListener('click',reset);$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;g.paused=!g.paused;
+ $('pause').textContent=g.paused?'Продължи':'Пауза';updateHud();
+});
+function finish(success,title){
+ if(g.finished)return;
+ g.finished=true;g.mode='done';g.completed=success;g.fail=success?null:title;
+ $('outcome').textContent=title;
+ $('summary').textContent='Доход ✦'+g.score+' · Дневна помощ '+(g.keyDone?'успешна':'пропусната')+
+ ' · Среща '+(g.joined?'да':'не')+' · Нощни проходи '+g.nightCleared.filter(Boolean).length+'/'+NIGHT_ROWS.length+
+ ' · Енергия '+(g.joined?Math.round(g.shared):g.energy.map(x=>Math.round(x)).join(' / '));
+ $('result').style.display='flex';updateHud();
+}
+function pushOut(n,oldT){
+ const b=g.joined?g.one:g.balls[n],r=rad()+wall()*.5+.8;
+ const segs=barriers(g.t);
+ if(!isSolid(n,b.x,b.y))return;
+ // A moving wall may push a light up, but never teleport it through itself.
+ const relevant=segs.filter(s=>s[6]===n||(g.joined&&s[6]===2));
+ if(!relevant.length)return;
+ const closest=relevant.filter(s=>Math.abs(s[1]-b.y)<r+2).sort((a,c)=>Math.abs(a[1]-b.y)-Math.abs(c[1]-b.y))[0];
+ if(!closest)return;
+ const yOld=closest[1]+(g.t-oldT)*speed();
+ // If wall came from below, keep orb on the upper side.
+ const direction=yOld>=b.y?-1:(b.y<closest[1]?-1:1);
+ b.y=clampY(closest[1]+direction*(r+1.6));
+ hit(n,g.joined?3:5,'moving-wall');
+}
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ const secs=Math.min(25,Math.max(0,dt)),num=Math.max(1,Math.ceil(secs/.02)),per=secs/num;
+ for(let i=0;i<num&&g.mode==='playing';i++){
+  const prev=g.t,phaseBefore=stage(g.t);
+  g.real+=per;g.t=Math.min(END,g.t+per*PACE);
+  const current=stage(g.t);
+  if(!g.joined){
+   // Equal daily fatigue, differences only from player choices and hazards.
+   if(prev<DAY_END)for(let n=0;n<2;n++)g.energy[n]=Math.max(0,g.energy[n]-.30*per);
+   if(g.energy.every(v=>v<=0)){finish(false,'Денят ви изтощи');break;}
+  }
+  if(current==='day'){
+   const key=keyGeom(),b=g.balls[1],r=rad();
+   if(!blueKey())g.keyArmed=false;
+   const old=g.keyOpen;
+   g.keyOpen=clamp(g.keyOpen+(g.keyArmed?per/.16:-per/.22),0,1);
+   // Real crossing: Coral actively approached the open gap before it passed.
+   if(Math.abs(key.y-b.y)<r*3.8&&Math.abs(b.x-key.gateX)<key.gapHalf-r*.4&&g.gestureCount[1]>0)
+    g.keyApproached=true;
+   if(!g.keyDone&&g.keyArmed&&g.keyOpen>=.97&&g.keyApproached
+    &&worldY(268,prev)>b.y+r*.55&&key.y<=b.y+r*.55
+    &&Math.abs(b.x-key.gateX)<key.gapHalf-r*.55){
+    g.keyDone=true;g.score+=8;
+    g.energy=g.energy.map(v=>Math.min(100,v+6));
+    g.tip='♡ Синя отвори, Корал премина. ✦8';
+   }
+   // Wind exerts a gentle continuous force, never changes thumb delta gain.
+   if(g.t>=172&&g.t<=215){
+    for(let n=0;n<2;n++){
+     const b=g.balls[n],range=bounds(n),force=(n===0?1:-1)*26;
+     b.x=clamp(b.x+force*per,range[0],range[1]);
+     for(const at of [182,204]){
+      const sy=worldY(at),sx=W*.5+(n===0?-rad()*1.9:rad()*1.9);
+      if(dist(b.x,b.y,sx,sy)<rad()*2.05)hit(n,9,'wind-spikes');
+     }
+    }
+   }
+   for(let n=0;n<2;n++)pushOut(n,prev);
+  }else if(current==='dusk'&&!g.joined){
+   // World continues even when the player delays the reunion.
+   for(let n=0;n<2;n++){const b=g.balls[n],range=bounds(n,true);b.x=clamp(b.x,range[0],range[1]);}
+  }else if(current==='night'&&g.joined){
+   for(let j=0;j<NIGHT_ROWS.length;j++){
+    const row=NIGHT_ROWS[j],before=worldY(row.at,prev),after=worldY(row.at),gap=nightGap(row),b=g.one,r=rad();
+    if(Math.abs(before-b.y)<r*4&&b.x>=gap.lo+r*.45&&b.x<=gap.hi-r*.45&&g.gestureCount.some(v=>v>0))
+     g.nightApproached[j]=true;
+    if(!g.nightCleared[j]&&g.nightApproached[j]&&after<b.y-r-wall()*.5)
+     g.nightCleared[j]=true;
+   }
+   pushOut(2,prev);
+  }
+  if(!g.joined&&g.t>=DUSK_END){finish(false,'Не успяхте да се срещнете');break;}
+  if(g.t>=END){
+   const won=g.joined&&g.nightCleared.filter(Boolean).length>=2&&g.shared>=20;
+   finish(won,won?'Денят и нощта — заедно ♡':'Опитайте още една нощ');
+  }
+ }
+ updateHud();
+}
+function updateHud(){
+ if(!g)return;
+ const phase=stage(g.t);
+ $('barfill').style.width=(g.t/END*100)+'%';
+ $('energy0').textContent=g.joined?'♡ '+Math.round(g.shared):'Синя ♡'+Math.round(g.energy[0]);
+ $('energy1').textContent=g.joined?'Две ръце':'Корал ♡'+Math.round(g.energy[1]);
+ $('income').textContent='✦'+g.score;
+ let label=phase==='day'?(g.t<83?'Сутрин · два маршрута':g.t<151?'Работа · разминаващи се проходи':g.t<229?'Следобед · вятър и избор':'Помагаме си · ключ и врата'):
+ phase==='dusk'?'Привечер · срещнете се':'Нощ · една обща светлина';
+ if(g.joined&&phase==='dusk')label='Прегръдка · възстановяване';
+ $('stage').textContent=g.paused?'Пауза':label;
+ const msg=g.mode==='ready'?'Двата палеца стартират играта.':
+ phase==='day'?(g.t<83?'Събирайте светлинките по двата маршрута.':g.t<151?'Дупките са на различни места.':g.t<229?'Вятърът ви притиска към средата.': 'Синя държи ключа; Корал минава през вратата.'):
+ phase==='dusk'?(g.joined?'♡ В светлата зона движете двата палеца заедно.':'♡ Съберете двете светлини в центъра!'):
+ 'Едно топче. Двата палеца го водят заедно през широките отвори.';
+ $('message').textContent=g.tip&&g.real<2?' '+g.tip:msg;
+}
+function line(x,y,xx,yy,color,width=2){
+ ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();
+}
+function disc(x,y,r,fill){
+ ctx.fillStyle=fill;ctx.beginPath();ctx.arc(x,y,r,0,TWO);ctx.fill();
+}
+function roundedRect(x,y,w,h,r,fill){
+ ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
+}
+function gradientBall(x,y,r,color){
+ const halo=ctx.createRadialGradient(x,y,0,x,y,r*2.8);
+ halo.addColorStop(0,color+'66');halo.addColorStop(1,color+'00');
+ disc(x,y,r*2.8,halo);disc(x,y,r,color);disc(x-r*.23,y-r*.26,r*.20,'#ffffffe0');
+}
+function draw(){
+ if(!g)return;
+ const phase=stage(g.t),tw=phase!=='day',r=rad();
+ const bg=ctx.createLinearGradient(0,0,0,H);
+ if(phase==='day'){bg.addColorStop(0,'#fbf4e8');bg.addColorStop(1,'#e9eee8');}
+ else if(phase==='dusk'){bg.addColorStop(0,'#edd5ca');bg.addColorStop(1,'#a9b4c6');}
+ else{bg.addColorStop(0,'#222c49');bg.addColorStop(1,'#3b4666');}
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ const a=top(),b=bottom(),hy=heroY();
+ if(phase==='day'){
+  ctx.fillStyle='#87bdb015';ctx.fillRect(0,0,W*.5,H);
+  ctx.fillStyle='#eda18a16';ctx.fillRect(W*.5,0,W*.5,H);
+  // World-anchored time markings travel upward with the action.
+  for(let y=hy+(g.t*speed())%78-156;y<H+60;y+=78)
+   if(y>=a&&y<=b)line(12,y,W-12,y,'#9eada01a',1);
+  line(W*.5,a,W*.5,b,'#b3b4ab7c',1.5);
+ }else{
+  for(let i=0;i<24;i++){
+   const x=(Math.sin(i*31.17)*.5+.5)*W,y=a+((i*71+g.t*speed()*.20)%(height()+10));
+   disc(x,y,1.2+(i%3)*.6,'#fff6d577');
+  }
+  if(phase==='dusk')line(W*.5,a,W*.5,b,'#fff6e557',1.4);
+ }
+ ctx.save();ctx.beginPath();ctx.rect(0,a,W,b-a);ctx.clip();
+ if(phase==='day'){
+  for(const [sx,sy,ex,ey,t] of barriers(g.t,'day')){
+   line(sx,sy,ex,ey,'#947c76',t+2);
+   line(sx,sy,ex,ey,'#b79d92',t);
+  }
+  const k=keyGeom();
+  if(k.y>a-r*4&&k.y<b+r*4){
+   // Left key powers right gap: two elements share a vertical world anchor.
+   roundedRect(k.keyX-k.keyR,k.y-k.keyR,k.keyR*2,k.keyR*2,7,
+    g.keyOpen>=.97?'#a1d8c4c2':'#bddbd1ba');
+   ctx.strokeStyle='#679c93';ctx.lineWidth=2;
+   ctx.strokeRect(k.keyX-k.keyR,k.y-k.keyR,k.keyR*2,k.keyR*2);
+   disc(k.keyX,k.y-6,7,'#ffffffb0');
+   line(k.keyX,k.y+2,k.keyX,k.y+17,'#669e92',2.4);
+   line(k.keyX,k.y+12,k.keyX+6,k.y+12,'#669e92',2.4);
+   line(k.keyX+k.keyR,k.y,k.gateX-k.gapHalf,k.y,'#94b2a7a5',2);
+   if(g.keyOpen<.97)
+    line(k.gateX-k.gapHalf,k.y,k.gateX+k.gapHalf,k.y,'#599d87',wall()+2);
+   else{
+    disc(k.gateX-k.gapHalf,k.y,4,'#63b19c');
+    disc(k.gateX+k.gapHalf,k.y,4,'#63b19c');
+   }
+  }
+  // Two wind lanes arrive at the same time, with visible centre spikes.
+  if(g.t>=160&&g.t<=225){
+   const alpha=clamp(Math.min((g.t-160)/14,(225-g.t)/12),0,1);
+   ctx.globalAlpha=alpha*.65;
+   for(let yy=a+12;yy<b;yy+=41){
+    line(W*.16,yy,W*.40,yy,'#80bab7',2.4);
+    line(W*.40,yy,W*.40-9,yy-6,'#80bab7',1.5);
+    line(W*.84,yy,W*.60,yy,'#ebb1a1',2.4);
+    line(W*.60,yy,W*.60+9,yy-6,'#ebb1a1',1.5);
+   }
+   ctx.globalAlpha=1;
+   for(const when of [182,204]){
+    const yy=worldY(when);
+    for(const side of [-1,1]){
+     const xx=W*.5+side*r*1.9;
+     disc(xx,yy,r*.93,'#b47b8273');
+     for(let j=0;j<7;j++){
+      const angle=j*TWO/7;
+      line(xx+Math.cos(angle)*r*.45,yy+Math.sin(angle)*r*.45,
+       xx+Math.cos(angle)*r*1.1,yy+Math.sin(angle)*r*1.1,'#a46f79',2.3);
+     }
+    }
+   }
+  }
+  for(const item of COINS){
+   if(g.coins.includes(item.id))continue;
+   const x=item.x*W,y=worldY(item.at);
+   if(y<a-18||y>b+18)continue;
+   const col=item.value===3?'#f6c96d':item.side===0?'#7ebeb6':'#eeb19b';
+   disc(x,y,item.value===3?13:9,col+'44');
+   disc(x,y,item.value===3?8:6,col);disc(x-2,y-2,1.7,'#ffffffe8');
+  }
+ }
+ if(phase==='dusk'||(g.joined&&g.t<412)){
+  const yy=worldY(364),shine=clamp(height()*.22,54,88);
+  const glow=ctx.createRadialGradient(W*.5,yy,2,W*.5,yy,shine*1.35);
+  glow.addColorStop(0,'#fee9b98a');glow.addColorStop(1,'#f7c5a600');
+  disc(W*.5,yy,shine*1.35,glow);
+  ctx.strokeStyle='#f9edc788';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(W*.5,yy,shine*.84,0,TWO);ctx.stroke();
+  for(let j=0;j<6;j++){const angle=j*TWO/6+g.real*.2;
+   disc(W*.5+Math.cos(angle)*shine*.65,yy+Math.sin(angle)*shine*.65,3,'#ffedc7cc');}
+ }
+ if(phase==='night'){
+  for(const [sx,sy,ex,ey,t] of barriers(g.t,'night')){
+   line(sx,sy,ex,ey,'#a8b6d84f',t+8);
+   line(sx,sy,ex,ey,'#d6d9f2bf',t+1.5);
+  }
+  for(const it of FIREFLIES){
+   if(g.fireflies.includes(it.id))continue;
+   const x=it.x*W,y=worldY(it.at);
+   if(y<a-20||y>b+20)continue;
+   disc(x,y,16,'#f7e6a642');disc(x,y,7,'#fff0bd');disc(x,y,2.4,'#ffffff');
+  }
+ }
+ ctx.restore();
+ if(g.joined){
+  const one=g.one;
+  const halo=ctx.createRadialGradient(one.x,one.y,0,one.x,one.y,r*3.2);
+  halo.addColorStop(0,'#faead4af');halo.addColorStop(.42,'#bcb5e366');halo.addColorStop(1,'#a6b4f000');
+  disc(one.x,one.y,r*3.2,halo);
+  const mix=ctx.createLinearGradient(one.x-r,one.y-r,one.x+r,one.y+r);
+  mix.addColorStop(0,'#77c1ba');mix.addColorStop(.5,'#e4c3cb');mix.addColorStop(1,'#f0af91');
+  disc(one.x,one.y,r*1.2,mix);disc(one.x-r*.24,one.y-r*.27,r*.19,'#fffffff0');
+ }else{
+  gradientBall(g.balls[0].x,g.balls[0].y,r,'#69afa9');
+  gradientBall(g.balls[1].x,g.balls[1].y,r,'#ec9986');
+  if(phase==='dusk'){
+   disc(W*.5,hy,r*3.5,'#ffe6b63d');
+   ctx.strokeStyle='#fff2d2a5';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(W*.5,hy,r*2.5,0,TWO);ctx.stroke();
+  }
+ }
+ ctx.save();ctx.strokeStyle=tw?'#e6e3f03f':'#bac8bc73';ctx.setLineDash([5,8]);
+ ctx.strokeRect(11,a,W-22,b-a);ctx.restore();
+ if(g.mode==='ready'){
+  ctx.textAlign='center';ctx.font='bold 14px sans-serif';ctx.fillStyle=tw?'#f7dfc7':'#69887d';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,b+30);
+ }
+}
+function frame(ts){
+ if(!prevFrame)prevFrame=ts;
+ const dt=clamp((ts-prevFrame)/1000,0,.05);prevFrame=ts;
+ if(g)update(dt);
+ if(g)draw();
+ requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,COINS,FIREFLIES}};
+window.addEventListener('resize',resize,{passive:true});
+resize();requestAnimationFrame(frame);
+})();
+</script></body></html>
