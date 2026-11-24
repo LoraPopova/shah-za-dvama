@@ -117,7 +117,7 @@ let tempo=2.4;
 const clockRate=()=>PACE*tempo;
 let runtime={fps:null,actualPx:null,expectedPx:0,frames:0,start:0,t0:0};
 let collisionCache={};
-let inputMoves=[0,0],recovered=[0,0];
+let inputMoves=[0,0],inputApplied=[0,0],recovered=[0,0];
 const rad=()=>clamp(Math.min(W,H)*.019,11,19);
 const top=()=>clamp(H*.13,75,192);
 const bottom=()=>H-Math.max(12,H*.025);
@@ -234,7 +234,7 @@ function reset(){
   nightApproached:Array(NIGHT_ROWS.length).fill(false),nightCleared:Array(NIGHT_ROWS.length).fill(false),
   lastMergedGesture:-99,lastCoralNearGate:-99,
   gestureCount:[0,0],lastHud:-1,finished:false,completed:false,fail:null,tip:'Две светлини. Две пътеки.'};
- inputMoves=[0,0];recovered=[0,0];
+ inputMoves=[0,0];inputApplied=[0,0];recovered=[0,0];
  pads.forEach((p,n)=>{p.id=null;p.el.style.boxShadow='inset 0 0 0 8px #ffffff33';$('pad'+n+'status').textContent=n===0?'ЛЯВ ПАЛЕЦ':'ДЕСЕН ПАЛЕЦ';});
  runtime.start=0;runtime.t0=0;runtime.frames=0;
  $('pause').textContent='Пауза';$('tempo').textContent='Темпо ×'+tempo;
@@ -393,7 +393,10 @@ function steerPad(n,id,x,y){
  const dx=x-p.x,dy=y-p.y;p.x=x;p.y=y;
  if(Math.hypot(dx,dy)<.02)return true;
  inputMoves[n]++;
+ const before=g.joined?{...g.one}:{...g.balls[n]};
  move(n,dx*GAIN,dy*GAIN);
+ const after=g.joined?g.one:g.balls[n];
+ inputApplied[n]+=Math.hypot(after.x-before.x,after.y-before.y);
  return true;
 }
 function releasePad(n,id){
@@ -425,7 +428,9 @@ function touchStart(e){
  if(captured){touchMode=true;if(e.cancelable)e.preventDefault();}
 }
 function touchMove(e){
- const changed=Array.from(e.changedTouches||e.touches||[]);
+ // Use ALL current touches: some iPad Safari builds coalesce changedTouches
+ // to one finger even when the other finger has a newer position.
+ const changed=Array.from(e.touches||e.changedTouches||[]);
  if(e.touches)reconcileTouches(e.touches);
  let consumed=false;
  for(const t of changed){
@@ -571,8 +576,8 @@ function updateHud(){
  $('income').style.color=phase==='night'?'#f2dca1':'#bb974f';
  $('message').style.color=phase==='night'?'#f1e6d2':'#65817f';
  $('message').style.textShadow=phase==='night'?'0 2px 7px #141d39':'0 2px 8px #f7f0e6df';
- $('touchdiag').textContent='Синя '+(pads[0].id!==null?'✓':'○')+' движения '+inputMoves[0]+
- ' · Корал '+(pads[1].id!==null?'✓':'○')+' движения '+inputMoves[1]+
+ $('touchdiag').textContent='Синя '+(pads[0].id!==null?'✓':'○')+' вход '+inputMoves[0]+' / '+Math.round(inputApplied[0])+'px'+
+ ' · Корал '+(pads[1].id!==null?'✓':'○')+' вход '+inputMoves[1]+' / '+Math.round(inputApplied[1])+'px'+
  (recovered.some(Boolean)?' · възстановени '+recovered.join('/'):'');
  $('touchdiag').style.color=phase==='night'?'#e0e3ef':'#5f7977';
  const msg=g.mode==='ready'?'Двата палеца стартират играта.':
@@ -776,7 +781,7 @@ document.addEventListener('visibilitychange',()=>{
  prevFrame=0;runtime.start=0;
 });
 
-window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,FIREFLIES}};
+window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,windAt,windSpike,grab,steerPad,releasePad,touchStart,touchMove,touchEnd,reconcileTouches,clockRate,inputDiagnostics:()=>({moves:inputMoves.slice(),applied:inputApplied.slice(),recovered:recovered.slice(),active:pads.map(p=>p.id)}),metrics:()=>({...runtime}),geometry:()=>({top:top(),bottom:bottom(),heroY:heroY(),screenH:H,worldPxPerSecond:speed()*clockRate()}),config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,WIND_BANDS,COINS,FIREFLIES}};
 window.addEventListener('resize',resize,{passive:true});
 // iPad Safari must treat a two-thumb game as gestures, never text selection.
 document.addEventListener('selectstart',e=>e.preventDefault());
