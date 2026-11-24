@@ -117,8 +117,8 @@ const ITEMS=ROWS.flatMap(row=>[0,1].map(n=>({
 const MAX_SCORE=ITEMS.reduce((sum,item)=>sum+item.value,0);
 function itemPos(item,time=g.time){
  const row=ROWS.find(r=>r.id===item.row),c=opening(row,item.n);
- // Reward scrolls with the actual aperture and is visible after crossing.
- return {x:c.center,y:rowY(row,time)-Math.max(rad()*1.8,playH()*.12)};
+ // Reward is BEHIND the wall in world motion: cross, then collect, then turn.
+ return {x:c.center,y:rowY(row,time)+Math.max(rad()*1.8,playH()*.10)};
 }
 function reset(){
  g={mode:'ready',paused:false,time:0,realTime:0,pace:PACE,
