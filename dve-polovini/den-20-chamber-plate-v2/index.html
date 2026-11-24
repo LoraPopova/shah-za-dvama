@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f5f1e8">
+<title>Две половини · Ден 20 — Камера и плоча v2</title>
+<style>
+:root{--paper:#f5f1e8;--ink:#41534e;--teal:#67a8a3;--coral:#ef9882}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;margin:0;overflow:hidden;background:var(--paper);font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);touch-action:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+header{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:3}
+#brand{font-size:10px;font-weight:850;letter-spacing:2px;color:#83978f}
+h1{font-size:20px;margin:4px 0;color:#44544f}
+#status{font-size:12px;color:#728981;font-weight:700;margin:4px 0}
+#stats{display:flex;gap:15px;align-items:center;text-align:right;font-size:13px;font-weight:700}
+#stats div{white-space:nowrap}
+#score{color:#b88e42}
+#boostClock{color:#bf8746;min-width:66px}
+#e0{color:#568f89}#e1{color:#d48371}
+#progress{position:fixed;left:0;right:0;top:calc(94px + env(safe-area-inset-top,0px));height:4px;background:#d9ddd2;z-index:3}
+#bar{height:100%;width:0;background:linear-gradient(90deg,#70aaa2,#e7a48f)}
+#menu{position:fixed;top:calc(110px + env(safe-area-inset-top,0px));left:18px;display:flex;gap:8px;z-index:6}
+button{border:1px solid #dfdfd5;border-radius:99px;padding:9px 15px;background:#fffffff2;color:#52665e;box-shadow:0 4px 15px #4d5f4a16;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+#hint{position:fixed;top:calc(156px + env(safe-area-inset-top,0px));left:15%;right:15%;text-align:center;pointer-events:none;font-size:14px;font-weight:750;color:#5e8089;z-index:3;text-shadow:0 1px 4px #f5f1e8}
+.pad{position:fixed;bottom:calc(clamp(80px,14vh,185px) + env(safe-area-inset-bottom,0px));width:130px;height:130px;border:2px solid;border-radius:50%;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5;box-shadow:inset 0 0 0 10px #ffffff44}
+.pad.left{left:calc(25% - 65px);border-color:#84b5ae;background:#85c0b21b}
+.pad.right{left:calc(75% - 65px);border-color:#f1b5a4;background:#e8a68a1b}
+.knob{height:43px;width:43px;border-radius:50%;pointer-events:none;box-shadow:0 3px 12px #62615733}
+.left .knob{background:#7caca6}.right .knob{background:#eda18c}
+.pad span{position:absolute;bottom:13px;color:#899890;letter-spacing:.5px;font-size:9px;font-weight:800}
+#finish{position:fixed;inset:0;background:#f5f1e8eb;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#finish .inner{max-width:380px;background:white;border-radius:24px;padding:26px 24px;border:1px solid #e7e5dd;box-shadow:0 18px 45px #45544d24}
+#finish h2{font-size:25px;margin:0 0 12px}#finish p{font-size:15px;line-height:1.4}#finish button{background:#4f8d84;color:white;border:0;font-size:15px;padding:13px 24px}
+@media(max-width:680px){
+header{left:12px;right:12px}h1{font-size:16px}
+#stats{font-size:10px;gap:6px;align-items:start}
+#status{font-size:10px;max-width:210px}
+#menu{left:12px}#hint{font-size:12px;left:6%;right:6%}
+.pad{width:105px;height:105px}.pad.left{left:calc(25% - 52px)}.pad.right{left:calc(75% - 52px)}
+}
+@media(max-height:580px){.pad{bottom:calc(40px + env(safe-area-inset-bottom,0px))}#progress{top:85px}#menu{top:97px}#hint{top:145px}}
+#bridgeMeter{position:fixed;left:16px;right:16px;top:calc(157px + env(safe-area-inset-top,0px));height:5px;background:#d7dfd8aa;border-radius:5px;pointer-events:none;z-index:5;overflow:hidden}
+#bridgeFill{height:100%;width:0%;background:linear-gradient(90deg,#73af92,#b8d5a4);transition:width .035s linear}
+#hint{top:calc(174px + env(safe-area-inset-top,0px));font-size:13px}
+#menu{top:calc(110px + env(safe-area-inset-top,0px))}
+@media(max-height:580px){#bridgeMeter{display:none}#hint{display:none}}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<header>
+<div><div id="brand">TWO HALVES · СКИЦА №1</div><h1>Ден 20 · Камера и плоча v2</h1><div id="status">Вратата зависи само от Синя. Корал няма право на управление над нея.</div></div>
+<div id="stats"><div id="e0">● Синя 100</div><div id="e1">● Корал 100</div><div id="score">✦ 0</div><div id="boostClock">ВХОД 0%</div></div>
+</header>
+<div id="progress"><div id="bar"></div></div>
+<div id="menu"><button id="reset">Отначало</button><button id="pause">Пауза</button><button id="skip" disabled>Пропусни</button></div>
+<div id="bridgeMeter"><div id="bridgeFill"></div></div>
+<div id="hint">Синя на плочата → ОТВОРЕНО. Слиза → ЗАТВОРЕНО. Качва се пак → ОТВОРЕНО.</div>
+<div class="pad left" id="pad0"><div class="knob" id="knob0"></div><span>ЛЯВ ПАЛЕЦ</span></div>
+<div class="pad right" id="pad1"><div class="knob" id="knob1"></div><span>ДЕСЕН ПАЛЕЦ</span></div>
+<div id="finish"><div class="inner"><h2 id="outcome">Край на деня</h2><p id="result"></p><button id="again">Играй отново</button></div></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),COLORS=['#67a8a3','#ef9882'];
+const GAIN=2.5,PACE=5,EVENT_AT=10,DURATION=85,HOLD_SECONDS=0,OPEN_SECONDS=.16,CLOSE_SECONDS=.22;
+const WALL_DELAY=.02;
+let W=1,H=1,dpr=1,g=null,lastFrame=0;
+const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
+const radius=()=>clamp(Math.min(W,H)*.019,11,19);
+const upper=()=>Math.max(110,H*.16);
+const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
+const playH=()=>lower()-upper();
+const lane=n=>n===0?[radius(),W*.5-radius()]:[W*.5+radius(),W-radius()];
+const wall=()=>clamp(Math.min(W,H)*.011,6,10);
+// Keep the whole apparatus initially in the playable region, including
+// very short landscape viewports. Then let it travel UP with world time ×5.
+// Motion is never paused at the cooperative plate or while Coral is inside.
+const roomY=(time=g.time)=>{
+ const z=room(),r=radius(),bottomY=lower()-z.half-r-6;
+ const topY=upper()+z.half+r+6;
+ const speed=Math.max(.20,(bottomY-topY)/58);
+ return bottomY-time*speed;
+};
+const room=()=>({left:W*.614,right:W*.872,half:clamp(playH()*.21,43,95),
+  doorHalf:clamp(radius()*2.4,27,47)});
+const plate=()=>({x:W*.307,y:roomY(),r:clamp(radius()*2.15,24,38)});
+const reward=()=>({x:W*.805,y:roomY()});
+function squaredSegment(x,y,ax,ay,bx,by){
+ const dx=bx-ax,dy=by-ay,ss=dx*dx+dy*dy;
+ const t=ss?clamp(((x-ax)*dx+(y-ay)*dy)/ss,0,1):0;
+ return (x-ax-dx*t)**2+(y-ay-dy*t)**2;
+}
+function roomSegments(time=g.time,closed=g.open<.97){
+ const z=room(),y=roomY(time),t=wall();
+ const edges=[
+  [z.left,y-z.half,z.right,y-z.half,t],
+  [z.left,y+z.half,z.right,y+z.half,t],
+  [z.right,y-z.half,z.right,y+z.half,t],
+  [z.left,y-z.half,z.left,y-z.doorHalf,t],
+  [z.left,y+z.doorHalf,z.left,y+z.half,t]
+ ];
+ if(closed)edges.push([z.left,y-z.doorHalf,z.left,y+z.doorHalf,t]);
+ return edges;
+}
+function solid(x,y,time=g.time){
+ const r=radius()+wall()*.5-.2;
+ return roomSegments(time).some(([a,b,c,d])=>squaredSegment(x,y,a,b,c,d)<r*r);
+}
+function plateTouched(){
+ const b=g.balls[0],p=plate();
+ // Blue must move there deliberately; world scroll touching stationary Blue
+ // must never arm a joint task.
+ return g.plateArmed&&Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12;
+}
+function checkCoral(active){
+ if(!active||g.mode!=='playing'||g.missed||g.done)return;
+ const b=g.balls[1],z=room(),cy=roomY(),r=radius();
+ const aligned=Math.abs(b.y-cy)<z.doorHalf-r*.78;
+ if(!g.entryArmed&&aligned&&b.x<=z.left-r*.8)g.entryArmed=true;
+ if(g.entryArmed&&!g.entered&&aligned&&g.open>=.97&&b.x>=z.left+r*.8){
+  g.entered=true;g.inside=true;
+  $('hint').textContent='Корал е вътре. Вратата слуша САМО Синя — тя трябва да се качи за изход.';
+ }
+ if(g.entered&&!g.collected){
+  const c=reward();
+  if(Math.hypot(b.x-c.x,b.y-c.y)<r+9){
+   g.collected=true;g.pickCount++;
+   $('hint').textContent='Искрата е взета! Корал, върни се през входа.';
+  }
+ }
+ if(g.entered&&g.collected&&g.inside&&aligned&&b.x<=z.left-r*.9){
+  g.inside=false;g.exited=true;finishMission();
+ }
+}
+function finishMission(){
+ if(g.done||g.missed||!g.entered||!g.collected||!g.exited)return;
+ g.done=true;g.rewardCount++;g.score+=8;g.energy=g.energy.map(e=>Math.min(100,e+8));
+ $('hint').textContent='Заедно успяхте! Синя отвори, Корал се върна с искрата · ✦8';
+}
+function state(){
+ const z=room();
+ return {mode:g.mode,paused:g.paused,time:g.time,realTime:g.realTime,pace:g.pace,gain:GAIN,
+  balls:g.balls.map(b=>({...b})),energy:g.energy.slice(),score:g.score,
+  room:{...z,y:roomY(),segments:roomSegments()},plate:{...plate(),touched:plateTouched()},
+  reward:{...reward(),taken:g.collected},hold:g.hold,open:g.open,blueMoved:g.blueMoved,plateArmed:g.plateArmed,
+  held:g.held,entryArmed:g.entryArmed,entered:g.entered,inside:g.inside,collected:g.collected,
+  pickCount:g.pickCount,exited:g.exited,done:g.done,rewardCount:g.rewardCount,
+  missed:g.missed,finished:g.finished,hits:g.hits,crushed:g.crushed,contactPushes:g.contactPushes,openCycles:g.openCycles,closeCycles:g.closeCycles};
+}
+function reset(){
+ g={mode:'ready',paused:false,time:0,realTime:0,pace:PACE,
+  balls:[{x:W*.17,y:upper()+playH()*.25},{x:W*.54,y:upper()+playH()*.25}],
+  energy:[100,100],score:0,blueMoved:false,plateArmed:false,hold:0,held:false,open:0,
+  entryArmed:false,entered:false,inside:false,collected:false,pickCount:0,
+  exited:false,done:false,rewardCount:0,missed:false,finished:false,
+  hits:0,lastHit:[-99,-99],crushed:false,contactPushes:0,openCycles:0,closeCycles:0};
+ pads.forEach(p=>p.id=null);
+ $('finish').style.display='none';$('pause').textContent='Пауза';
+ $('hint').textContent='Синя на плочата отваря. Синя извън плочата затваря — винаги, независимо от Корал.';
+ refresh();draw();
+}
+function resize(){
+ const oldW=W,oldH=H;
+ W=Math.max(320,window.innerWidth||800);H=Math.max(390,window.innerHeight||800);
+ dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(g&&oldW>1&&oldH>1){
+  g.balls.forEach((b,n)=>{const [l,r]=lane(n);b.x=clamp(b.x*W/oldW,l,r);
+   b.y=clamp(b.y*H/oldH,upper()+radius(),lower()-radius());});
+  draw();refresh();
+ }else reset();
+}
+function refresh(){
+ $('e0').textContent='● Синя '+Math.round(g.energy[0]);
+ $('e1').textContent='● Корал '+Math.round(g.energy[1]);
+ $('score').textContent='✦ '+g.score;
+ $('boostClock').textContent=(g.held?'ОТВАРЯ':'ЗАТВАРЯ')+' '+Math.round(g.open*100)+'%';
+ $('bridgeFill').style.width=(g.open*100)+'%';
+ $('bar').style.width=Math.min(100,g.time/DURATION*100)+'%';
+ $('skip').disabled=g.mode!=='playing'||g.paused||g.done||g.missed||g.inside||g.time<EVENT_AT;
+ if(g.mode==='ready')$('status').textContent='Двата палеца за старт · непрекъснат скрол ×5';
+ else if(g.paused)$('status').textContent='Пауза';
+ else if(g.mode==='done')$('status').textContent='Край на участъка';
+ else if(g.done)$('status').textContent='✦8 · искрата е върната';
+ else if(g.inside)$('status').textContent=g.held?'Корал е вътре · Синя държи вратата отворена':'Корал е вътре · Синя трябва да отвори';
+ else if(g.held)$('status').textContent='Синя е на плочата · вратата се отваря';
+ else $('status').textContent='Синя: плоча · Корал: камера · ×5';
+}
+function hit(n){
+ if(g.realTime-g.lastHit[n]<.80)return;
+ g.lastHit[n]=g.realTime;g.hits++;g.energy[n]=Math.max(0,g.energy[n]-5);
+}
+function move(n,dx,dy){
+ if(g.mode!=='playing'||g.paused||Math.hypot(dx,dy)<.4)return;
+ if(n===0&&Math.hypot(dx,dy)>2)g.blueMoved=true;
+ const b=g.balls[n],[lo,hi]=lane(n),r=radius();
+ const steps=Math.max(1,Math.min(1200,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/Math.max(2,r*.32))));
+ for(let k=0;k<steps;k++){
+  const x=b.x;b.x=clamp(x+dx/steps,lo,hi);
+  if(n===1&&solid(b.x,b.y)){b.x=x;hit(n);}
+  const y=b.y;b.y=clamp(y+dy/steps,upper()+r,lower()-r);
+  if(n===1&&solid(b.x,b.y)){b.y=y;hit(n);}
+  if(n===0){
+   const p=plate();
+   // Arm only while Blue actively occupies the moving disk; leaving
+   // invalidates this frame immediately, rather than waiting for update().
+   g.plateArmed=Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12;
+  }
+  if(n===1)checkCoral(true);
+ }
+ refresh();draw();
+}
+for(let n=0;n<2;n++){
+ const p=pads[n],el=p.el;
+ el.addEventListener('pointerdown',e=>{
+  if(p.id!==null)return;e.preventDefault();p.id=e.pointerId;p.x=e.clientX;p.y=e.clientY;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  if(g.mode==='ready'&&pads.every(t=>t.id!==null))g.mode='playing';
+ });
+ el.addEventListener('pointermove',e=>{
+  if(e.pointerId!==p.id)return;e.preventDefault();
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  move(n,dx*GAIN,dy*GAIN);
+ });
+ for(const kind of ['pointerup','pointercancel','lostpointercapture'])
+  el.addEventListener(kind,e=>{
+   if(e.pointerId!==p.id)return;p.id=null;
+   try{el.releasePointerCapture(e.pointerId)}catch(_){}
+  });
+}
+$('reset').addEventListener('click',reset);
+$('again').addEventListener('click',reset);
+$('pause').addEventListener('click',()=>{
+ if(g.mode!=='playing')return;
+ g.paused=!g.paused;$('pause').textContent=g.paused?'Продължи':'Пауза';refresh();
+});
+$('skip').addEventListener('click',()=>{
+ if(g.mode!=='playing'||g.paused||g.done||g.missed||g.inside||g.time<EVENT_AT)return;
+ g.missed=true;$('hint').textContent='Камерата е пропусната · продължавате нататък.';
+ refresh();
+});
+function finish(){
+ if(g.finished)return;
+ g.finished=true;g.mode='done';
+ $('outcome').textContent=g.done?'ЗАЕДНО ВЗЕХТЕ ИСКРАТА!':g.crushed?'КАМЕРАТА ОТМИНА':'Край на участъка';
+ $('result').textContent='Камера: '+(g.done?'успех':g.missed?'пропусната':'неуспех')+
+  ' · ✦'+g.score+' · искра '+(g.collected?'взета':'пропусната')+
+  ' · излизане '+(g.exited?'да':'не')+' · енергия '+g.energy.map(x=>Math.round(x)).join(' / ');
+ $('finish').style.display='flex';
+}
+function update(dt){
+ if(g.mode!=='playing'||g.paused)return;
+ const total=Math.min(Math.max(0,dt),30),steps=Math.max(1,Math.ceil(total/WALL_DELAY)),part=total/steps;
+ for(let i=0;i<steps&&g.mode==='playing';i++){
+  const before=g.time,oldY=roomY(before);
+  g.time=Math.min(DURATION,g.time+part*PACE);g.realTime+=part;g.pace=PACE;
+  if(!g.done&&!g.missed){
+   const touch=plateTouched();
+   if(!touch)g.plateArmed=false;
+   g.hold=touch?g.hold+part:0;
+   g.held=touch;
+  }else{
+   // A completed/missed reward does NOT disconnect the physical plate.
+   // Door power remains exclusively a function of Blue's position.
+   const touch=plateTouched();
+   if(!touch)g.plateArmed=false;
+   g.hold=touch?g.hold+part:0;
+   g.held=touch;
+  }
+  // ONLY Blue governs door power. Coral's presence, entry, exit, or
+  // reward status MUST NEVER latch or unlock the door.
+  const wasOpen=g.open>=.97, powered=g.held;
+  if(powered)g.open=Math.min(1,g.open+part/OPEN_SECONDS);
+  else g.open=Math.max(0,g.open-part/CLOSE_SECONDS);
+  const nowOpen=g.open>=.97;
+  if(!wasOpen&&nowOpen)g.openCycles++;
+  if(wasOpen&&!nowOpen)g.closeCycles++;
+  // If the door closes exactly onto Coral, the CLOSED solid door
+  // displaces the ball to the SAME SIDE of its frame. It does not keep
+  // the door open, teleport Coral to safety, or award an escape.
+  if(!nowOpen){
+   const z=room(),b=g.balls[1],r=radius()+wall()*.5+.2;
+   if(Math.abs(b.x-z.left)<r&&Math.abs(b.y-roomY())<z.doorHalf+r){
+    const side=b.x>=z.left?1:-1;
+    b.x=clamp(z.left+side*(r+.35),lane(1)[0],lane(1)[1]);
+    g.contactPushes++;
+   }
+  }
+  // Real-world movement; NEVER pause at plate or during room occupancy.
+  const deltaY=roomY()-oldY,b=g.balls[1];
+  if(solid(b.x,b.y)){
+   let count=0;
+   while(solid(b.x,b.y)&&count++<20){
+    const next=clamp(b.y+deltaY,upper()+radius(),lower()-radius());
+    if(Math.abs(next-b.y)<.00001)break;
+    b.y=next;
+   }
+   if(solid(b.x,b.y)){
+    hit(1);
+    if(b.y<=upper()+radius()+.15){g.crushed=true;finish();}
+   }
+  }
+  if(g.time>=DURATION)finish();
+ }
+ refresh();
+}
+function line(x,y,xx,yy,c,w=2){ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(xx,yy);ctx.stroke();}
+function circle(x,y,r,c){ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+function draw(){
+ if(!g)return;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f1e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#90bca90d';ctx.fillRect(0,0,W*.5,H);
+ ctx.fillStyle='#f3a58b0f';ctx.fillRect(W*.5,0,W*.5,H);
+ const top=upper(),bottom=lower(),cy=roomY(),z=room(),p=plate(),rr=radius();
+ ctx.save();ctx.setLineDash([5,9]);ctx.strokeStyle='#b9c8bf';ctx.strokeRect(12,top,W-24,bottom-top);ctx.restore();
+ line(W*.5,top-14,W*.5,bottom+12,'#cfc6b9',1.5);
+ ctx.save();ctx.beginPath();ctx.rect(0,top,W,bottom-top);ctx.clip();
+ // One world-anchored cooperative apparatus: plate--link--collector room.
+ ctx.strokeStyle=g.held?'#7dbcaa':'#9cb8aa';ctx.lineWidth=g.held?4:2;
+ ctx.setLineDash(g.held?[]:[6,7]);ctx.beginPath();ctx.moveTo(p.x+p.r,cy);
+ ctx.lineTo(z.left,cy);ctx.stroke();ctx.setLineDash([]);
+ circle(p.x,p.y,p.r+7,g.held?'#8cd0b047':'#84bba32e');
+ circle(p.x,p.y,p.r,g.held?'#90d3bd':'#a8d1c6');
+ circle(p.x,p.y,p.r*.52,g.held?'#538d7d':'#6f9f94');
+ if(g.hold>0&&!g.held&&HOLD_SECONDS>0){
+  ctx.strokeStyle='#478a7b';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.r+4,-Math.PI/2,-Math.PI/2+Math.PI*2*g.hold/HOLD_SECONDS);ctx.stroke();
+ }
+ ctx.fillStyle=g.inside?'#a7d9c43e':'#ecd0bf36';ctx.fillRect(z.left,cy-z.half,z.right-z.left,z.half*2);
+ for(const [ax,ay,bx,by,w] of roomSegments(undefined,false)){
+  line(ax,ay,bx,by,'#96736e',w+2);line(ax,ay,bx,by,'#b68d7d',w);
+ }
+ if(g.open<.97){
+  line(z.left,cy-z.doorHalf,z.left,cy+z.doorHalf,g.held?'#6cb8a2':'#836b6f',wall()+2);
+ }else{
+  circle(z.left,cy-z.doorHalf,3.5,'#69ad98');
+  circle(z.left,cy+z.doorHalf,3.5,'#69ad98');
+ }
+ if(!g.collected){
+  const star=reward();
+  circle(star.x,star.y,16,'#f3c56c48');
+  circle(star.x,star.y,10,'#eac061');
+  circle(star.x-3,star.y-3,3,'#fff9d8');
+ }else if(g.inside)circle(g.balls[1].x+rr*.9,g.balls[1].y-rr*.7,5,'#eac061');
+ ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillStyle='#856e67';
+ ctx.fillText('СИНЯ = ВРАТА',p.x,cy-p.r-13);
+ ctx.fillText('ИСКРА',(z.left+z.right)*.5,cy-z.half-12);
+ ctx.restore();
+ for(let n=0;n<2;n++){
+  const b=g.balls[n],glow=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,rr*2.5);
+  glow.addColorStop(0,COLORS[n]+'70');glow.addColorStop(1,COLORS[n]+'00');
+  circle(b.x,b.y,rr*2.5,glow);circle(b.x,b.y,rr,COLORS[n]);
+  circle(b.x-rr*.24,b.y-rr*.25,rr*.17,'#ffffffb5');
+ }
+ if(g.mode==='ready'){ctx.fillStyle='#69877a';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
+  ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,bottom+30);}
+}
+function frame(ts){
+ if(!lastFrame)lastFrame=ts;
+ const dt=Math.max(0,Math.min(.05,(ts-lastFrame)/1000));lastFrame=ts;
+ if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
+}
+window.__twoHalvesQA={state,advance:update,reset,move,solid,roomSegments,plateTouched,checkCoral,finishMission,roomY,resize};
+window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
