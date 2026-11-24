@@ -760,8 +760,12 @@ function updateHud(){
  $('syncstatus').textContent=g.joined?
   (g.real-g.syncReal<.3?'Синхрон '+Math.round(g.syncValue*100)+'% · ускорение ×'+g.syncBoost.toFixed(2):
     'Един палец — бавно · два заедно — ускорение'):
-  (Math.min(...g.energy)<RESCUE.grayAt?
-   '♡ Срещнете се на средната линия за подкрепа · '+g.rescueCount+'/'+RESCUE.maxPerDay:
+  (phase==='day'&&g.real<g.rescueFxUntil?'♡ Подкрепа! Разменихте енергия · продължете':
+   phase==='day'&&g.rescueCount>=RESCUE.maxPerDay?'♡ Дневните срещи са използвани · 3/3':
+   phase==='day'&&Math.min(...g.energy)<RESCUE.grayAt?
+    (dayRescueContact()&&g.rescueArmed&&g.real-g.rescueLast>=RESCUE.cooldownSeconds?
+     '♡ Задръжте се заедно · '+Math.round(g.rescueHold/RESCUE.holdSeconds*100)+'%':
+     '♡ Доближете се до средната линия · подкрепа '+g.rescueCount+'/3'):
    'Нощта: двете ръце ще управляват едно топче');
  $('syncstatus').style.color=phase==='night'?'#fff0cf':'#5f817b';
  const msg=g.mode==='ready'?'Двата палеца стартират играта.':
@@ -965,6 +969,12 @@ function draw(){
  }
  ctx.save();ctx.strokeStyle=tw?'#e6e3f03f':'#bac8bc73';ctx.setLineDash([5,8]);
  ctx.strokeRect(11,a,W-22,b-a);ctx.restore();
+ if(g.mode==='playing'&&phase==='day'&&g.real<g.rescueFxUntil){
+  const midX=W*.5,midY=(g.balls[0].y+g.balls[1].y)*.5;
+  const pulse=1+.18*Math.sin(g.real*20);
+  disc(midX,midY,r*3*pulse,'#f3d6a75a');
+  disc(midX,midY,r*.63,'#fff1bbdf');
+ }
  if(g.mode==='ready'){
   ctx.textAlign='center';ctx.font='bold 14px sans-serif';ctx.fillStyle=tw?'#f7dfc7':'#69887d';
   ctx.fillText('ДВА ПАЛЕЦА = СТАРТ',W*.5,b+30);
