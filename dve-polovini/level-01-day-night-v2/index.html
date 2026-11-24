@@ -425,7 +425,6 @@ function update(dt){
    finish(won,won?'Денят и нощта — заедно ♡':'Опитайте още една нощ');
   }
  }
- updateHud();
 }
 function updateHud(){
  if(!g)return;
@@ -434,10 +433,12 @@ function updateHud(){
  $('energy0').textContent=g.joined?'♡ '+Math.round(g.shared):'Синя ♡'+Math.round(g.energy[0]);
  $('energy1').textContent=g.joined?'Две ръце':'Корал ♡'+Math.round(g.energy[1]);
  $('income').textContent='✦'+g.score;
- let label=phase==='day'?(g.t<83?'Сутрин · два маршрута':g.t<151?'Работа · разминаващи се проходи':g.t<229?'Следобед · вятър и избор':'Помагаме си · ключ и врата'):
- phase==='dusk'?'Привечер · срещнете се':'Нощ · една обща светлина';
+ let label=phase==='day'?
+ (g.t<100?'Сутрин · по две пътеки':g.t<290?'Работа · пет независими пролуки':
+  g.t<580?'Следобед · три силни вятъра':'Към дома · ключ и обща камера'):
+ phase==='dusk'?'Привечер · срещнете се':'Нощ · седем спокойни прохода';
  if(g.joined&&phase==='dusk')label='Прегръдка · възстановяване';
- $('stage').textContent=g.paused?'Пауза':label;
+ $('stage').textContent=g.paused?'Пауза':label+' · ×5 · '+Math.round(speed()*PACE)+' px/s';
  $('hud').style.color=phase==='night'?'#f5e9db':'#4d5f60';
  $('hud').style.textShadow=phase==='night'?'0 2px 7px #131b36':'0 1px 3px #f7f0e688';
  $('energy0').style.color=phase==='night'?'#a7e2dc':'#538f8b';
@@ -446,9 +447,14 @@ function updateHud(){
  $('message').style.color=phase==='night'?'#f1e6d2':'#65817f';
  $('message').style.textShadow=phase==='night'?'0 2px 7px #141d39':'0 2px 8px #f7f0e6df';
  const msg=g.mode==='ready'?'Двата палеца стартират играта.':
- phase==='day'?(g.t<83?'Събирайте светлинките по двата маршрута.':g.t<151?'Дупките са на различни места.':g.t<229?'Вятърът ви притиска към средата.': 'Синя държи ключа; Корал минава през вратата.'):
- phase==='dusk'?(g.joined?'♡ В светлата зона движете двата палеца заедно.':'♡ Съберете двете светлини в центъра!'):
- 'Едно топче. Двата палеца го водят заедно през широките отвори.';
+ phase==='day'?(g.t<100?'Събирайте светлинките по двата маршрута.':
+ g.t<290?'Пет различни пролуки — не са огледални.':
+ g.t<580?(g.wind[0]>0?'→ СИЛЕН ВЯТЪР НАВЪТРЕ ← · бодли в центъра':
+ g.wind[0]<0?'← СИЛЕН ВЯТЪР НАВЪН → · бодли по външните краища':
+ 'Вятърът сменя посоката три пъти.') :
+ 'Синя влиза в ключа ВЛЯВО, Корал в камерата ВДЯСНО.'):
+ phase==='dusk'?(g.joined?'♡ Лекувайте се с ДВАТА палеца в светлата зона.':'♡ Срещнете двете светлини в центъра!'):
+ 'Една светлина · два палеца · седем широки, различни прохода.';
  $('message').textContent=(g.joined&&g.t<902&&g.healCharge<28)?'♡ В светлата зона движете ДВАТА палеца заедно · ♡+'+Math.round(g.healEnergy):msg;
 }
 function line(x,y,xx,yy,color,width=2){
@@ -490,49 +496,66 @@ function draw(){
  }
  ctx.save();ctx.beginPath();ctx.rect(0,a,W,b-a);ctx.clip();
  if(phase==='day'){
-  for(const [sx,sy,ex,ey,t] of barriers(g.t,'day')){
-   line(sx,sy,ex,ey,'#947c76',t+2);
-   line(sx,sy,ex,ey,'#b79d92',t);
+  for(const [sx,sy,ex,ey,t,id] of barriers(g.t,'day')){
+   const brown=id==='chamber'||id==='chamber-door';
+   line(sx,sy,ex,ey,brown?'#9d7b72':'#947c76',t+2);
+   line(sx,sy,ex,ey,brown?'#b59685':'#b79d92',t);
   }
+  // SK-01 v4 visual identity: joined brown room right + turquoise key left.
   const k=keyGeom();
-  if(k.y>a-r*4&&k.y<b+r*4){
-   // Left key powers right gap: two elements share a vertical world anchor.
-   roundedRect(k.keyX-k.keyR,k.y-k.keyR,k.keyR*2,k.keyR*2,7,
-    g.keyOpen>=.97?'#a1d8c4c2':'#bddbd1ba');
-   ctx.strokeStyle='#679c93';ctx.lineWidth=2;
-   ctx.strokeRect(k.keyX-k.keyR,k.y-k.keyR,k.keyR*2,k.keyR*2);
-   disc(k.keyX,k.y-6,7,'#ffffffb0');
-   line(k.keyX,k.y+2,k.keyX,k.y+17,'#669e92',2.4);
-   line(k.keyX,k.y+12,k.keyX+6,k.y+12,'#669e92',2.4);
-   line(k.keyX+k.keyR,k.y,k.gateX-k.gapHalf,k.y,'#94b2a7a5',2);
-   if(g.keyOpen<.97)
-    line(k.gateX-k.gapHalf,k.y,k.gateX+k.gapHalf,k.y,'#599d87',wall()+2);
+  if(k.y>a-k.roomHalf-r*3&&k.y<b+k.roomHalf+r*3){
+   ctx.fillStyle='#f5dfc682';
+   ctx.fillRect(k.roomLeft,k.y-k.roomHalf,k.roomRight-k.roomLeft,k.roomHalf*2);
+   ctx.fillStyle=g.keyArmed?'#88cbbb80':'#b8ded596';
+   ctx.fillRect(k.keyLeft,k.y-k.roomHalf*.70,k.panelWidth,k.roomHalf*1.40);
+   ctx.strokeStyle='#7daba1';ctx.lineWidth=3;
+   ctx.strokeRect(k.keyLeft,k.y-k.roomHalf*.70,k.panelWidth,k.roomHalf*1.40);
+   // Key glyph must be in Blue's field (not a separate distant plate).
+   ctx.strokeStyle='#528f84';ctx.lineWidth=2.4;
+   ctx.beginPath();ctx.arc(k.keyX,k.y-r*.35,r*.4,0,TWO);ctx.stroke();
+   line(k.keyX,k.y+r*.08,k.keyX,k.y+r*.86,'#528f84',2.6);
+   line(k.keyX,k.y+r*.48,k.keyX+r*.30,k.y+r*.48,'#528f84',2.6);
+   if(!g.chamberCollected){
+    disc(k.starX,k.y,17,'#efb66c55');disc(k.starX,k.y,10,'#e7ab60');
+    disc(k.starX-3,k.y-3,3,'#fff9d3');
+   }
+   if(g.keyOpen<.97)line(k.gateX,k.y-k.doorHalf,k.gateX,k.y+k.doorHalf,'#65a78f',wall()+2);
    else{
-    disc(k.gateX-k.gapHalf,k.y,4,'#63b19c');
-    disc(k.gateX+k.gapHalf,k.y,4,'#63b19c');
+    disc(k.gateX,k.y-k.doorHalf,4,'#6faf9c');
+    disc(k.gateX,k.y+k.doorHalf,4,'#6faf9c');
    }
+   // Physical brown walls, consistent with real collision segments.
+   for(const seg of barriers(g.t,'day').filter(x=>x[5]==='chamber'))
+    line(seg[0],seg[1],seg[2],seg[3],'#9b7770',seg[4]+1.5);
   }
-  // Two wind lanes arrive at the same time, with visible centre spikes.
-  if(g.t>=160&&g.t<=225){
-   const alpha=clamp(Math.min((g.t-160)/14,(225-g.t)/12),0,1);
-   ctx.globalAlpha=alpha*.65;
-   for(let yy=a+12;yy<b;yy+=41){
-    line(W*.16,yy,W*.40,yy,'#80bab7',2.4);
-    line(W*.40,yy,W*.40-9,yy-6,'#80bab7',1.5);
-    line(W*.84,yy,W*.60,yy,'#ebb1a1',2.4);
-    line(W*.60,yy,W*.60+9,yy-6,'#ebb1a1',1.5);
+  // Strong wind bands use *actual* Day 13 v2 inward/outward/inward values.
+  for(const band of WIND_BANDS){
+   const low=worldY(band.start),high=worldY(band.end);
+   const from=Math.max(a,low),to=Math.min(b,high);
+   if(from>=to)continue;
+   ctx.fillStyle=band.sign[0]>0?'#80b6b51d':'#c5a8c426';
+   ctx.fillRect(9,from,W-18,to-from);
+   ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+   ctx.fillStyle=phase==='day'?'#7d8f90':'#edf0ff';
+   if(low>=a-25&&low<b)ctx.fillText(band.label,W*.5,low-9);
+   for(let yy=Math.ceil(from/47)*47;yy<to;yy+=47){
+    for(let n=0;n<2;n++){
+     const sign=band.sign[n],cx=n===0?W*.26:W*.74,span=clamp(W*.11,30,92);
+     const x2=cx+sign*span;
+     line(cx,yy,x2,yy,n===0?'#74aaa9':'#d9a19b',2.5);
+     line(x2,yy,x2-sign*10,yy-6,n===0?'#74aaa9':'#d9a19b',2.1);
+     line(x2,yy,x2-sign*10,yy+6,n===0?'#74aaa9':'#d9a19b',2.1);
+    }
    }
-   ctx.globalAlpha=1;
-   for(const when of [182,204]){
-    const yy=worldY(when);
-    for(const side of [-1,1]){
-     const xx=W*.5+side*r*1.9;
-     disc(xx,yy,r*.93,'#b47b8273');
-     for(let j=0;j<7;j++){
-      const angle=j*TWO/7;
-      line(xx+Math.cos(angle)*r*.45,yy+Math.sin(angle)*r*.45,
-       xx+Math.cos(angle)*r*1.1,yy+Math.sin(angle)*r*1.1,'#a46f79',2.3);
-     }
+   for(let yy=Math.ceil(from/28)*28;yy<to;yy+=28){
+    ctx.fillStyle='#a87c86';
+    const reach=band.hazard==='outer'?clamp(W*.036,18,34):clamp(W*.027,12,24);
+    if(band.hazard==='outer'){
+     ctx.beginPath();ctx.moveTo(4,yy-10);ctx.lineTo(4+reach,yy);ctx.lineTo(4,yy+10);ctx.fill();
+     ctx.beginPath();ctx.moveTo(W-4,yy-10);ctx.lineTo(W-4-reach,yy);ctx.lineTo(W-4,yy+10);ctx.fill();
+    }else{
+     ctx.beginPath();ctx.moveTo(W*.5-2,yy-10);ctx.lineTo(W*.5-reach,yy);ctx.lineTo(W*.5-2,yy+10);ctx.fill();
+     ctx.beginPath();ctx.moveTo(W*.5+2,yy-10);ctx.lineTo(W*.5+reach,yy);ctx.lineTo(W*.5+2,yy+10);ctx.fill();
     }
    }
   }
@@ -545,7 +568,7 @@ function draw(){
    disc(x,y,item.value===3?8:6,col);disc(x-2,y-2,1.7,'#ffffffe8');
   }
  }
- if(phase==='dusk'||(g.joined&&g.t<412)){
+ if(phase==='dusk'||(g.joined&&g.t<902)){
   const yy=worldY(832),shine=clamp(height()*.22,54,88);
   const glow=ctx.createRadialGradient(W*.5,yy,2,W*.5,yy,shine*1.35);
   glow.addColorStop(0,'#fee9b98a');glow.addColorStop(1,'#f7c5a600');
@@ -594,7 +617,7 @@ function draw(){
 function frame(ts){
  if(!prevFrame)prevFrame=ts;
  const dt=clamp((ts-prevFrame)/1000,0,.05);prevFrame=ts;
- if(g){update(dt);draw();if(g.real-g.lastHud>.12||g.mode==='done'||g.mode==='ready'){g.lastHud=g.real;updateHud();}}
+ if(g){update(dt);draw();if(g.real-g.lastHud>.12||(g.mode==='done'&&g.lastHud!==g.real)){g.lastHud=g.real;updateHud();}}
  requestAnimationFrame(frame);
 }
 window.__twoHalvesQA={state,advance:update,reset,resize,move,barriers,isSolid,keyGeom,worldY,rowGap,nightGap,blueKey,stage,config:{GAIN,PACE,DAY_END,DUSK_END,END,DAY_ROWS,NIGHT_ROWS,COINS,FIREFLIES}};
