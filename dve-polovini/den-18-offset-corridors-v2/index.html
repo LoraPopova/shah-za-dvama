@@ -60,7 +60,7 @@ header{left:12px;right:12px}h1{font-size:16px}
 'use strict';
 const $=id=>document.getElementById(id),canvas=$('world'),ctx=canvas.getContext('2d');
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const COLORS=['#67a8a3','#ef9882'],GAIN=2.5,PACE=5,DURATION=125,COIN_R=8;
+const COLORS=['#67a8a3','#ef9882'],GAIN=2.5,PACE=5,COIN_R=8;
 const MAX_WORLD_STEP=.02,SCROLL_RATE=.018;
 let W=1,H=1,dpr=1,g=null,prevFrame=0;
 const pads=[{id:null,x:0,y:0,el:$('pad0')},{id:null,x:0,y:0,el:$('pad1')}];
@@ -75,6 +75,8 @@ const ROWS=Object.freeze([
  Object.freeze({id:'fourth',at:49, gaps:[.37,.53],width:.20,label:'ОЩЕ ЕДИН ЗАВОЙ',goldSide:null}),
  Object.freeze({id:'fifth', at:65, gaps:[.72,.74],width:.19,label:'ПОСЛЕДЕН ПРОХОД',goldSide:1})
 ]);
+// The day automatically grows if Level Designer adds later rows.
+const DURATION=Math.max(...ROWS.map(row=>row.at))+60;
 const rad=()=>clamp(Math.min(W,H)*.019,11,19);
 const upper=()=>Math.max(110,H*.16);
 const lower=()=>Math.max(upper()+90,Math.min(H*.69,H-145));
@@ -93,6 +95,36 @@ function opening(row,n){
  const span=clamp(halfW()*chosenWidth*.5,rad()*2.65,halfW()*.21);
  const gl=clamp(center-span,l+rad()+6,r-rad()-6),gr=clamp(center+span,l+rad()+6,r-rad()-6);
  return {left:gl,right:gr,center:(gl+gr)*.5,half:(gr-gl)*.5};
+}
+// Design-side validation. Call window.__twoHalvesQA.auditDesign() for the
+// CURRENT viewport after changing any row count, spacing or hole placement.
+// Both geometrical clearance and the 95px/s-thumb steering budget are checked.
+function auditDesign(thumbSpeed=95){
+ const safety=rad()+thickness()*.5+2,rows=[],issues=[],rewardLag=Math.max(rad()*1.8,playH()*.10)/scrollScale();
+ const ids=new Set();
+ ROWS.forEach((row,i)=>{
+  if(ids.has(row.id))issues.push('duplicate id '+row.id);
+  ids.add(row.id);
+  if(!Number.isFinite(row.at))issues.push(row.id+': invalid at');
+  for(let n=0;n<2;n++){
+   const gap=opening(row,n),fraction=row.gaps[n];
+   if(!Number.isFinite(fraction)||fraction<.15||fraction>.85)issues.push(row.id+': hole outside recommended range for thumb '+n);
+   if(gap.right-gap.left<=safety*2)issues.push(row.id+': hole too narrow for thumb '+n);
+  }
+  if(i>0){
+   const prev=ROWS[i-1],delta=row.at-prev.at,physicalSpacing=delta*scrollScale();
+   const requiredGap=safety*2+5;
+   if(delta<=0||physicalSpacing<=requiredGap)issues.push(row.id+': successive walls physically overlap');
+   const available=Math.max(0,(delta-rewardLag)/PACE);
+   for(let n=0;n<2;n++){
+    const dx=Math.abs(opening(row,n).center-opening(prev,n).center);
+    const steeringSeconds=dx/(GAIN*thumbSpeed);
+    if(steeringSeconds*1.25>available)issues.push(row.id+': insufficient steering time for thumb '+n);
+   }
+   rows.push({from:prev.id,to:row.id,worldGap:delta,pixelGap:physicalSpacing,availableSeconds:available});
+  }
+ });
+ return {count:ROWS.length,maxScore:MAX_SCORE,duration:DURATION,rows,issues,valid:issues.length===0};
 }
 function segments(row,n,time=g.time){
  const yy=rowY(row,time),k=opening(row,n),l=n*halfW(),r=l+halfW(),w=thickness();
@@ -289,8 +321,7 @@ function draw(){
    }
    circle(gap.left,cy,3.8,'#78b4a4');circle(gap.right,cy,3.8,'#78b4a4');
    ctx.fillStyle='#a2d0b52a';ctx.fillRect(gap.left,cy-5,gap.right-gap.left,10);
-   ctx.font='bold 12px sans-serif';ctx.fillStyle='#a37a72';ctx.textAlign='center';
-   ctx.fillText(row.label,gap.center,cy+27);
+   // No repeated words beside every gap: spatial geometry is the instruction.
   }
  }
  for(const item of ITEMS){
@@ -316,7 +347,7 @@ function frame(ts){
  const dt=Math.max(0,Math.min(.05,(ts-prevFrame)/1000));prevFrame=ts;
  if(g)update(dt);if(g)draw();requestAnimationFrame(frame);
 }
-window.__twoHalvesQA={state,advance:update,reset,move,collision,segments,opening,rowY,itemPos,resize,rows:ROWS,maxScore:MAX_SCORE,scrollScale};
+window.__twoHalvesQA={state,advance:update,reset,move,collision,segments,opening,rowY,itemPos,resize,rows:ROWS,maxScore:MAX_SCORE,scrollScale,auditDesign};
 window.addEventListener('resize',resize,{passive:true});resize();requestAnimationFrame(frame);
 })();
 </script>
