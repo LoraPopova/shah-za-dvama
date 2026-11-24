@@ -268,7 +268,7 @@ function update(dt){
   if(powered)g.open=Math.min(1,g.open+part/OPEN_SECONDS);
   else{
    const atRoom=room(),b=g.balls[1],r=radius(),nearGate=
-     Math.abs(b.x-atRoom.left)<r+wall()+3&&Math.abs(b.y-roomY())<atRoom.doorHalf+r*.6;
+     Math.abs(b.x-atRoom.left)<r+wall()*.5+2&&Math.abs(b.y-roomY())<atRoom.doorHalf+r*.6;
    if(nearGate&&g.open>=.97)g.open=.971;
    else g.open=Math.max(0,g.open-part/CLOSE_SECONDS);
   }
