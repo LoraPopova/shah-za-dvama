@@ -207,7 +207,9 @@ function move(n,dx,dy){
   if(n===1&&solid(b.x,b.y)){b.y=y;hit(n);}
   if(n===0){
    const p=plate();
-   if(Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12)g.plateArmed=true;
+   // Arm only while Blue actively occupies the moving disk; leaving
+   // invalidates this frame immediately, rather than waiting for update().
+   g.plateArmed=Math.hypot(b.x-p.x,b.y-p.y)<=p.r-radius()*.12;
   }
   if(n===1)checkCoral(true);
  }
