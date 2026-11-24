@@ -416,6 +416,8 @@ function reconcileTouches(list){
 }
 const inputRegion=t=>t.clientY>=H*.47;
 function touchStart(e){
+ // Do not swallow taps on Retry or other UI when the level has finished.
+ if(g.mode==='done'||e.target?.closest?.('button, #result, #menu'))return;
  const active=Array.from(e.touches||e.changedTouches||[]);
  if(e.touches)reconcileTouches(active);
  let captured=false;
