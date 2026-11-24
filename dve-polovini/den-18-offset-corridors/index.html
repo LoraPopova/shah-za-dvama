@@ -211,7 +211,7 @@ $('pause').addEventListener('click',()=>{
 function finish(){
  if(g.finished)return;g.finished=true;g.mode='done';
  $('outcome').textContent=g.crushed?'ПРЕГРАДАТА ТЕ НАСТИГНА':'КРАЙ НА КОРИДОРИТЕ';
- $('result').textContent='Преминати пролуки '+g.cleared.flat().filter(Boolean).length+'/4 · Събрани ✦'+g.score+' от възможни 12 · Енергия '+g.energy.map(v=>Math.round(v)).join(' / ')+'.';
+ $('result').textContent='Преминати пролуки '+g.cleared.flat().filter(Boolean).length+'/4 · Събрани ✦'+g.score+' от възможни 14 · Енергия '+g.energy.map(v=>Math.round(v)).join(' / ')+'.';
  $('finish').style.display='flex';
 }
 function update(dt){
