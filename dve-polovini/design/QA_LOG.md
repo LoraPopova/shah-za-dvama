@@ -640,3 +640,8 @@ Creative Director коригира v9 брифа: **един голям обла
 
 ## 2026-11-24 — Level 01 v10: положителна творческа оценка
 Creative Director отговори **„Да добре е“** за представената v10 (бавен пресичащ облак, едно топче при нощно SK-05 чистене). Това е положителна обратна връзка за работната посока. **Не е записан отделен изричен физически iPad checklist/FPS тест**, затова автоматизираните QA резултати остават отделно от човешката оценка. v10 остава запазена; бъдещи промени — в нова версия.
+
+
+## 2026-11-25 — Level 01 v11 ритъм и общи цели (EXPERIMENT)
+След положителната оценка „Да добре е“ за v10 Creative Director разреши следващия gameplay stage. [Spec v11](LEVEL_01_DAY_NIGHT_V11.md) и `level-01-day-night-v11/index.html`: дневните коридори от 8 прави+wave стават **6 прави+wave**, групирани 3 сутрин/3 работа; 2 optional duet-collectible pairs при at194 и at580 (действително две ръце в <=2.6real sec: всяка искра +1, двоен bonus +8 once); вечерният U/wind/2×slow cloud/day rescue/key unchanged. Нощта е 12 wide offset passages в четири серии по три (преди16), target ≥8/12, два optional sync echoes при 1078/1196 (+6 при true crossing и recent dual gesture, no punishment if missed), original SK-05 unified orb unchanged.
+**Синтетичен QA на main JS:** 24/24 full-to-clean/negative, 48/48 duet+echo specific, 2/2 full simulated pixel-alpha cleaning win; idle night only4/12. **Няма физически iPad тест v11, не е доказано enjoyment/balance. v10 е запазена.**
