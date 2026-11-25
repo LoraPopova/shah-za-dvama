@@ -73,18 +73,18 @@ const DAY_ROWS=Object.freeze([
 // Three contrasting night passages per group, followed by a short breather.
 // Echo arches are existing wide passages with optional reward for sync.
 const NIGHT_ROWS=Object.freeze([
- {id:'moon1',at:895,center:.27,width:.40},
- {id:'moon2',at:925,center:.70,width:.42},
+ {id:'moon1',at:895,center:.24,width:.38},
+ {id:'moon2',at:925,center:.76,width:.38},
  {id:'moon3',at:955,center:.46,width:.50},
- {id:'moon4',at:1018,center:.63,width:.44},
- {id:'moon5',at:1048,center:.28,width:.42},
- {id:'moon6',at:1078,center:.55,width:.48,echo:true},
- {id:'moon7',at:1136,center:.30,width:.42},
- {id:'moon8',at:1166,center:.74,width:.42},
+ {id:'moon4',at:1018,center:.72,width:.38},
+ {id:'moon5',at:1048,center:.25,width:.40},
+ {id:'moon6',at:1078,center:.57,width:.44,echo:true},
+ {id:'moon7',at:1136,center:.24,width:.38},
+ {id:'moon8',at:1166,center:.76,width:.40},
  {id:'moon9',at:1196,center:.49,width:.50,echo:true},
- {id:'moon10',at:1240,center:.65,width:.44},
- {id:'moon11',at:1270,center:.32,width:.42},
- {id:'moon12',at:1300,center:.60,width:.46}
+ {id:'moon10',at:1240,center:.74,width:.38},
+ {id:'moon11',at:1270,center:.25,width:.38},
+ {id:'moon12',at:1300,center:.63,width:.40}
 ]);
 // Day 13 Wind v2: exact 1.00, 1.24, 1.37 and centre/outside spikes.
 const WIND_BANDS=Object.freeze([
@@ -970,7 +970,7 @@ function update(dt){
      g.nightApproached[j]=true;
     if(!g.nightCleared[j]&&g.nightApproached[j]&&after<b.y-r-wall()*.5){
      g.nightCleared[j]=true;
-     if(row.echo&&g.syncValue>=.45&&g.real-g.syncReal<=.24&&
+     if(row.echo&&g.syncValue>=.45&&g.real-g.syncReal<=1.10&&
         pads.every(p=>p.id!==null)){
        g.echoes.push(row.id);g.echoesWon++;
        g.score+=6;g.echoFxUntil=g.real+.9;
